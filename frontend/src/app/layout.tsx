@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "FleetAI - Gestão Inteligente de Frotas",
   description: "Plataforma de mobilidade, logística e gestão de frotas com IA",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>
-        <Navbar />
-        <main className="min-h-[calc(100vh-56px)]">{children}</main>
-      </body>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={inter.variable}>{children}</body>
     </html>
   );
 }

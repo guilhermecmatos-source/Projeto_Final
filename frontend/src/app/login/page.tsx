@@ -1,13 +1,19 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Icon from "@/components/ui/Icon";
+import AuthHero from "@/components/auth/AuthHero";
 import { authApi } from "@/services/api";
+import { IMAGES } from "@/lib/images";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("admin@fleetplatform.com");
   const [password, setPassword] = useState("Admin@123");
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,6 +25,7 @@ export default function LoginPage() {
       const { data } = await authApi.login(email, password);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      if (remember) localStorage.setItem("remember", "1");
       router.push("/dashboard");
     } catch {
       setError("Credenciais inválidas. Tente novamente.");
@@ -28,52 +35,115 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-fleet-900 via-fleet-700 to-blue-500 p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl"
-      >
-        <h1 className="mb-2 text-2xl font-bold text-fleet-900">FleetAI</h1>
-        <p className="mb-6 text-slate-500">Gestão inteligente de frotas</p>
+    <main className="flex min-h-screen">
+      <AuthHero imageUrl={IMAGES.loginElectricCar} alt="Veículo elétrico moderno" />
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
-        )}
+      <section className="flex w-full items-center justify-center bg-surface p-4 md:p-8 lg:w-1/2">
+        <div className="w-full max-w-[440px]">
+          <div className="mb-8 flex items-center gap-2 lg:hidden">
+            <Icon name="local_shipping" className="text-3xl text-primary" />
+            <span className="text-headline-sm font-bold text-primary">FleetAI</span>
+          </div>
 
-        <label className="mb-4 block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">E-mail</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-fleet-500 focus:outline-none focus:ring-2 focus:ring-fleet-500/20"
-            required
-          />
-        </label>
+          <header className="mb-8">
+            <h2 className="mb-1 text-headline-md text-on-surface">Bem-vindo de volta</h2>
+            <p className="text-body-md text-on-surface-variant">
+              Acesse sua conta para gerenciar sua frota.
+            </p>
+          </header>
 
-        <label className="mb-6 block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">Senha</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:border-fleet-500 focus:outline-none focus:ring-2 focus:ring-fleet-500/20"
-            required
-          />
-        </label>
+          {error && (
+            <div className="mb-4 rounded-lg bg-error-container p-3 text-sm text-on-error-container">
+              {error}
+            </div>
+          )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-fleet-600 py-3 font-semibold text-white transition hover:bg-fleet-700 disabled:opacity-50"
-        >
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-1 block text-label-md uppercase tracking-wider text-on-surface-variant"
+              >
+                E-mail ou Usuário
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-fleet"
+                placeholder="exemplo@fleetcontrol.com"
+                required
+              />
+            </div>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Admin padrão: admin@fleetplatform.com / Admin@123
-        </p>
-      </form>
-    </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-1 block text-label-md uppercase tracking-wider text-on-surface-variant"
+              >
+                Senha
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-fleet pr-12"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  <Icon name={showPassword ? "visibility_off" : "visibility"} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-5 w-5 rounded border-outline-variant text-primary focus:ring-primary"
+                />
+                <span className="text-body-md text-on-surface-variant">Lembrar de mim</span>
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-label-md font-bold text-primary hover:underline"
+              >
+                Esqueceu a senha?
+              </Link>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn-secondary h-14 w-full rounded-xl">
+              {loading ? "Entrando..." : "Entrar"}
+              <Icon name="arrow_forward" />
+            </button>
+          </form>
+
+          <footer className="mt-8 border-t border-outline-variant pt-6 text-center">
+            <p className="text-body-md text-on-surface-variant">
+              Novo na plataforma?{" "}
+              <Link href="/register" className="ml-1 font-bold text-primary hover:underline">
+                Solicitar acesso
+              </Link>
+            </p>
+          </footer>
+
+          <div className="mt-6 flex items-center justify-center gap-2 text-outline opacity-60">
+            <Icon name="lock" className="text-base" />
+            <span className="text-label-md">Ambiente seguro e criptografado</span>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

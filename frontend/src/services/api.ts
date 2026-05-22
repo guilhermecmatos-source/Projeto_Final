@@ -46,4 +46,38 @@ export const dashboardApi = {
 
 export const vehiclesApi = {
   list: () => api.get("/vehicles"),
+  get: (id: string) => api.get(`/vehicles/${id}`),
+  create: (data: Record<string, unknown>) => api.post("/vehicles", data),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/vehicles/${id}`, data),
+  remove: (id: string) => api.delete(`/vehicles/${id}`),
+};
+
+export const driversApi = {
+  list: () => api.get("/drivers"),
+  get: (id: string) => api.get(`/drivers/${id}`),
+  create: (data: Record<string, unknown>) => api.post("/drivers", data),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/drivers/${id}`, data),
+  remove: (id: string) => api.delete(`/drivers/${id}`),
+};
+
+export const travelsApi = {
+  list: () => api.get("/travels"),
+  get: (id: string) => api.get(`/travels/${id}`),
+  create: (data: Record<string, unknown>) => api.post("/travels", data),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/travels/${id}`, data),
+  cancel: (id: string) => api.patch(`/travels/${id}/cancel`),
+};
+
+export const fuelApi = {
+  list: () => api.get("/fuel"),
+  create: (data: Record<string, unknown>) => api.post("/fuel", data),
+  report: (vehicleId?: string) =>
+    api.get("/fuel/report", { params: vehicleId ? { vehicleId } : {} }),
+};
+
+export const maintenanceApi = {
+  list: () => api.get("/maintenance"),
+  create: (data: Record<string, unknown>) => api.post("/maintenance", data),
+  complete: (id: string) => api.patch(`/maintenance/${id}/complete`),
+  alerts: () => api.get("/maintenance/alerts"),
 };

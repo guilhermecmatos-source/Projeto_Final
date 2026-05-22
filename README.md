@@ -27,6 +27,8 @@ docker compose exec backend npm run db:migrate
 
 - Frontend: http://localhost:3000
 - API: http://localhost:3001
+- **Swagger UI:** http://localhost:3001/api-docs
+- **OpenAPI JSON:** http://localhost:3001/api-docs.json
 
 ### Local (sem Docker)
 
@@ -53,15 +55,28 @@ docker compose exec backend npm run db:migrate
 | E-mail | `admin@fleetplatform.com` |
 | Senha | `Admin@123` |
 
+## Documentação da API (Swagger)
+
+Com o backend em execução, acesse **http://localhost:3001/api-docs** para explorar e testar todos os endpoints.
+
+1. Faça login em `POST /api/auth/login` com o admin padrão.
+2. Copie o `token` da resposta.
+3. Clique em **Authorize** no Swagger e informe: `Bearer <seu_token>`.
+
 ## Endpoints principais
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | POST | `/api/auth/login` | Login JWT |
 | GET | `/api/vehicles` | Listar veículos |
+| POST | `/api/vehicles` | Cadastrar veículo |
 | GET | `/api/drivers` | Listar motoristas |
+| POST | `/api/drivers` | Cadastrar motorista |
 | GET | `/api/travels` | Listar viagens |
+| POST | `/api/travels` | Criar despacho |
+| POST | `/api/fuel` | Registrar abastecimento |
 | GET | `/api/fuel/report` | Relatório de combustível |
+| POST | `/api/maintenance` | Agendar manutenção |
 | GET | `/api/maintenance/alerts` | Alertas preventivos |
 | GET | `/api/dashboard` | KPIs e alertas IA |
 

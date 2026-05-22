@@ -1,190 +1,213 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import AppShell from "@/components/layout/AppShell";
+import Icon from "@/components/ui/Icon";
+import KpiCard from "@/components/ui/KpiCard";
+import PageHeader from "@/components/ui/PageHeader";
 import { dashboardApi } from "@/services/api";
+import ActionLink from "@/components/ui/ActionLink";
+import { ACTION_ROUTES } from "@/lib/action-routes";
 import { DashboardData, PredictiveAlert } from "@/types";
+import { IMAGES } from "@/lib/images";
 
-function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-bold text-fleet-900">{value}</p>
-      {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
-    </div>
-  );
-}
-
-function severityColor(severity: PredictiveAlert["severity"]) {
-  if (severity === "high") return "border-red-300 bg-red-50";
-  if (severity === "medium") return "border-amber-300 bg-amber-50";
-  return "border-blue-300 bg-blue-50";
+function severityBorder(severity: PredictiveAlert["severity"]) {
+  if (severity === "high") return "border-l-error";
+  if (severity === "medium") return "border-l-secondary-container";
+  return "border-l-primary";
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
     dashboardApi
       .get()
       .then((res) => setData(res.data))
-      .catch(() => setError("Não foi possível carregar o dashboard."))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-slate-500">Carregando dashboard...</p>
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="mx-auto max-w-7xl p-8">
-        <p className="text-red-600">{error || "Dados indisponíveis"}</p>
-      </div>
-    );
-  }
-
-  const { kpis, alerts, vehicles, forecast } = data;
+  const kpis = data?.kpis;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6">
-      <header>
-        <h1 className="text-2xl font-bold text-fleet-900">Dashboard Inteligente</h1>
-        <p className="text-slate-500">Visão operacional em tempo real da frota</p>
-      </header>
+    <AppShell
+      headerAction={
+        <ActionLink href={ACTION_ROUTES.dashboardRegister} className="uppercase">
+          <Icon name="add_circle" className="text-sm" />
+          Novo Registro
+        </ActionLink>
+      }
+    >
+      <PageHeader
+        title="Dashboard Principal - Cockpit"
+        subtitle="Consolidado operacional, financeiro e logístico em tempo real."
+        actions={
+          <>
+            <ActionLink
+              href="/dashboard"
+              variant="outline"
+              className="!border-primary-container !text-primary-container"
+            >
+              <Icon name="calendar_today" />
+              Últimos 30 dias
+            </ActionLink>
+            <ActionLink
+              href={ACTION_ROUTES.dashboardExport}
+              variant="outline"
+              className="!border-primary-container !text-primary-container"
+            >
+              <Icon name="download" />
+              Exportar
+            </ActionLink>
+          </>
+        }
+      />
 
-      {/* KPIs */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <KpiCard label="Veículos Ativos" value={kpis.vehicles.active} sub={`${kpis.vehicles.total} total`} />
-        <KpiCard label="Motoristas" value={kpis.drivers} />
-        <KpiCard label="Viagens Concluídas" value={kpis.travels.completed} sub={`${kpis.travels.total} registradas`} />
-        <KpiCard
-          label="Custo Combustível"
-          value={`R$ ${kpis.fuelCost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-        />
-        <KpiCard label="Manutenções Pendentes" value={kpis.pendingMaintenance} />
-      </section>
+      {loading ? (
+        <p className="text-on-surface-variant">Carregando dados...</p>
+      ) : (
+        <>
+          <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+            <KpiCard label="Ganhos Mensais" value="R$ 142.4k" icon="payments" trend="+12.5%" trendUp accent="primary" />
+            <KpiCard label="Entregas Concluídas" value={kpis?.travels.completed ?? 0} icon="inventory_2" trend="98.2%" trendUp accent="secondary" />
+            <KpiCard label="Veículos Ativos" value={kpis?.vehicles.active ?? 0} icon="directions_car" trend={`${kpis?.vehicles.total ?? 0} total`} accent="green" />
+            <KpiCard label="Motoristas" value={kpis?.drivers ?? 0} icon="person" accent="primary" />
+            <KpiCard label="Custo Combustível" value={`R$ ${(kpis?.fuelCost ?? 0).toLocaleString("pt-BR")}`} icon="local_gas_station" accent="secondary" />
+            <KpiCard label="Manutenções" value={kpis?.pendingMaintenance ?? 0} icon="build" accent="error" />
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Alertas IA */}
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-fleet-900">Alertas Inteligentes</h2>
-          {alerts.length === 0 ? (
-            <p className="text-sm text-slate-400">Nenhum alerta no momento.</p>
-          ) : (
-            <ul className="space-y-3 max-h-80 overflow-y-auto">
-              {alerts.map((alert, i) => (
-                <li key={i} className={`rounded-lg border p-3 ${severityColor(alert.severity)}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase text-slate-500">{alert.type}</span>
-                    <span className="text-xs font-medium capitalize">{alert.severity}</span>
+          <div className="mb-8 grid gap-6 lg:grid-cols-12">
+            <section className="raised-card overflow-hidden lg:col-span-8">
+              <div className="border-b border-outline-variant p-4">
+                <h3 className="text-headline-sm text-on-surface">Mapa Operacional em Tempo Real</h3>
+              </div>
+              <div
+                className="relative h-64 bg-primary/90 bg-cover bg-center md:h-80"
+                style={{
+                  backgroundImage: `linear-gradient(rgba(0,61,155,0.7), rgba(0,61,155,0.85)), url(${IMAGES.mapInterface})`,
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="grid grid-cols-3 gap-8 text-center text-white">
+                    {["SP Hub", "RJ Node", "BH Depot"].map((hub) => (
+                      <div key={hub} className="rounded-lg bg-white/10 px-4 py-3 backdrop-blur">
+                        <Icon name="location_on" className="mb-1 text-secondary-container" />
+                        <p className="text-label-md font-bold">{hub}</p>
+                        <p className="text-xs opacity-80">Ativo</p>
+                      </div>
+                    ))}
                   </div>
-                  <p className="mt-1 text-sm font-medium">{alert.message}</p>
-                  <p className="mt-1 text-xs text-slate-600">{alert.recommendation}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                </div>
+              </div>
+            </section>
 
-        {/* Previsão logística */}
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-fleet-900">Previsão Logística (IA)</h2>
-          <div className="space-y-4">
-            <div className="rounded-lg bg-fleet-50 p-4">
-              <p className="text-sm text-slate-500">Viagens previstas (próx. 7 dias)</p>
-              <p className="text-4xl font-bold text-fleet-700">{forecast.expectedTrips}</p>
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-medium text-slate-600">Dias de pico</p>
+            <section className="raised-card p-4 lg:col-span-4">
+              <h3 className="mb-4 flex items-center gap-2 text-headline-sm text-primary">
+                <Icon name="psychology" />
+                Alertas Inteligentes
+              </h3>
+              <ul className="max-h-72 space-y-3 overflow-y-auto">
+                {(data?.alerts ?? []).length === 0 ? (
+                  <li className="text-sm text-on-surface-variant">Nenhum alerta no momento.</li>
+                ) : (
+                  data?.alerts.map((alert, i) => (
+                    <li
+                      key={i}
+                      className={`rounded-lg border-l-4 bg-surface-container-low p-3 ${severityBorder(alert.severity)}`}
+                    >
+                      <div className="flex justify-between text-xs uppercase text-on-surface-variant">
+                        <span>{alert.type}</span>
+                        <span className="capitalize">{alert.severity}</span>
+                      </div>
+                      <p className="mt-1 text-sm font-medium">{alert.message}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{alert.recommendation}</p>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="raised-card p-6">
+              <h3 className="mb-4 text-headline-sm">Previsão Logística (IA)</h3>
+              <div className="mb-4 rounded-lg bg-primary-fixed/30 p-4">
+                <p className="text-sm text-on-surface-variant">Viagens previstas (7 dias)</p>
+                <p className="text-4xl font-bold text-primary">
+                  {data?.forecast.expectedTrips ?? "—"}
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
-                {forecast.peakDays.map((day) => (
-                  <span key={day} className="rounded-full bg-fleet-100 px-3 py-1 text-sm text-fleet-700">
+                {(data?.forecast.peakDays ?? []).map((day) => (
+                  <span
+                    key={day}
+                    className="rounded-full bg-primary-container/10 px-3 py-1 text-sm text-primary"
+                  >
                     {day}
                   </span>
                 ))}
               </div>
-            </div>
-            <p className="text-sm text-slate-500">{forecast.recommendation}</p>
-          </div>
-        </section>
-      </div>
+              <p className="mt-4 text-sm text-on-surface-variant">
+                {data?.forecast.recommendation ?? "Aguardando análise preditiva."}
+              </p>
+            </section>
 
-      {/* Gráfico simplificado + veículos */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-fleet-900">Distribuição Operacional</h2>
-          <div className="space-y-3">
-            <Bar label="Viagens concluídas" value={kpis.travels.completed} max={kpis.travels.total || 1} color="bg-fleet-600" />
-            <Bar label="Veículos ativos" value={kpis.vehicles.active} max={kpis.vehicles.total || 1} color="bg-green-500" />
-            <Bar label="Manutenções pendentes" value={kpis.pendingMaintenance} max={Math.max(kpis.pendingMaintenance, 10)} color="bg-amber-500" />
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-fleet-900">Veículos Recentes</h2>
-          {vehicles.length === 0 ? (
-            <p className="text-sm text-slate-400">Nenhum veículo cadastrado.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-slate-500">
-                  <th className="pb-2">Placa</th>
-                  <th className="pb-2">Modelo</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2 text-right">Km</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vehicles.map((v) => (
-                  <tr key={v.id} className="border-b border-slate-100">
-                    <td className="py-2 font-medium">{v.plate}</td>
-                    <td className="py-2">{v.brand} {v.model}</td>
-                    <td className="py-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${
-                        v.status === "active" ? "bg-green-100 text-green-700" :
-                        v.status === "maintenance" ? "bg-amber-100 text-amber-700" :
-                        "bg-slate-100 text-slate-600"
-                      }`}>
-                        {v.status}
-                      </span>
-                    </td>
-                    <td className="py-2 text-right">{Number(v.mileage).toLocaleString("pt-BR")}</td>
+            <section className="raised-card overflow-hidden p-0">
+              <h3 className="border-b border-outline-variant p-4 text-headline-sm">
+                Veículos Recentes
+              </h3>
+              <table className="zebra-table w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
+                    <th className="px-4 py-3">Placa</th>
+                    <th className="px-4 py-3">Modelo</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Km</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      </div>
-    </div>
-  );
-}
+                </thead>
+                <tbody>
+                  {(data?.vehicles ?? []).map((v) => (
+                    <tr key={v.id} className="border-b border-outline-variant/30">
+                      <td className="px-4 py-3 font-medium">{v.plate}</td>
+                      <td className="px-4 py-3">
+                        {v.brand} {v.model}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={
+                            v.status === "active"
+                              ? "chip-active"
+                              : v.status === "maintenance"
+                                ? "chip-warning"
+                                : "chip-pending"
+                          }
+                        >
+                          {v.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {Number(v.mileage).toLocaleString("pt-BR")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          </div>
 
-function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  return (
-    <div>
-      <div className="mb-1 flex justify-between text-sm">
-        <span>{label}</span>
-        <span className="font-medium">{value}</span>
-      </div>
-      <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
+          <div className="mt-6 rounded-xl border border-primary-container/20 bg-primary-container/5 p-4">
+            <p className="text-xs text-on-surface-variant">
+              A análise de IA identificou economia potencial de 14% em combustível remapeando hubs
+              de Cajamar e Barueri.{" "}
+              <ActionLink href="/intelligence" variant="ghost" className="!inline">
+                Ver análise detalhada
+              </ActionLink>
+            </p>
+          </div>
+        </>
+      )}
+    </AppShell>
   );
 }
