@@ -7,8 +7,8 @@ import { AuthPayload } from "../middlewares/auth.middleware";
 export class AuthService {
   async login(email: string, password: string) {
     const users = await query<User>(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
+      "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
+      [email.trim()]
     );
     if (users.length === 0) {
       throw new Error("Invalid credentials");
@@ -43,10 +43,15 @@ export class AuthService {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const rows = await query<User>(
+    const normalizedEmail = email.trim().toLowerCase();
+    await query(
       `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4) RETURNING id, name, email, role`,
-      [name, email, hash, role]
+       VALUES ($1, $2, $3, $4)`,
+      [name, normalizedEmail, hash, role]
+    );
+    const rows = await query<User>(
+      "SELECT id, name, email, role FROM users WHERE email = $1",
+      [normalizedEmail]
     );
     return rows[0];
   }

@@ -23,14 +23,21 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await authApi.login(email, password);
+      const { data } = await authApi.login(email.trim(), password);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       ensureCurrentProfileInList(data.user);
       if (remember) localStorage.setItem("remember", "1");
       router.push("/dashboard");
-    } catch {
-      setError("Credenciais inválidas. Tente novamente.");
+    } catch (err: unknown) {
+      const apiMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      if (!apiMsg && !(err as { response?: unknown })?.response) {
+        setError(
+          "Não foi possível conectar à API. Inicie o backend (porta 3001) e confira NEXT_PUBLIC_API_URL no frontend."
+        );
+      } else {
+        setError(apiMsg || "Credenciais inválidas. Use admin@fleetplatform.com / Admin@123");
+      }
     } finally {
       setLoading(false);
     }

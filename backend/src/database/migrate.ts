@@ -130,20 +130,18 @@ async function migrate() {
     `);
 
     const adminEmail = "admin@fleetplatform.com";
-    const [existing] = await conn.query<mysql.RowDataPacket[]>(
-      "SELECT id FROM users WHERE email = ?",
-      [adminEmail]
+    const adminPassword = "Admin@123";
+    const hash = await bcrypt.hash(adminPassword, 10);
+    await conn.query(
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES (?, ?, ?, 'admin')
+       ON DUPLICATE KEY UPDATE
+         name = VALUES(name),
+         password_hash = VALUES(password_hash),
+         role = 'admin'`,
+      ["System Administrator", adminEmail, hash]
     );
-
-    if (existing.length === 0) {
-      const hash = await bcrypt.hash("Admin@123", 10);
-      await conn.query(
-        `INSERT INTO users (name, email, password_hash, role)
-         VALUES (?, ?, ?, 'admin')`,
-        ["System Administrator", adminEmail, hash]
-      );
-      console.log("Default admin created: admin@fleetplatform.com / Admin@123");
-    }
+    console.log(`Admin garantido: ${adminEmail} / ${adminPassword}`);
 
     await conn.commit();
     console.log(`Migration completed successfully on database "${dbName}".`);

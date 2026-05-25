@@ -11,6 +11,7 @@ import travelRoutes from "./routes/travel.routes";
 import fuelRoutes from "./routes/fuel.routes";
 import maintenanceRoutes from "./routes/maintenance.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import { pingDatabase } from "./database/connection";
 
 dotenv.config();
 
@@ -41,6 +42,15 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Fleet Platform API running on port ${PORT}`);
+  try {
+    await pingDatabase();
+    console.log("MySQL conectado.");
+  } catch (err) {
+    console.error(
+      "AVISO: MySQL não conectou. Configure backend/.env e execute: npm run db:migrate",
+      err
+    );
+  }
 });

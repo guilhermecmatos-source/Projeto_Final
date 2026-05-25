@@ -37,12 +37,66 @@ function toMysql(sql: string): string {
   return sql.replace(/\$(\d+)/g, "?");
 }
 
+const RETURNING_RE = /\s+RETURNING\s+(.+)$/i;
+
+function extractTableName(sql: string): string | null {
+  const insert = sql.match(/INSERT\s+INTO\s+`?(\w+)`?/i);
+  if (insert) return insert[1];
+  const update = sql.match(/UPDATE\s+`?(\w+)`?/i);
+  if (update) return update[1];
+  const del = sql.match(/DELETE\s+FROM\s+`?(\w+)`?/i);
+  if (del) return del[1];
+  return null;
+}
+
+async function fetchAfterWrite<T>(
+  baseSql: string,
+  params: unknown[] | undefined,
+  returningClause: string
+): Promise<T[]> {
+  const table = extractTableName(baseSql);
+  if (!table) return [];
+
+  const op = baseSql.trim().split(/\s+/)[0].toUpperCase();
+
+  if (op === "INSERT") {
+    const [rows] = await pool.execute(
+      `SELECT ${returningClause === "*" ? "*" : returningClause} FROM \`${table}\` ORDER BY created_at DESC LIMIT 1`
+    );
+    return rows as T[];
+  }
+
+  if ((op === "UPDATE" || op === "DELETE") && params?.[0] != null) {
+    if (returningClause.toLowerCase() === "id" && op === "DELETE") {
+      return [{ id: params[0] }] as T[];
+    }
+    const [rows] = await pool.execute(
+      `SELECT ${returningClause === "*" ? "*" : returningClause} FROM \`${table}\` WHERE id = ? LIMIT 1`,
+      [params[0]]
+    );
+    return rows as T[];
+  }
+
+  return [];
+}
+
 export async function query<T = unknown>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const [rows] = await pool.execute(toMysql(text), params as (string | number | boolean | null)[]);
-  return rows as T[];
+  let sql = toMysql(text);
+  const returningMatch = sql.match(RETURNING_RE);
+
+  if (!returningMatch) {
+    const [rows] = await pool.execute(sql, params as (string | number | boolean | null)[]);
+    return rows as T[];
+  }
+
+  const returningClause = returningMatch[1].trim();
+  const baseSql = sql.replace(RETURNING_RE, "").trim();
+
+  await pool.execute(baseSql, params as (string | number | boolean | null)[]);
+  return fetchAfterWrite<T>(baseSql, params, returningClause);
 }
 
 export function getDbName(): string {
@@ -51,4 +105,9 @@ export function getDbName(): string {
     return new URL(url).pathname.replace(/^\//, "") || "fleet_db";
   }
   return process.env.DB_NAME || "fleet_db";
+}
+
+/** Testa conexão com o MySQL (útil no boot da API). */
+export async function pingDatabase(): Promise<void> {
+  await pool.query("SELECT 1");
 }

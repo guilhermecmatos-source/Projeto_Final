@@ -7,10 +7,28 @@ export class AuthController {
     try {
       const { email, password } = req.body;
       if (!email || !password) return sendError(res, 400, "Email and password are required");
-      const result = await authService.login(email, password);
+      const result = await authService.login(String(email).trim().toLowerCase(), password);
       return res.json(result);
-    } catch {
-      return sendError(res, 401, "Invalid credentials");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (
+        message.includes("ECONNREFUSED") ||
+        message.includes("ER_ACCESS_DENIED") ||
+        message.includes("ER_BAD_DB_ERROR") ||
+        message.includes("connect")
+      ) {
+        console.error("[auth/login] Database error:", err);
+        return sendError(
+          res,
+          503,
+          "Banco de dados indisponível. Verifique MySQL e execute: npm run db:migrate"
+        );
+      }
+      if (message === "Invalid credentials") {
+        return sendError(res, 401, "Credenciais inválidas");
+      }
+      console.error("[auth/login]", err);
+      return sendError(res, 401, "Credenciais inválidas");
     }
   }
 
