@@ -89,6 +89,34 @@
   .chip-pending {
     @apply rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-orange-800;
   }
+
+  .table-responsive {
+    @apply block w-full overflow-x-auto;
+  }
+
+  .accordion-trigger {
+    @apply flex w-full items-center justify-between gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-4 text-left transition hover:bg-surface-container-high;
+  }
+
+  .accordion-panel {
+    @apply mt-2 space-y-2 rounded-lg border border-outline-variant/50 bg-surface p-4;
+  }
+}
+
+@media (max-width: 640px) {
+  .zebra-table thead {
+    display: none;
+  }
+  .zebra-table tbody tr {
+    @apply mb-3 block rounded-lg border border-outline-variant p-2;
+  }
+  .zebra-table tbody td {
+    @apply flex justify-between border-0 px-3 py-2;
+  }
+  .zebra-table tbody td::before {
+    content: attr(data-label);
+    @apply mr-4 font-semibold text-on-surface-variant;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -96,4 +124,17 @@
 }
 ::-webkit-scrollbar-thumb {
   @apply rounded-full bg-outline-variant;
+}
+
+@media print {
+  aside,
+  header,
+  .btn-primary,
+  .btn-secondary,
+  button[type="button"] {
+    display: none !important;
+  }
+  .lg\:ml-64 {
+    margin-left: 0 !important;
+  }
 }

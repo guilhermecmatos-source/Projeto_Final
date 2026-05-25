@@ -6,21 +6,39 @@ import Icon from "@/components/ui/Icon";
 import { NAV_ITEMS } from "@/lib/navigation";
 import { IMAGES } from "@/lib/images";
 import { User } from "@/types";
+import ProfileSwitcher from "./ProfileSwitcher";
 
 interface SidebarProps {
   user: User | null;
+  open?: boolean;
+  onClose?: () => void;
+  onProfileChange?: (user: User) => void;
 }
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, open = false, onClose, onProfileChange }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-outline-variant bg-surface-container-low py-6">
-      <div className="mb-8 px-4">
-        <h1 className="text-headline-md font-bold text-primary">FleetAI</h1>
-        <p className="text-label-md uppercase tracking-wider text-on-surface-variant">
-          Operational Control
-        </p>
+    <aside
+      className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-outline-variant bg-surface-container-low py-6 transition-transform duration-200 lg:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      }`}
+    >
+      <div className="mb-6 flex items-center justify-between px-4">
+        <div>
+          <h1 className="text-headline-md font-bold text-primary">FleetAI</h1>
+          <p className="text-label-md uppercase tracking-wider text-on-surface-variant">
+            Operational Control
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-lg p-1 lg:hidden"
+          aria-label="Fechar menu"
+          onClick={onClose}
+        >
+          <Icon name="close" />
+        </button>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-2">
@@ -31,6 +49,7 @@ export default function Sidebar({ user }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition ${
                 active
                   ? "nav-active"
@@ -49,9 +68,9 @@ export default function Sidebar({ user }: SidebarProps) {
           <img
             src={IMAGES.userAvatar}
             alt=""
-            className="h-10 w-10 rounded-full border border-outline-variant object-cover"
+            className="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-label-md font-bold text-on-surface">
               {user?.name ?? "Operador"}
             </p>
@@ -60,6 +79,9 @@ export default function Sidebar({ user }: SidebarProps) {
             </p>
           </div>
         </div>
+        {onProfileChange && (
+          <ProfileSwitcher user={user} onProfileChange={onProfileChange} />
+        )}
       </div>
     </aside>
   );

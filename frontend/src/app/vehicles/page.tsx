@@ -50,16 +50,10 @@ export default function VehiclesPage() {
         breadcrumb="Gestão de Veículos"
         title="Inventário de Frota"
         actions={
-          <>
-            <ActionLink href={ACTION_ROUTES.vehiclesRegister} variant="outline" className="!border-primary-container !text-primary-container">
-              <Icon name="filter_list" />
-              Cadastro Rápido
-            </ActionLink>
-            <ActionLink href={ACTION_ROUTES.vehiclesRegister}>
-              <Icon name="directions_car" />
-              Cadastrar Veículo
-            </ActionLink>
-          </>
+          <ActionLink href={ACTION_ROUTES.vehiclesRegister}>
+            <Icon name="directions_car" />
+            Cadastrar Veículo
+          </ActionLink>
         }
       />
 
@@ -98,40 +92,50 @@ export default function VehiclesPage() {
             </button>
           ))}
         </div>
-        <table className="zebra-table w-full text-left text-body-md">
-          <thead>
-            <tr className="border-b bg-surface-container/50 text-label-md text-on-surface-variant">
-              <th className="px-6 py-4">Placa</th>
-              <th className="px-6 py-4">Modelo</th>
-              <th className="px-6 py-4">Motorista</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Quilometragem</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant/30">
-            {filtered.map((v) => (
-              <tr key={v.plate}>
-                <td className="px-6 py-4 font-bold">{v.plate}</td>
-                <td className="px-6 py-4">{v.model}</td>
-                <td className="px-6 py-4">{v.driver}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={
-                      v.status === "active"
-                        ? "chip-active"
-                        : v.status === "maintenance"
-                          ? "chip-warning"
-                          : "chip-pending"
-                    }
-                  >
-                    {v.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">{v.km} km</td>
+        <div className="table-responsive">
+          <table className="zebra-table w-full min-w-[520px] text-left text-body-md">
+            <thead>
+              <tr className="border-b bg-surface-container/50 text-label-md text-on-surface-variant">
+                <th className="px-4 py-4 sm:px-6">Placa</th>
+                <th className="px-4 py-4 sm:px-6">Modelo</th>
+                <th className="px-4 py-4 sm:px-6">Motorista</th>
+                <th className="px-4 py-4 sm:px-6">Status</th>
+                <th className="px-4 py-4 text-right sm:px-6">Quilometragem</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/30">
+              {filtered.map((v) => (
+                <tr key={v.plate}>
+                  <td className="px-4 py-4 font-bold sm:px-6" data-label="Placa">
+                    {v.plate}
+                  </td>
+                  <td className="px-4 py-4 sm:px-6" data-label="Modelo">
+                    {v.model}
+                  </td>
+                  <td className="px-4 py-4 sm:px-6" data-label="Motorista">
+                    {v.driver}
+                  </td>
+                  <td className="px-4 py-4 sm:px-6" data-label="Status">
+                    <span
+                      className={
+                        v.status === "active"
+                          ? "chip-active"
+                          : v.status === "maintenance"
+                            ? "chip-warning"
+                            : "chip-pending"
+                      }
+                    >
+                      {v.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-right sm:px-6" data-label="Km">
+                    {v.km} km
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </AppShell>
   );

@@ -45,7 +45,7 @@ export default function TopHeader({
         </div>
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
         {action}
         <Link
           href="/dashboard"
@@ -54,6 +54,13 @@ export default function TopHeader({
         >
           <Icon name="notifications" className="text-on-surface-variant" />
           <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-error" />
+        </Link>
+        <Link
+          href="/profile"
+          className="rounded-full p-2 transition hover:bg-surface-container-high"
+          aria-label="Perfis de usuário"
+        >
+          <Icon name="switch_account" className="text-on-surface-variant" />
         </Link>
         <Link
           href="/partners/docs"

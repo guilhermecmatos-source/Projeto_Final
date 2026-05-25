@@ -7,6 +7,7 @@ import Icon from "@/components/ui/Icon";
 import AuthHero from "@/components/auth/AuthHero";
 import { authApi } from "@/services/api";
 import { IMAGES } from "@/lib/images";
+import { ensureCurrentProfileInList } from "@/lib/profiles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function LoginPage() {
       const { data } = await authApi.login(email, password);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      ensureCurrentProfileInList(data.user);
       if (remember) localStorage.setItem("remember", "1");
       router.push("/dashboard");
     } catch {

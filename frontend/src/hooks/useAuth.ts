@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/types";
+import { ensureCurrentProfileInList } from "@/lib/profiles";
 
 export function useAuth(redirectToLogin = true) {
   const router = useRouter();
@@ -18,9 +19,18 @@ export function useAuth(redirectToLogin = true) {
       return;
     }
 
-    if (stored) setUser(JSON.parse(stored));
+    if (stored) {
+      const parsed = JSON.parse(stored) as User;
+      setUser(parsed);
+      ensureCurrentProfileInList(parsed);
+    }
     setReady(true);
   }, [router, redirectToLogin]);
 
-  return { user, ready };
+  const updateUser = useCallback((u: User) => {
+    setUser(u);
+    localStorage.setItem("user", JSON.stringify(u));
+  }, []);
+
+  return { user, ready, setUser: updateUser };
 }

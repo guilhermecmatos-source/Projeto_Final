@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
+import LiveGpsMap from "@/components/map/LiveGpsMap";
 import Icon from "@/components/ui/Icon";
 import KpiCard from "@/components/ui/KpiCard";
 import PageHeader from "@/components/ui/PageHeader";
@@ -9,7 +10,6 @@ import { dashboardApi } from "@/services/api";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { DashboardData, PredictiveAlert } from "@/types";
-import { IMAGES } from "@/lib/images";
 
 function severityBorder(severity: PredictiveAlert["severity"]) {
   if (severity === "high") return "border-l-error";
@@ -20,6 +20,7 @@ function severityBorder(severity: PredictiveAlert["severity"]) {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<"30" | "7" | "today">("30");
 
   useEffect(() => {
     dashboardApi
@@ -33,6 +34,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell
+      headerTitle="Dashboard Principal"
       headerAction={
         <ActionLink href={ACTION_ROUTES.dashboardRegister} className="uppercase">
           <Icon name="add_circle" className="text-sm" />
@@ -41,18 +43,31 @@ export default function DashboardPage() {
       }
     >
       <PageHeader
-        title="Dashboard Principal - Cockpit"
+        title="Dashboard Principal"
         subtitle="Consolidado operacional, financeiro e logístico em tempo real."
         actions={
           <>
-            <ActionLink
-              href="/dashboard"
-              variant="outline"
-              className="!border-primary-container !text-primary-container"
-            >
-              <Icon name="calendar_today" />
-              Últimos 30 dias
-            </ActionLink>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "30" as const, label: "Últimos 30 dias" },
+                { id: "7" as const, label: "7 dias" },
+                { id: "today" as const, label: "Hoje" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPeriod(p.id)}
+                  className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-label-md transition ${
+                    period === p.id
+                      ? "border-primary bg-primary-container/10 font-bold text-primary"
+                      : "border-outline-variant bg-white hover:bg-surface-container-low"
+                  }`}
+                >
+                  <Icon name="calendar_today" className="text-sm" />
+                  {p.label}
+                </button>
+              ))}
+            </div>
             <ActionLink
               href={ACTION_ROUTES.dashboardExport}
               variant="outline"
@@ -69,7 +84,7 @@ export default function DashboardPage() {
         <p className="text-on-surface-variant">Carregando dados...</p>
       ) : (
         <>
-          <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
             <KpiCard label="Ganhos Mensais" value="R$ 142.4k" icon="payments" trend="+12.5%" trendUp accent="primary" />
             <KpiCard label="Entregas Concluídas" value={kpis?.travels.completed ?? 0} icon="inventory_2" trend="98.2%" trendUp accent="secondary" />
             <KpiCard label="Veículos Ativos" value={kpis?.vehicles.active ?? 0} icon="directions_car" trend={`${kpis?.vehicles.total ?? 0} total`} accent="green" />
@@ -82,25 +97,9 @@ export default function DashboardPage() {
             <section className="raised-card overflow-hidden lg:col-span-8">
               <div className="border-b border-outline-variant p-4">
                 <h3 className="text-headline-sm text-on-surface">Mapa Operacional em Tempo Real</h3>
+                <p className="text-sm text-on-surface-variant">GPS ao vivo dos veículos em operação</p>
               </div>
-              <div
-                className="relative h-64 bg-primary/90 bg-cover bg-center md:h-80"
-                style={{
-                  backgroundImage: `linear-gradient(rgba(0,61,155,0.7), rgba(0,61,155,0.85)), url(${IMAGES.mapInterface})`,
-                }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="grid grid-cols-3 gap-8 text-center text-white">
-                    {["SP Hub", "RJ Node", "BH Depot"].map((hub) => (
-                      <div key={hub} className="rounded-lg bg-white/10 px-4 py-3 backdrop-blur">
-                        <Icon name="location_on" className="mb-1 text-secondary-container" />
-                        <p className="text-label-md font-bold">{hub}</p>
-                        <p className="text-xs opacity-80">Ativo</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <LiveGpsMap />
             </section>
 
             <section className="raised-card p-4 lg:col-span-4">
@@ -131,7 +130,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <section className="raised-card p-6">
+            <section className="raised-card p-4 sm:p-6">
               <h3 className="mb-4 text-headline-sm">Previsão Logística (IA)</h3>
               <div className="mb-4 rounded-lg bg-primary-fixed/30 p-4">
                 <p className="text-sm text-on-surface-variant">Viagens previstas (7 dias)</p>
@@ -158,42 +157,46 @@ export default function DashboardPage() {
               <h3 className="border-b border-outline-variant p-4 text-headline-sm">
                 Veículos Recentes
               </h3>
-              <table className="zebra-table w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
-                    <th className="px-4 py-3">Placa</th>
-                    <th className="px-4 py-3">Modelo</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Km</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.vehicles ?? []).map((v) => (
-                    <tr key={v.id} className="border-b border-outline-variant/30">
-                      <td className="px-4 py-3 font-medium">{v.plate}</td>
-                      <td className="px-4 py-3">
-                        {v.brand} {v.model}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={
-                            v.status === "active"
-                              ? "chip-active"
-                              : v.status === "maintenance"
-                                ? "chip-warning"
-                                : "chip-pending"
-                          }
-                        >
-                          {v.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {Number(v.mileage).toLocaleString("pt-BR")}
-                      </td>
+              <div className="table-responsive">
+                <table className="zebra-table w-full min-w-[480px] text-sm">
+                  <thead>
+                    <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
+                      <th className="px-4 py-3">Placa</th>
+                      <th className="px-4 py-3">Modelo</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Km</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {(data?.vehicles ?? []).map((v) => (
+                      <tr key={v.id} className="border-b border-outline-variant/30">
+                        <td className="px-4 py-3 font-medium" data-label="Placa">
+                          {v.plate}
+                        </td>
+                        <td className="px-4 py-3" data-label="Modelo">
+                          {v.brand} {v.model}
+                        </td>
+                        <td className="px-4 py-3" data-label="Status">
+                          <span
+                            className={
+                              v.status === "active"
+                                ? "chip-active"
+                                : v.status === "maintenance"
+                                  ? "chip-warning"
+                                  : "chip-pending"
+                            }
+                          >
+                            {v.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right" data-label="Km">
+                          {Number(v.mileage).toLocaleString("pt-BR")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </div>
 
