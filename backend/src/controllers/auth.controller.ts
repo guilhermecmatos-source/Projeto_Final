@@ -11,11 +11,17 @@ export class AuthController {
       return res.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
+      const sqlMessage =
+        err && typeof err === "object" && "sqlMessage" in err
+          ? String((err as { sqlMessage?: string }).sqlMessage)
+          : "";
+
       if (
         message.includes("ECONNREFUSED") ||
         message.includes("ER_ACCESS_DENIED") ||
         message.includes("ER_BAD_DB_ERROR") ||
-        message.includes("connect")
+        message.includes("connect") ||
+        sqlMessage.includes("Access denied")
       ) {
         console.error("[auth/login] Database error:", err);
         return sendError(
@@ -28,7 +34,11 @@ export class AuthController {
         return sendError(res, 401, "Credenciais inválidas");
       }
       console.error("[auth/login]", err);
-      return sendError(res, 401, "Credenciais inválidas");
+      return sendError(
+        res,
+        500,
+        "Erro no servidor ao autenticar. Reinicie o backend e tente novamente."
+      );
     }
   }
 

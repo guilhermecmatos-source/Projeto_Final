@@ -13,7 +13,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/maintenance", label: "Manutenção", icon: "build" },
   { href: "/fuel", label: "Abastecimentos", icon: "local_gas_station" },
   { href: "/inspection", label: "Inspeção", icon: "fact_check" },
-  { href: "/ai-security", label: "AI Sandbox", icon: "psychology" },
+  { href: "/ai-security", label: "IA Sandbox", icon: "psychology" },
   { href: "/intelligence", label: "Inteligência", icon: "insights" },
   { href: "/reports", label: "Relatórios", icon: "bar_chart" },
   { href: "/partners", label: "Parceiros", icon: "handshake" },

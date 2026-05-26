@@ -3,7 +3,10 @@
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
+import TripCostCalculator from "@/components/ai/TripCostCalculator";
+import PredictiveMaintenancePanel from "@/components/ai/PredictiveMaintenancePanel";
 import { IMAGES } from "@/lib/images";
+import Link from "next/link";
 
 const METRICS = [
   { label: "Eficiência Operacional", value: "94.2%", trend: "+3.1%" },
@@ -29,6 +32,19 @@ export default function IntelligencePage() {
           </div>
         ))}
       </div>
+
+      <div className="mb-8 grid gap-6 lg:grid-cols-2">
+        <TripCostCalculator />
+        <PredictiveMaintenancePanel compact />
+      </div>
+
+      <p className="mb-6 text-sm">
+        Assistente de diagnóstico completo em{" "}
+        <Link href="/ai-security" className="font-bold text-primary hover:underline">
+          IA Sandbox
+        </Link>
+        .
+      </p>
 
       <div className="grid gap-6 lg:grid-cols-12">
         <section

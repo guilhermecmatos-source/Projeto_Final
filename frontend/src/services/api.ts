@@ -1,7 +1,10 @@
 import axios from "axios";
 
+/** Usa /api no browser (proxy Next → backend :3001). Evita 404 quando o front sobe na porta 3001. */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
+  baseURL:
+    process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== "undefined" ? "/api" : "http://127.0.0.1:3001/api"),
   headers: { "Content-Type": "application/json" },
 });
 

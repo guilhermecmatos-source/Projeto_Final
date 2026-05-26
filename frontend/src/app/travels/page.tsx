@@ -7,6 +7,7 @@ import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
+import RouteTrackerMap from "@/components/map/RouteTrackerMap";
 
 const KPI = [
   { label: "Viagens Ativas", value: "24", sub: "+12%" },
@@ -56,6 +57,10 @@ export default function TravelsPage() {
             >
               <Icon name="auto_awesome" />
               Matching AI
+            </ActionLink>
+            <ActionLink href={ACTION_ROUTES.travelsRuv} variant="outline" className="!rounded-xl !py-3">
+              <Icon name="description" />
+              RUV
             </ActionLink>
             <ActionLink href={ACTION_ROUTES.travelsRegister} variant="secondary" className="!rounded-xl !py-3">
               <Icon name="add_circle" />
@@ -155,26 +160,9 @@ export default function TravelsPage() {
           ))}
         </section>
 
-        <section className="raised-card p-6 lg:col-span-5">
+        <section className="lg:col-span-5">
           <h3 className="mb-4 text-headline-sm">Rota em Tempo Real</h3>
-          <div
-            className="mb-4 flex h-48 items-center justify-center rounded-lg bg-primary/10 text-on-surface-variant"
-            style={{
-              backgroundImage: `linear-gradient(rgba(0,61,155,0.1), rgba(0,61,155,0.2))`,
-            }}
-          >
-            <Icon name="map" className="text-6xl text-primary/30" />
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span>Progresso</span>
-              <span className="font-bold text-primary">68%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-              <div className="h-full w-[68%] bg-primary" />
-            </div>
-            <p className="text-on-surface-variant">ETA: 2h 14min • 412 km restantes</p>
-          </div>
+          <RouteTrackerMap heightClass="min-h-[220px] md:min-h-[280px]" />
         </section>
       </div>
     </AppShell>

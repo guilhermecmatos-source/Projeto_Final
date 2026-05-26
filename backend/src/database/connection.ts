@@ -32,9 +32,9 @@ function getPoolConfig(): mysql.PoolOptions {
 
 export const pool = mysql.createPool(getPoolConfig());
 
-/** Converte placeholders PostgreSQL ($1) para MySQL (?) */
+/** Converte placeholders PostgreSQL ($1, $2…) para MySQL (?) */
 function toMysql(sql: string): string {
-  return sql.replace(/\$(\d+)/g, "?");
+  return sql.replace(/\$(\d+)/g, () => "?");
 }
 
 const RETURNING_RE = /\s+RETURNING\s+(.+)$/i;

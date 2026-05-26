@@ -112,6 +112,35 @@ export default function LogisticsPage() {
         </section>
       </div>
 
+      <section className="mt-8 raised-card p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-headline-sm">Movimentação do Veículo</h2>
+            <p className="text-sm text-on-surface-variant">
+              Saída, chegada, hodômetro e fechamento de RUV
+            </p>
+          </div>
+          <ActionLink href={ACTION_ROUTES.logisticsMovement}>
+            <Icon name="edit_road" />
+            Registrar Movimentação
+          </ActionLink>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3 text-sm">
+          <div className="rounded-lg bg-surface-container-low p-4">
+            <p className="text-on-surface-variant">Última saída</p>
+            <p className="font-bold">Hub Cajamar</p>
+          </div>
+          <div className="rounded-lg bg-surface-container-low p-4">
+            <p className="text-on-surface-variant">Hodômetro</p>
+            <p className="font-bold">48.520 → 48.892 km</p>
+          </div>
+          <div className="rounded-lg bg-surface-container-low p-4">
+            <p className="text-on-surface-variant">RUV fechamento</p>
+            <p className="font-bold">372 km rodados</p>
+          </div>
+        </div>
+      </section>
+
       <section className="mt-8">
         <h2 className="mb-4 text-headline-sm">Listagem de Despachos</h2>
         <div className="raised-card divide-y divide-outline-variant/30 overflow-hidden">

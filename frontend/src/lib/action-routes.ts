@@ -8,6 +8,8 @@ export const ACTION_ROUTES = {
   travelsAssign: "/travels/assign",
   travelsMatching: "/travels/matching",
   travelsSuggestions: "/travels/suggestions",
+  travelsRuv: "/travels/ruv",
+  logisticsMovement: "/logistics/movement",
   maintenanceRegister: "/maintenance/register",
   maintenanceSchedule: "/maintenance/schedule",
   logisticsDispatch: "/logistics/dispatch",

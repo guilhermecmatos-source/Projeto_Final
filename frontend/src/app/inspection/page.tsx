@@ -1,11 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
+import ChecklistToggle from "@/components/ui/ChecklistToggle";
 import { ACTION_ROUTES } from "@/lib/action-routes";
+import { getQuickChecklist, setQuickChecklistItem } from "@/lib/offline";
+
+const CHECKLIST_ITEMS = [
+  "Pneus e rodas",
+  "Freios",
+  "Luzes e sinalização",
+  "Documentação",
+  "Interior e limpeza",
+];
 
 const INSPECTIONS = [
   { id: "INS-2026-041", vehicle: "ABC-1234", date: "20/05/2026", score: 92, status: "Aprovado" },
@@ -13,15 +24,26 @@ const INSPECTIONS = [
   { id: "INS-2026-035", vehicle: "GHI-9012", date: "15/05/2026", score: 88, status: "Aprovado" },
 ];
 
-const CHECKLIST = [
-  { item: "Pneus e rodas", ok: true },
-  { item: "Freios", ok: true },
-  { item: "Luzes e sinalização", ok: true },
-  { item: "Documentação", ok: false },
-  { item: "Interior e limpeza", ok: true },
-];
-
 export default function InspectionPage() {
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const saved = getQuickChecklist();
+    const initial: Record<string, boolean> = {};
+    CHECKLIST_ITEMS.forEach((item) => {
+      initial[item] = saved[item] ?? false;
+    });
+    setChecklist(initial);
+  }, []);
+
+  function toggleItem(item: string) {
+    const next = !checklist[item];
+    setChecklist((prev) => ({ ...prev, [item]: next }));
+    setQuickChecklistItem(item, next);
+  }
+
+  const doneCount = CHECKLIST_ITEMS.filter((i) => checklist[i]).length;
+
   return (
     <AppShell>
       <PageHeader
@@ -44,18 +66,19 @@ export default function InspectionPage() {
 
       <div className="grid gap-6 lg:grid-cols-12">
         <section className="raised-card p-6 lg:col-span-5">
-          <h3 className="mb-4 text-headline-sm text-primary">Checklist Rápido</h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-headline-sm text-primary">Checklist Rápido</h3>
+            <span className="text-sm font-bold text-on-surface-variant">
+              {doneCount}/{CHECKLIST_ITEMS.length} concluídos
+            </span>
+          </div>
           <ul className="space-y-3">
-            {CHECKLIST.map((c) => (
-              <li
-                key={c.item}
-                className="flex items-center justify-between rounded-lg border border-outline-variant p-3"
-              >
-                <span className="text-body-md">{c.item}</span>
-                <Icon
-                  name={c.ok ? "check_circle" : "cancel"}
-                  className={c.ok ? "text-green-600" : "text-error"}
-                  filled
+            {CHECKLIST_ITEMS.map((item) => (
+              <li key={item}>
+                <ChecklistToggle
+                  label={item}
+                  completed={!!checklist[item]}
+                  onToggle={() => toggleItem(item)}
                 />
               </li>
             ))}
@@ -66,35 +89,45 @@ export default function InspectionPage() {
           <div className="border-b border-outline-variant p-4">
             <h3 className="text-headline-sm">Relatórios Recentes</h3>
           </div>
-          <table className="zebra-table w-full text-body-md">
-            <thead>
-              <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
-                <th className="px-6 py-3">ID</th>
-                <th className="px-6 py-3">Veículo</th>
-                <th className="px-6 py-3">Data</th>
-                <th className="px-6 py-3">Score</th>
-                <th className="px-6 py-3">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {INSPECTIONS.map((i) => (
-                <tr key={i.id}>
-                  <td className="px-6 py-4 font-medium">{i.id}</td>
-                  <td className="px-6 py-4">{i.vehicle}</td>
-                  <td className="px-6 py-4">{i.date}</td>
-                  <td className="px-6 py-4 font-bold text-primary">{i.score}/100</td>
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`${ACTION_ROUTES.inspectionDetail}?id=${i.id}`}
-                      className="text-label-md font-bold text-primary hover:underline"
-                    >
-                      Ver detalhe
-                    </Link>
-                  </td>
+          <div className="table-responsive">
+            <table className="zebra-table w-full min-w-[480px] text-body-md">
+              <thead>
+                <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
+                  <th className="px-6 py-3">ID</th>
+                  <th className="px-6 py-3">Veículo</th>
+                  <th className="px-6 py-3">Data</th>
+                  <th className="px-6 py-3">Score</th>
+                  <th className="px-6 py-3">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {INSPECTIONS.map((i) => (
+                  <tr key={i.id}>
+                    <td className="px-6 py-4 font-medium" data-label="ID">
+                      {i.id}
+                    </td>
+                    <td className="px-6 py-4" data-label="Veículo">
+                      {i.vehicle}
+                    </td>
+                    <td className="px-6 py-4" data-label="Data">
+                      {i.date}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-primary" data-label="Score">
+                      {i.score}/100
+                    </td>
+                    <td className="px-6 py-4" data-label="Ações">
+                      <Link
+                        href={`${ACTION_ROUTES.inspectionDetail}?id=${i.id}`}
+                        className="text-label-md font-bold text-primary hover:underline"
+                      >
+                        Ver detalhe
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       </div>
     </AppShell>

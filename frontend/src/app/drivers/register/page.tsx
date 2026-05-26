@@ -5,7 +5,11 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import FormField from "@/components/forms/FormField";
+import FileUploadField from "@/components/forms/FileUploadField";
+import FormActions from "@/components/forms/FormActions";
+import ChecklistToggle from "@/components/ui/ChecklistToggle";
 import Icon from "@/components/ui/Icon";
+import { getQuickChecklist, setQuickChecklistItem } from "@/lib/offline";
 import { driversApi } from "@/services/api";
 import {
   addToSyncQueue,
@@ -52,12 +56,37 @@ export default function DriverRegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [departureCheck, setDepartureCheck] = useState<Record<string, boolean>>({});
+  const [arrivalCheck, setArrivalCheck] = useState<Record<string, boolean>>({});
   const { online, pendingCount, syncNow } = useOffline();
 
   useEffect(() => {
     const draft = getDriverDraft();
     if (draft?.savedAt) setLastSaved(draft.savedAt as string);
+    const saved = getQuickChecklist();
+    const dep: Record<string, boolean> = {};
+    const arr: Record<string, boolean> = {};
+    DEPARTURE_CHECKLIST.forEach((item) => {
+      dep[item] = saved[`dep_${item}`] ?? false;
+    });
+    ARRIVAL_CHECKLIST.forEach((item) => {
+      arr[item] = saved[`arr_${item}`] ?? false;
+    });
+    setDepartureCheck(dep);
+    setArrivalCheck(arr);
   }, []);
+
+  function toggleDeparture(item: string) {
+    const next = !departureCheck[item];
+    setDepartureCheck((p) => ({ ...p, [item]: next }));
+    setQuickChecklistItem(`dep_${item}`, next);
+  }
+
+  function toggleArrival(item: string) {
+    const next = !arrivalCheck[item];
+    setArrivalCheck((p) => ({ ...p, [item]: next }));
+    setQuickChecklistItem(`arr_${item}`, next);
+  }
 
   async function submitToApi(form: FormData) {
     await driversApi.create({
@@ -176,6 +205,15 @@ export default function DriverRegisterPage() {
         <section className="raised-card p-4 sm:p-6">
           <h2 className="mb-4 text-headline-sm">CNH</h2>
           <FormField label="Número da carteira de motorista" name="license_number" required />
+          <div className="mt-4">
+            <FileUploadField
+              label="Upload CNH (imagem ou PDF)"
+              storageKey="fleet_driver_cnh_files"
+              accept="image/*,.pdf"
+              multiple={false}
+              hint="Arquivo salvo localmente com preview"
+            />
+          </div>
         </section>
 
         <section className="raised-card p-4 sm:p-6">
@@ -190,8 +228,13 @@ export default function DriverRegisterPage() {
         <section className="raised-card p-4 sm:p-6">
           <h2 className="mb-4 text-headline-sm">Checklist de saída</h2>
           <div className="grid gap-2 sm:grid-cols-2">
-            {DEPARTURE_CHECKLIST.map((item, i) => (
-              <FormField key={item} label={item} name={`departure_${i}`} as="checkbox" />
+            {DEPARTURE_CHECKLIST.map((item) => (
+              <ChecklistToggle
+                key={item}
+                label={item}
+                completed={!!departureCheck[item]}
+                onToggle={() => toggleDeparture(item)}
+              />
             ))}
           </div>
         </section>
@@ -199,8 +242,13 @@ export default function DriverRegisterPage() {
         <section className="raised-card p-4 sm:p-6">
           <h2 className="mb-4 text-headline-sm">Checklist de chegada</h2>
           <div className="grid gap-2 sm:grid-cols-2">
-            {ARRIVAL_CHECKLIST.map((item, i) => (
-              <FormField key={item} label={item} name={`arrival_${i}`} as="checkbox" />
+            {ARRIVAL_CHECKLIST.map((item) => (
+              <ChecklistToggle
+                key={item}
+                label={item}
+                completed={!!arrivalCheck[item]}
+                onToggle={() => toggleArrival(item)}
+              />
             ))}
           </div>
         </section>
@@ -218,6 +266,13 @@ export default function DriverRegisterPage() {
             ]} />
             <FormField label="Observações" name="expense_notes" as="textarea" className="md:col-span-2" />
           </div>
+          <div className="mt-4">
+            <FileUploadField
+              label="Upload de imagens (gastos / comprovantes)"
+              storageKey="fleet_driver_expense_files"
+              accept="image/*"
+            />
+          </div>
         </section>
 
         <section className="raised-card p-4 sm:p-6">
@@ -231,29 +286,13 @@ export default function DriverRegisterPage() {
           />
         </section>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <button type="submit" disabled={loading} className="btn-primary">
-            <Icon name="save" />
-            {loading ? "Salvando..." : "Salvar e enviar"}
-          </button>
-          <button type="button" onClick={handleExportPdf} className="btn-secondary">
-            <Icon name="picture_as_pdf" />
-            Exportar PDF
-          </button>
-          <button type="button" onClick={handleSaveLocal} className="rounded-lg border border-outline-variant px-6 py-3 font-semibold hover:bg-surface-container-low">
-            <Icon name="download" className="mr-1 inline" />
-            Salvar localmente
-          </button>
-          <button
-            type="button"
-            onClick={handleSyncNow}
-            disabled={!online}
-            className="rounded-lg border border-primary px-6 py-3 font-semibold text-primary hover:bg-primary-container/10 disabled:opacity-50"
-          >
-            <Icon name="sync" className="mr-1 inline" />
-            Sincronizar agora
-          </button>
-        </div>
+        <FormActions
+          loading={loading}
+          onSaveLocal={handleSaveLocal}
+          onSyncNow={handleSyncNow}
+          onExportPdf={handleExportPdf}
+          syncDisabled={!online}
+        />
       </form>
     </AppShell>
   );

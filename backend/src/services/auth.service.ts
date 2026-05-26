@@ -6,16 +6,18 @@ import { AuthPayload } from "../middlewares/auth.middleware";
 
 export class AuthService {
   async login(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase();
     const users = await query<User>(
-      "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
-      [email.trim()]
+      "SELECT * FROM users WHERE email = $1",
+      [normalizedEmail]
     );
     if (users.length === 0) {
       throw new Error("Invalid credentials");
     }
 
     const user = users[0];
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const hash = String(user.password_hash ?? "");
+    const valid = await bcrypt.compare(password, hash);
     if (!valid) {
       throw new Error("Invalid credentials");
     }

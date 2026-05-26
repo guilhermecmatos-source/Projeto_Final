@@ -36,13 +36,9 @@ export class DashboardService {
   }
 
   async getRecentVehicles(limit = 5) {
-    // 1. Garante que o limite seja estritamente um número inteiro
-    const parsedLimit = parseInt(String(limit), 10) || 5;
-
+    const parsedLimit = Math.min(50, Math.max(1, parseInt(String(limit), 10) || 5));
     return query(
-      // 2. Mudou de LIMIT $1 para LIMIT ? (padrão do MySQL)
-      "SELECT id, plate, brand, model, status, mileage FROM vehicles ORDER BY updated_at DESC LIMIT ?",
-      [parsedLimit]
+      `SELECT id, plate, brand, model, status, mileage FROM vehicles ORDER BY updated_at DESC LIMIT ${parsedLimit}`
     );
   }
 

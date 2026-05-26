@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
-import LiveGpsMap from "@/components/map/LiveGpsMap";
+import RouteTrackerMap from "@/components/map/RouteTrackerMap";
+import AiSummaryWidgets from "@/components/dashboard/AiSummaryWidgets";
 import Icon from "@/components/ui/Icon";
 import KpiCard from "@/components/ui/KpiCard";
 import PageHeader from "@/components/ui/PageHeader";
@@ -84,6 +85,8 @@ export default function DashboardPage() {
         <p className="text-on-surface-variant">Carregando dados...</p>
       ) : (
         <>
+          <AiSummaryWidgets />
+
           <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
             <KpiCard label="Ganhos Mensais" value="R$ 142.4k" icon="payments" trend="+12.5%" trendUp accent="primary" />
             <KpiCard label="Entregas Concluídas" value={kpis?.travels.completed ?? 0} icon="inventory_2" trend="98.2%" trendUp accent="secondary" />
@@ -99,7 +102,7 @@ export default function DashboardPage() {
                 <h3 className="text-headline-sm text-on-surface">Mapa Operacional em Tempo Real</h3>
                 <p className="text-sm text-on-surface-variant">GPS ao vivo dos veículos em operação</p>
               </div>
-              <LiveGpsMap />
+              <RouteTrackerMap />
             </section>
 
             <section className="raised-card p-4 lg:col-span-4">
