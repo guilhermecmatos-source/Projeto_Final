@@ -44,7 +44,25 @@ export const authApi = {
 };
 
 export const dashboardApi = {
-  get: () => api.get("/dashboard"),
+  get: (params?: { dateFrom?: string; dateTo?: string }) =>
+    api.get("/dashboard", { params }),
+};
+
+export const geocodingApi = {
+  distance: (origin: string, destination: string) =>
+    api.get("/geocoding/distance", { params: { origin, destination } }),
+};
+
+export const uploadsApi = {
+  upload: (file: File, entityType: string, entityId?: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("entityType", entityType);
+    if (entityId) form.append("entityId", entityId);
+    return api.post("/uploads", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export const vehiclesApi = {

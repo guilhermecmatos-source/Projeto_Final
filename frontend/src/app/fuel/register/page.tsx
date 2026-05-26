@@ -129,7 +129,9 @@ export default function FuelRegisterPage() {
               setSuccess("Rascunho salvo localmente.");
             }
           }}
-          onSyncNow={() => syncNow()}
+          onSyncNow={async () => {
+            await syncNow();
+          }}
           syncDisabled={!online}
         />
       </form>

@@ -2,7 +2,18 @@ import { query } from "../database/connection";
 import { predictiveService } from "../ai/predictive.service";
 
 export class DashboardService {
-  async getKpis() {
+  async getKpis(dateFrom?: string, dateTo?: string) {
+    const travelDateFilter =
+      dateFrom && dateTo
+        ? `WHERE created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)`
+        : "";
+    const fuelDateFilter =
+      dateFrom && dateTo
+        ? `WHERE filled_at >= ? AND filled_at < DATE_ADD(?, INTERVAL 1 DAY)`
+        : "";
+    const travelParams = dateFrom && dateTo ? [dateFrom, dateTo] : [];
+    const fuelParams = dateFrom && dateTo ? [dateFrom, dateTo] : [];
+
     const [vehicles, drivers, travels, fuel, maintenance] = await Promise.all([
       query<{ total: string; active: string }>(
         `SELECT CAST(COUNT(*) AS CHAR) as total,
@@ -11,10 +22,12 @@ export class DashboardService {
       query<{ total: string }>("SELECT CAST(COUNT(*) AS CHAR) as total FROM drivers WHERE active = 1"),
       query<{ total: string; completed: string }>(
         `SELECT CAST(COUNT(*) AS CHAR) as total,
-         CAST(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS CHAR) as completed FROM travels`
+         CAST(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS CHAR) as completed FROM travels ${travelDateFilter}`,
+        travelParams
       ),
       query<{ total_cost: string }>(
-        "SELECT CAST(COALESCE(SUM(cost), 0) AS CHAR) as total_cost FROM fuel_records"
+        `SELECT CAST(COALESCE(SUM(cost), 0) AS CHAR) as total_cost FROM fuel_records ${fuelDateFilter}`,
+        fuelParams
       ),
       query<{ pending: string }>(
         `SELECT CAST(COUNT(*) AS CHAR) as pending FROM maintenances

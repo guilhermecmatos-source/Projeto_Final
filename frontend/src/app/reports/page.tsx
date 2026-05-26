@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
+import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
+import { formatBRL } from "@/lib/currency";
 
 const REPORTS = [
   { name: "Performance Operacional", period: "Mensal", type: "Operacional", updated: "Hoje" },
@@ -16,11 +18,11 @@ const REPORTS = [
 ];
 
 const TOP_DRIVERS = [
-  { name: "Carlos Eduardo", score: 98, km: 12400, costPerKm: "R$ 1,12" },
-  { name: "Ana Martins", score: 96, km: 11850, costPerKm: "R$ 1,18" },
-  { name: "João Pereira", score: 94, km: 10920, costPerKm: "R$ 1,21" },
-  { name: "Maria Silva", score: 92, km: 9850, costPerKm: "R$ 1,25" },
-  { name: "Pedro Costa", score: 90, km: 8720, costPerKm: "R$ 1,28" },
+  { name: "Carlos Eduardo", score: 98, km: 12400, costPerKm: 1.12 },
+  { name: "Ana Martins", score: 96, km: 11850, costPerKm: 1.18 },
+  { name: "João Pereira", score: 94, km: 10920, costPerKm: 1.21 },
+  { name: "Maria Silva", score: 92, km: 9850, costPerKm: 1.25 },
+  { name: "Pedro Costa", score: 90, km: 8720, costPerKm: 1.28 },
 ];
 
 const RECENT_REPORTS = [
@@ -30,7 +32,31 @@ const RECENT_REPORTS = [
 ];
 
 export default function ReportsPage() {
-  const [period, setPeriod] = useState<"30" | "7" | "90">("30");
+  const [dateRange, setDateRange] = useState<DateRange>(() => defaultDateRange(30));
+
+  const periodLabel = `${dateRange.start.split("-").reverse().join("/")} — ${dateRange.end.split("-").reverse().join("/")}`;
+
+  const periodDays = useMemo(() => {
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  }, [dateRange]);
+
+  const chartBars = useMemo(() => {
+    return Array.from({ length: Math.min(periodDays, 12) }, (_, i) => {
+      const h = 55 + ((i * 23 + periodDays) % 35);
+      return h;
+    });
+  }, [periodDays]);
+
+  const vehicleRows = useMemo(() => {
+    const factor = periodDays / 30;
+    return [
+      { plate: "ABC-1234", km: Math.round(4200 * factor), cost: Math.round(5940 * factor), efficiency: 92 },
+      { plate: "DEF-5678", km: Math.round(3800 * factor), cost: Math.round(5890 * factor), efficiency: 85 },
+      { plate: "GHI-9012", km: Math.round(5100 * factor), cost: Math.round(6120 * factor), efficiency: 96 },
+    ];
+  }, [periodDays]);
 
   return (
     <AppShell>
@@ -39,27 +65,7 @@ export default function ReportsPage() {
         subtitle="Análises consolidadas para tomada de decisão executiva."
         actions={
           <>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: "30" as const, label: "Últimos 30 dias" },
-                { id: "7" as const, label: "7 dias" },
-                { id: "90" as const, label: "90 dias" },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setPeriod(f.id)}
-                  className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-label-md transition ${
-                    period === f.id
-                      ? "border-primary bg-primary-container/10 font-bold text-primary"
-                      : "border-outline-variant bg-white hover:bg-surface-container-low"
-                  }`}
-                >
-                  <Icon name="calendar_today" className="text-sm" />
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
             <ActionLink href={ACTION_ROUTES.reportsExport}>
               <Icon name="download" />
               Exportar Pacote
@@ -70,8 +76,8 @@ export default function ReportsPage() {
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Relatórios Gerados", value: period === "30" ? "128" : "42", icon: "description" },
-          { label: "Exportações", value: "42", icon: "cloud_download" },
+          { label: "Relatórios Gerados", value: String(Math.round(128 * (periodDays / 30))), icon: "description" },
+          { label: "Exportações", value: String(Math.round(42 * (periodDays / 30))), icon: "cloud_download" },
           { label: "Agendados", value: "12", icon: "schedule" },
           { label: "Compartilhados", value: "8", icon: "share" },
         ].map((s) => (
@@ -88,9 +94,7 @@ export default function ReportsPage() {
       <section className="mb-8 raised-card p-4 sm:p-6">
         <h2 className="mb-6 text-headline-sm text-primary">
           Evolução de Custos vs KM Rodados
-          <span className="ml-2 text-sm font-normal text-on-surface-variant">
-            (filtro: {period === "30" ? "Últimos 30 dias" : period === "7" ? "7 dias" : "90 dias"})
-          </span>
+          <span className="ml-2 text-sm font-normal text-on-surface-variant">({periodLabel})</span>
         </h2>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -100,18 +104,16 @@ export default function ReportsPage() {
               Desempenho do veículo
             </h3>
             <div className="space-y-3">
-              {[
-                { plate: "ABC-1234", km: 4200, cost: 5940, efficiency: 92 },
-                { plate: "DEF-5678", km: 3800, cost: 5890, efficiency: 85 },
-                { plate: "GHI-9012", km: 5100, cost: 6120, efficiency: 96 },
-              ].map((v) => (
+              {vehicleRows.map((v) => (
                 <div key={v.plate}>
                   <div className="mb-1 flex justify-between text-sm">
                     <span className="font-semibold">{v.plate}</span>
-                    <span>{v.km.toLocaleString("pt-BR")} km • R$ {v.cost.toLocaleString("pt-BR")}</span>
+                    <span>
+                      {v.km.toLocaleString("pt-BR")} km • {formatBRL(v.cost)}
+                    </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-                    <div className="h-full bg-primary" style={{ width: `${v.efficiency}%` }} />
+                    <div className="h-full bg-primary transition-all" style={{ width: `${v.efficiency}%` }} />
                   </div>
                 </div>
               ))}
@@ -160,7 +162,7 @@ export default function ReportsPage() {
                     {i + 1}. {d.name}
                   </span>
                   <span className="text-on-surface-variant">
-                    Score {d.score} • {d.km.toLocaleString("pt-BR")} km • {d.costPerKm}/km
+                    Score {d.score} • {d.km.toLocaleString("pt-BR")} km • {formatBRL(d.costPerKm)}/km
                   </span>
                 </li>
               ))}
@@ -179,7 +181,7 @@ export default function ReportsPage() {
                   className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-outline-variant/50 p-3"
                 >
                   <div>
-                    <p className="font-semibold text-sm">{r.title}</p>
+                    <p className="text-sm font-semibold">{r.title}</p>
                     <p className="text-xs text-on-surface-variant">{r.date}</p>
                   </div>
                   <span className={r.status === "Pronto" ? "chip-active" : "chip-pending"}>
@@ -192,14 +194,16 @@ export default function ReportsPage() {
         </div>
 
         <div className="mt-6">
-          <h3 className="mb-3 text-sm font-bold text-on-surface-variant">Comparativo custo × km (período)</h3>
+          <h3 className="mb-3 text-sm font-bold text-on-surface-variant">
+            Comparativo custo × km ({periodLabel})
+          </h3>
           <div className="flex h-40 items-end gap-1 sm:gap-2">
-            {[58, 72, 65, 80, 68, 75, 62, 78, 70, 85, 72, 68].map((h, i) => (
+            {chartBars.map((h, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-1">
                 <div
-                  className="w-full rounded-t bg-primary-container/80"
+                  className="w-full rounded-t bg-primary-container/80 transition-all duration-300"
                   style={{ height: `${h}%` }}
-                  title={`Semana ${i + 1}`}
+                  title={`Dia ${i + 1}`}
                 />
               </div>
             ))}
@@ -225,7 +229,7 @@ export default function ReportsPage() {
                   {r.name}
                 </td>
                 <td className="px-4 py-4 sm:px-6" data-label="Período">
-                  {r.period}
+                  {periodLabel}
                 </td>
                 <td className="px-4 py-4 sm:px-6" data-label="Tipo">
                   <span className="rounded bg-surface-container-high px-2 py-0.5 text-[11px] font-bold uppercase">

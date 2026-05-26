@@ -9,7 +9,7 @@ router.use(authenticate);
 router.get("/", (req, res) => driverController.list(req, res));
 router.get("/:id/score", (req, res) => driverController.score(req, res));
 router.get("/:id", (req, res) => driverController.get(req, res));
-router.post("/", authorize("admin", "attendant"), (req, res) => driverController.create(req, res));
+router.post("/", authorize("admin", "attendant", "client"), (req, res) => driverController.create(req, res));
 router.put("/:id", authorize("admin", "attendant"), (req, res) => driverController.update(req, res));
 router.delete("/:id", authorize("admin"), (req, res) => driverController.delete(req, res));
 

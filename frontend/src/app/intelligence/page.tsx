@@ -41,7 +41,7 @@ export default function IntelligencePage() {
       <p className="mb-6 text-sm">
         Assistente de diagnóstico completo em{" "}
         <Link href="/ai-security" className="font-bold text-primary hover:underline">
-          IA Sandbox
+          IA Suporte
         </Link>
         .
       </p>

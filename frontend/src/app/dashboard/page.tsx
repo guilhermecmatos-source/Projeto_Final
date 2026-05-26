@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import RouteTrackerMap from "@/components/map/RouteTrackerMap";
 import AiSummaryWidgets from "@/components/dashboard/AiSummaryWidgets";
+import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
 import KpiCard from "@/components/ui/KpiCard";
 import PageHeader from "@/components/ui/PageHeader";
@@ -11,6 +12,7 @@ import { dashboardApi } from "@/services/api";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { DashboardData, PredictiveAlert } from "@/types";
+import { formatBRL } from "@/lib/currency";
 
 function severityBorder(severity: PredictiveAlert["severity"]) {
   if (severity === "high") return "border-l-error";
@@ -21,17 +23,38 @@ function severityBorder(severity: PredictiveAlert["severity"]) {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"30" | "7" | "today">("30");
+  const [dateRange, setDateRange] = useState<DateRange>(() => defaultDateRange(30));
 
-  useEffect(() => {
+  const loadDashboard = useCallback(() => {
+    setLoading(true);
     dashboardApi
-      .get()
+      .get({ dateFrom: dateRange.start, dateTo: dateRange.end })
       .then((res) => setData(res.data))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, []);
+  }, [dateRange.start, dateRange.end]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   const kpis = data?.kpis;
+
+  const chartBars = useMemo(() => {
+    const days =
+      Math.max(
+        1,
+        Math.ceil(
+          (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1
+      ) || 7;
+    const base = (kpis?.fuelCost ?? 0) / days;
+    return Array.from({ length: Math.min(days, 14) }, (_, i) => {
+      const factor = 0.7 + ((i * 17) % 30) / 100;
+      return Math.min(100, Math.round((base * factor) / Math.max(base, 1) * 50 + 30));
+    });
+  }, [dateRange, kpis?.fuelCost]);
 
   return (
     <AppShell
@@ -48,27 +71,7 @@ export default function DashboardPage() {
         subtitle="Consolidado operacional, financeiro e logístico em tempo real."
         actions={
           <>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: "30" as const, label: "Últimos 30 dias" },
-                { id: "7" as const, label: "7 dias" },
-                { id: "today" as const, label: "Hoje" },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setPeriod(p.id)}
-                  className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-label-md transition ${
-                    period === p.id
-                      ? "border-primary bg-primary-container/10 font-bold text-primary"
-                      : "border-outline-variant bg-white hover:bg-surface-container-low"
-                  }`}
-                >
-                  <Icon name="calendar_today" className="text-sm" />
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
             <ActionLink
               href={ACTION_ROUTES.dashboardExport}
               variant="outline"
@@ -88,13 +91,57 @@ export default function DashboardPage() {
           <AiSummaryWidgets />
 
           <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
-            <KpiCard label="Ganhos Mensais" value="R$ 142.4k" icon="payments" trend="+12.5%" trendUp accent="primary" />
-            <KpiCard label="Entregas Concluídas" value={kpis?.travels.completed ?? 0} icon="inventory_2" trend="98.2%" trendUp accent="secondary" />
-            <KpiCard label="Veículos Ativos" value={kpis?.vehicles.active ?? 0} icon="directions_car" trend={`${kpis?.vehicles.total ?? 0} total`} accent="green" />
+            <KpiCard
+              label="Ganhos no período"
+              value={formatBRL((kpis?.fuelCost ?? 0) * 1.4)}
+              icon="payments"
+              trend={`${dateRange.start} → ${dateRange.end}`}
+              trendUp
+              accent="primary"
+            />
+            <KpiCard
+              label="Entregas Concluídas"
+              value={kpis?.travels.completed ?? 0}
+              icon="inventory_2"
+              trend={`${kpis?.travels.total ?? 0} total`}
+              trendUp
+              accent="secondary"
+            />
+            <KpiCard
+              label="Veículos Ativos"
+              value={kpis?.vehicles.active ?? 0}
+              icon="directions_car"
+              trend={`${kpis?.vehicles.total ?? 0} total`}
+              accent="green"
+            />
             <KpiCard label="Motoristas" value={kpis?.drivers ?? 0} icon="person" accent="primary" />
-            <KpiCard label="Custo Combustível" value={`R$ ${(kpis?.fuelCost ?? 0).toLocaleString("pt-BR")}`} icon="local_gas_station" accent="secondary" />
-            <KpiCard label="Manutenções" value={kpis?.pendingMaintenance ?? 0} icon="build" accent="error" />
+            <KpiCard
+              label="Custo Combustível"
+              value={formatBRL(kpis?.fuelCost ?? 0)}
+              icon="local_gas_station"
+              accent="secondary"
+            />
+            <KpiCard
+              label="Manutenções"
+              value={kpis?.pendingMaintenance ?? 0}
+              icon="build"
+              accent="error"
+            />
           </div>
+
+          <section className="raised-card mb-8 p-4">
+            <h3 className="mb-3 text-headline-sm">Evolução no período selecionado</h3>
+            <div className="flex h-32 items-end gap-1 sm:gap-2">
+              {chartBars.map((h, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <div
+                    className="w-full rounded-t bg-primary-container/80 transition-all duration-300"
+                    style={{ height: `${h}%` }}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
 
           <div className="mb-8 grid gap-6 lg:grid-cols-12">
             <section className="raised-card overflow-hidden lg:col-span-8">

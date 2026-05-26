@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 
@@ -11,6 +12,8 @@ import travelRoutes from "./routes/travel.routes";
 import fuelRoutes from "./routes/fuel.routes";
 import maintenanceRoutes from "./routes/maintenance.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import geocodingRoutes from "./routes/geocoding.routes";
+import uploadRoutes from "./routes/upload.routes";
 import { pingDatabase } from "./database/connection";
 
 dotenv.config();
@@ -19,7 +22,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "12mb" }));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "fleet-platform-api" });
@@ -37,6 +41,8 @@ app.use("/api/travels", travelRoutes);
 app.use("/api/fuel", fuelRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/geocoding", geocodingRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found" });

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import FormField from "@/components/forms/FormField";
 import FileUploadField from "@/components/forms/FileUploadField";
+import CurrencyField from "@/components/forms/CurrencyField";
 import FormActions from "@/components/forms/FormActions";
 import ChecklistToggle from "@/components/ui/ChecklistToggle";
 import Icon from "@/components/ui/Icon";
@@ -49,6 +50,17 @@ function formToObject(form: FormData): Record<string, unknown> {
   return obj;
 }
 
+function apiErrorMessage(err: unknown): string {
+  const ax = err as { response?: { status?: number; data?: { error?: string } }; message?: string };
+  if (ax.response?.status === 401) {
+    return "Sessão expirada. Faça login novamente.";
+  }
+  if (ax.response?.status === 403) {
+    return "Sem permissão para cadastrar motoristas. Use perfil admin ou atendente.";
+  }
+  return ax.response?.data?.error || ax.message || "Erro ao comunicar com o servidor.";
+}
+
 export default function DriverRegisterPage() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -56,9 +68,10 @@ export default function DriverRegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [createdDriverId, setCreatedDriverId] = useState<string | null>(null);
   const [departureCheck, setDepartureCheck] = useState<Record<string, boolean>>({});
   const [arrivalCheck, setArrivalCheck] = useState<Record<string, boolean>>({});
-  const { online, pendingCount, syncNow } = useOffline();
+  const { online, pendingCount, syncing, syncNow } = useOffline();
 
   useEffect(() => {
     const draft = getDriverDraft();
@@ -89,11 +102,16 @@ export default function DriverRegisterPage() {
   }
 
   async function submitToApi(form: FormData) {
-    await driversApi.create({
-      name: form.get("name"),
-      license_number: form.get("license_number"),
-      phone: form.get("phone") || "",
-    });
+    const name = String(form.get("name") || "").trim();
+    const license_number = String(form.get("license_number") || "").trim();
+    const phone = String(form.get("phone") || "").trim();
+    if (!name || !license_number) {
+      throw { response: { data: { error: "Nome e número da CNH são obrigatórios." } } };
+    }
+    const res = await driversApi.create({ name, license_number, phone });
+    const id = (res.data as { id?: string })?.id;
+    if (id) setCreatedDriverId(id);
+    return res;
   }
 
   function handleSaveLocal() {
@@ -105,12 +123,14 @@ export default function DriverRegisterPage() {
   }
 
   async function handleSyncNow() {
-    if (!isOnline()) {
-      setError("Sem conexão. Aguarde voltar online para sincronizar.");
-      return;
+    setError("");
+    setSuccess("");
+    const result = await syncNow();
+    if (result.ok) {
+      setSuccess(result.message);
+    } else {
+      setError(result.message);
     }
-    const ok = await syncNow();
-    if (ok) setSuccess("Sincronização concluída.");
   }
 
   function handleExportPdf() {
@@ -123,26 +143,39 @@ export default function DriverRegisterPage() {
     setSuccess("");
     setLoading(true);
     const form = new FormData(e.currentTarget);
+    const draft = formToObject(form);
 
     try {
       if (isOnline()) {
         await submitToApi(form);
-        setSuccess("Motorista cadastrado e sincronizado.");
+        setSuccess("Motorista cadastrado com sucesso.");
         setTimeout(() => router.push("/drivers"), 1000);
       } else {
-        saveDriverDraft(formToObject(form));
-        addToSyncQueue({ type: "driver", payload: formToObject(form) });
+        saveDriverDraft(draft);
+        addToSyncQueue({
+          type: "driver",
+          payload: {
+            name: draft.name,
+            license_number: draft.license_number,
+            phone: draft.phone || "",
+          },
+        });
         setLastSaved(new Date().toISOString());
         setSuccess("Salvo offline. Será sincronizado quando houver conexão.");
       }
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        "Não foi possível salvar. Dados guardados localmente.";
-      saveDriverDraft(formToObject(form));
-      addToSyncQueue({ type: "driver", payload: formToObject(form) });
+      const msg = apiErrorMessage(err);
+      saveDriverDraft(draft);
+      addToSyncQueue({
+        type: "driver",
+        payload: {
+          name: draft.name,
+          license_number: draft.license_number,
+          phone: draft.phone || "",
+        },
+      });
       setLastSaved(new Date().toISOString());
-      setError(msg);
+      setError(`${msg} Rascunho guardado localmente para nova tentativa.`);
     } finally {
       setLoading(false);
     }
@@ -195,10 +228,10 @@ export default function DriverRegisterPage() {
           <h2 className="mb-4 text-headline-sm">Dados pessoais</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <FormField label="Nome completo" name="name" required className="md:col-span-2" />
-            <FormField label="CPF" name="cpf" placeholder="000.000.000-00" required />
-            <FormField label="RG" name="rg" required />
-            <FormField label="Órgão emissor" name="rg_issuer" placeholder="SSP/SP" required />
-            <FormField label="Telefone" name="phone" placeholder="(11) 99999-9999" required />
+            <FormField label="CPF" name="cpf" placeholder="000.000.000-00" />
+            <FormField label="RG" name="rg" />
+            <FormField label="Órgão emissor" name="rg_issuer" placeholder="SSP/SP" />
+            <FormField label="Telefone" name="phone" placeholder="(11) 99999-9999" />
           </div>
         </section>
 
@@ -211,7 +244,10 @@ export default function DriverRegisterPage() {
               storageKey="fleet_driver_cnh_files"
               accept="image/*,.pdf"
               multiple={false}
-              hint="Arquivo salvo localmente com preview"
+              hint="JPG, PNG ou PDF até 10MB — preview imediato"
+              uploadToServer={!!createdDriverId}
+              entityType="driver_cnh"
+              entityId={createdDriverId ?? undefined}
             />
           </div>
         </section>
@@ -256,14 +292,18 @@ export default function DriverRegisterPage() {
         <section className="raised-card p-4 sm:p-6">
           <h2 className="mb-4 text-headline-sm">Gastos e manutenção</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <FormField label="Gasto registrado (R$)" name="expense_amount" type="number" placeholder="0,00" />
-            <FormField label="Tipo" name="expense_type" options={[
-              { value: "", label: "Selecione" },
-              { value: "fuel", label: "Combustível" },
-              { value: "maintenance", label: "Manutenção" },
-              { value: "toll", label: "Pedágio" },
-              { value: "other", label: "Outros" },
-            ]} />
+            <CurrencyField label="Gasto registrado (R$)" name="expense_amount" />
+            <FormField
+              label="Tipo"
+              name="expense_type"
+              options={[
+                { value: "", label: "Selecione" },
+                { value: "fuel", label: "Combustível" },
+                { value: "maintenance", label: "Manutenção" },
+                { value: "toll", label: "Pedágio" },
+                { value: "other", label: "Outros" },
+              ]}
+            />
             <FormField label="Observações" name="expense_notes" as="textarea" className="md:col-span-2" />
           </div>
           <div className="mt-4">
@@ -288,6 +328,7 @@ export default function DriverRegisterPage() {
 
         <FormActions
           loading={loading}
+          syncing={syncing}
           onSaveLocal={handleSaveLocal}
           onSyncNow={handleSyncNow}
           onExportPdf={handleExportPdf}

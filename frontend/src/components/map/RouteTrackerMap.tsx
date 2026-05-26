@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
+import { trailDistanceKm } from "@/lib/geo";
 
 export interface MapPoint {
   lat: number;
@@ -97,6 +98,33 @@ export default function RouteTrackerMap({
     trailPoints.length > 1
       ? trailPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ")
       : "";
+
+  const totalKm = useMemo(() => trailDistanceKm(trail), [trail]);
+
+  const chartPoints = useMemo(() => {
+    if (trail.length < 2) return "";
+    let cumulative = 0;
+    const segments: { x: number; y: number }[] = [{ x: 0, y: 38 }];
+    for (let i = 1; i < trail.length; i++) {
+      cumulative += haversineSegment(trail[i - 1], trail[i]);
+      const x = totalKm > 0 ? (cumulative / totalKm) * 100 : (i / (trail.length - 1)) * 100;
+      const y = 38 - Math.min(30, cumulative * 0.15);
+      segments.push({ x, y });
+    }
+    return segments.map((p) => `${p.x},${p.y}`).join(" ");
+  }, [trail, totalKm]);
+
+  function haversineSegment(a: MapPoint, b: MapPoint) {
+    const R = 6371;
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+    const x =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((a.lat * Math.PI) / 180) *
+        Math.cos((b.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  }
 
   return (
     <div className="space-y-4">
@@ -196,18 +224,12 @@ export default function RouteTrackerMap({
           </h4>
           <div className="relative h-24 overflow-hidden rounded-lg bg-surface-container-low">
             <svg className="h-full w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-              {trail.length > 1 ? (
+              {chartPoints ? (
                 <polyline
                   fill="none"
                   stroke="#003d9b"
                   strokeWidth="1.5"
-                  points={trail
-                    .map((p, i) => {
-                      const x = (i / (trail.length - 1)) * 100;
-                      const y = 35 - ((p.lat - mapCenter.lat) * 8000 + (p.lng - mapCenter.lng) * 2000);
-                      return `${x},${Math.max(2, Math.min(38, y))}`;
-                    })
-                    .join(" ")}
+                  points={chartPoints}
                 />
               ) : (
                 <text x="50" y="22" textAnchor="middle" className="fill-on-surface-variant text-[4px]">
@@ -217,8 +239,8 @@ export default function RouteTrackerMap({
             </svg>
           </div>
           <p className="mt-2 text-xs text-on-surface-variant">
-            {trail.length} pontos registrados • última atualização:{" "}
-            {position ? new Date(position.ts).toLocaleTimeString("pt-BR") : "—"}
+            {trail.length} pontos • distância percorrida: {totalKm.toLocaleString("pt-BR")} km •
+            última atualização: {position ? new Date(position.ts).toLocaleTimeString("pt-BR") : "—"}
           </p>
         </div>
       )}

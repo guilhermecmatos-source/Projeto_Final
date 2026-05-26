@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import FormField from "@/components/forms/FormField";
+import CurrencyField from "@/components/forms/CurrencyField";
 import FileUploadField from "@/components/forms/FileUploadField";
 import FormShell from "@/components/forms/FormShell";
 import { maintenanceApi, vehiclesApi } from "@/services/api";
@@ -100,7 +101,7 @@ export default function MaintenanceRegisterPage() {
                 { value: "corrective", label: "Corretiva" },
               ]}
             />
-            <FormField label="Custo estimado (R$)" name="cost" type="number" />
+            <CurrencyField label="Custo estimado (R$)" name="cost" />
             <FormField label="Data agendada" name="scheduled_at" type="datetime-local" required />
           </div>
           <FormField
@@ -144,7 +145,7 @@ export default function MaintenanceRegisterPage() {
                 { value: "corrective", label: "Corretiva" },
               ]}
             />
-            <FormField label="Custo (R$)" name="add_cost" type="number" />
+            <CurrencyField label="Custo (R$)" name="add_cost" />
             <FormField label="Data" name="add_scheduled_at" type="datetime-local" required />
           </div>
           <FormField label="Descrição resumida" name="add_description" required />

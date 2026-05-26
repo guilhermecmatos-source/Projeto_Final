@@ -4,7 +4,9 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import FormField from "@/components/forms/FormField";
+import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
 import FormActions from "@/components/forms/FormActions";
+import { resolveEntityId } from "@/lib/form-resolve";
 import Icon from "@/components/ui/Icon";
 import { generateAuthNumber } from "@/lib/local-storage";
 import {
@@ -44,11 +46,23 @@ export default function RuvPage() {
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [drivers, setDrivers] = useState<{ id: string; name: string }[]>([]);
   const [selectedPlate, setSelectedPlate] = useState("");
+  const [vehicleId, setVehicleId] = useState("");
+  const [driverId, setDriverId] = useState("");
   const [routeChange, setRouteChange] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ error: "", success: "" });
-  const { online, syncNow } = useOffline();
+  const { online, syncing, syncNow } = useOffline();
+
+  const vehicleOptions: ComboboxOption[] = vehicles.map((v) => ({
+    value: v.id,
+    label: v.plate,
+  }));
+
+  const driverOptions: ComboboxOption[] = drivers.map((d) => ({
+    value: d.id,
+    label: d.name,
+  }));
 
   useEffect(() => {
     setAuthNumber(generateAuthNumber());
@@ -72,9 +86,15 @@ export default function RuvPage() {
       });
   }, []);
 
-  function handleVehicleChange(vehicleId: string) {
-    const v = vehicles.find((x) => x.id === vehicleId);
-    setSelectedPlate(v?.plate ?? "");
+  function handleVehicleChange(id: string) {
+    setVehicleId(id);
+    const resolved = resolveEntityId(id, vehicleOptions);
+    const v = vehicles.find((x) => x.id === resolved);
+    setSelectedPlate(v?.plate ?? id);
+  }
+
+  function handleDriverChange(id: string) {
+    setDriverId(id);
   }
 
   function handleSaveLocal() {
@@ -89,8 +109,12 @@ export default function RuvPage() {
       setMessage({ error: "Sem conexão.", success: "" });
       return;
     }
-    const ok = await syncNow();
-    setMessage(ok ? { error: "", success: "Sincronização concluída." } : { error: "Falha na sincronização.", success: "" });
+    const result = await syncNow();
+    setMessage(
+      result.ok
+        ? { error: "", success: result.message }
+        : { error: result.message, success: "" }
+    );
   }
 
   function handleExportPdf() {
@@ -100,7 +124,15 @@ export default function RuvPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    const data = { ...formToObject(new FormData(e.currentTarget)), auth_number: authNumber };
+    const raw = formToObject(new FormData(e.currentTarget));
+    const resolvedVehicle = resolveEntityId(vehicleId || String(raw.vehicle_id || ""), vehicleOptions);
+    const resolvedDriver = resolveEntityId(driverId || String(raw.driver_id || ""), driverOptions);
+    const data = {
+      ...raw,
+      auth_number: authNumber,
+      vehicle_id: resolvedVehicle || vehicleId,
+      driver_id: resolvedDriver || driverId,
+    };
     saveRuvDraft(data);
     addToSyncQueue({ type: "ruv", payload: data });
     setMessage({ error: "", success: "RUV registrada. Dados na fila de sincronização." });
@@ -166,28 +198,15 @@ export default function RuvPage() {
 
           <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-headline-sm">Autorização da Unidade / Transporte</h2>
-            <div>
-              <label htmlFor="vehicle_id" className="mb-1 block text-label-md text-on-surface-variant">
-                Veículo
-              </label>
-              <select
-                id="vehicle_id"
-                name="vehicle_id"
-                required
-                className="input-fleet"
-                defaultValue=""
-                onChange={(e) => handleVehicleChange(e.target.value)}
-              >
-                <option value="" disabled>
-                  Selecione
-                </option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.plate}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableCombobox
+              label="Veículo"
+              name="vehicle_id"
+              required
+              options={vehicleOptions}
+              placeholder="Digite placa ou selecione..."
+              allowCustom
+              onValueChange={handleVehicleChange}
+            />
             <div>
               <label className="mb-1 block text-label-md text-on-surface-variant">Placa (auto)</label>
               <input className="input-fleet bg-surface-container-low" readOnly value={selectedPlate} placeholder="Selecione o veículo" />
@@ -199,14 +218,14 @@ export default function RuvPage() {
               options={FUEL_TYPES.map((f) => ({ value: f, label: f }))}
             />
             <FormField label="Assinatura Encarregado UNIAD/Transporte" name="encarregado_signature" placeholder="Nome completo" />
-            <FormField
+            <SearchableCombobox
               label="Condutor / Motorista"
               name="driver_id"
               required
-              options={[
-                { value: "", label: "Selecione" },
-                ...drivers.map((d) => ({ value: d.id, label: d.name })),
-              ]}
+              options={driverOptions}
+              placeholder="Digite nome ou selecione..."
+              allowCustom
+              onValueChange={handleDriverChange}
             />
           </section>
 
@@ -234,6 +253,7 @@ export default function RuvPage() {
           <div className="print:hidden">
             <FormActions
               loading={loading}
+              syncing={syncing}
               submitLabel="Salvar RUV"
               onSaveLocal={handleSaveLocal}
               onSyncNow={handleSync}
