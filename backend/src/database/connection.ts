@@ -72,7 +72,7 @@ async function fetchAfterWrite<T>(
     }
     const [rows] = await pool.execute(
       `SELECT ${returningClause === "*" ? "*" : returningClause} FROM \`${table}\` WHERE id = ? LIMIT 1`,
-      [params[0] as string | number]
+      [params[0]]
     );
     return rows as T[];
   }

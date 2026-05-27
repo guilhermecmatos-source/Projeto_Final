@@ -60,16 +60,11 @@ async function migrate() {
         year INT NOT NULL,
         status VARCHAR(50) DEFAULT 'active',
         mileage DECIMAL(12,2) DEFAULT 0,
-        photo_url VARCHAR(512) NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         CHECK (status IN ('active', 'maintenance', 'inactive'))
       )
     `);
-
-    try {
-      await conn.query(`ALTER TABLE vehicles ADD COLUMN photo_url VARCHAR(512) NULL`);
-    } catch { /* já existe */ }
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS drivers (
@@ -77,21 +72,12 @@ async function migrate() {
         name VARCHAR(255) NOT NULL,
         license_number VARCHAR(50) UNIQUE NOT NULL,
         phone VARCHAR(30),
-        cnh_image_url VARCHAR(512) NULL,
-        cnh_pdf_url VARCHAR(512) NULL,
         score DECIMAL(5,2) DEFAULT 100,
         active TINYINT(1) DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
-
-    try {
-      await conn.query(`ALTER TABLE drivers ADD COLUMN cnh_image_url VARCHAR(512) NULL`);
-    } catch { /* já existe */ }
-    try {
-      await conn.query(`ALTER TABLE drivers ADD COLUMN cnh_pdf_url VARCHAR(512) NULL`);
-    } catch { /* já existe */ }
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS travels (
@@ -140,19 +126,6 @@ async function migrate() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         CHECK (type IN ('preventive', 'corrective')),
         FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
-      )
-    `);
-
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS uploads (
-        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-        entity_type VARCHAR(50) NOT NULL,
-        entity_id CHAR(36) NULL,
-        filename VARCHAR(255) NOT NULL,
-        mime_type VARCHAR(100) NOT NULL,
-        path VARCHAR(512) NOT NULL,
-        size_bytes INT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
