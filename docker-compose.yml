@@ -55,7 +55,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      # Proxy /api no Next → backend (funciona no celular na mesma rede Wi‑Fi)
+      BACKEND_URL: http://backend:3001
+      NEXT_PUBLIC_API_URL: /api
       TZ: America/Sao_Paulo
     depends_on:
       - backend

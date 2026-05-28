@@ -30,6 +30,16 @@ docker compose exec backend npm run db:migrate
 - **Swagger UI:** http://localhost:3001/api-docs
 - **OpenAPI JSON:** http://localhost:3001/api-docs.json
 
+### Acesso pelo celular (mobile)
+
+1. PC e celular na **mesma rede Wi‑Fi**.
+2. Descubra o IP do PC (Windows: `ipconfig` → IPv4, ex. `192.168.1.10`).
+3. No celular, abra: `http://<IP_DO_PC>:3000`
+4. A API usa o proxy `/api` do Next — **não** use `localhost:3001` no telefone.
+5. Opcional: no navegador do celular, use **Adicionar à tela inicial** (PWA).
+
+Interface otimizada para mobile: barra inferior de navegação, menu lateral, tabelas em cards, botões com área de toque ≥ 44px, câmera em formulários de inspeção e suporte a notch (safe area).
+
 ### Local (sem Docker)
 
 1. Configure o MySQL em `backend/.env` (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`)

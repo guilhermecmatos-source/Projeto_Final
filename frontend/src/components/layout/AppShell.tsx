@@ -3,6 +3,7 @@
 import { ReactNode, useState } from "react";
 import Sidebar from "./Sidebar";
 import TopHeader from "./TopHeader";
+import MobileBottomNav from "./MobileBottomNav";
 import OfflineIndicator from "@/components/ui/OfflineIndicator";
 import { useAuth } from "@/hooks/useAuth";
 import Icon from "@/components/ui/Icon";
@@ -27,7 +28,7 @@ export default function AppShell({
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center safe-area-padding">
         <p className="text-on-surface-variant">Carregando...</p>
       </div>
     );
@@ -64,7 +65,7 @@ export default function AppShell({
             <>
               <button
                 type="button"
-                className="rounded-lg p-2 lg:hidden"
+                className="touch-target rounded-lg p-2 lg:hidden"
                 aria-label="Abrir menu"
                 onClick={() => setSidebarOpen(true)}
               >
@@ -74,11 +75,13 @@ export default function AppShell({
             </>
           }
         />
-        <div className="flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="main-content flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
           {isPilotContext && <OfflineIndicator />}
           {children}
         </div>
       </div>
+
+      <MobileBottomNav onOpenMenu={() => setSidebarOpen(true)} />
     </div>
   );
 }

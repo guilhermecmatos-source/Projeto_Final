@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FleetAI">
+  <rect width="512" height="512" rx="96" fill="#003d9b"/>
+  <path fill="#feaa00" d="M96 304h320c8.8 0 16 7.2 16 16v48c0 8.8-7.2 16-16 16H96c-8.8 0-16-7.2-16-16v-48c0-8.8 7.2-16 16-16z"/>
+  <path fill="#ffffff" d="M128 176h48l32 96h96l32-96h48l-56 168H184L128 176z"/>
+  <circle cx="160" cy="368" r="40" fill="#ffffff"/>
+  <circle cx="352" cy="368" r="40" fill="#ffffff"/>
+  <circle cx="160" cy="368" r="20" fill="#003d9b"/>
+  <circle cx="352" cy="368" r="20" fill="#003d9b"/>
+</svg>

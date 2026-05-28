@@ -4,7 +4,7 @@ import Link from "next/link";
 import Icon from "@/components/ui/Icon";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/services/api";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 
 interface TopHeaderProps {
   title?: string;
@@ -18,6 +18,7 @@ export default function TopHeader({
   action,
 }: TopHeaderProps) {
   const router = useRouter();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -30,52 +31,77 @@ export default function TopHeader({
     router.push("/login");
   };
 
-  return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/90 px-6 backdrop-blur-md">
-      {title ? (
-        <span className="text-headline-sm font-bold text-primary">{title}</span>
-      ) : (
-        <div className="flex max-w-md flex-1 items-center rounded-lg border border-outline-variant bg-surface-container-high/50 px-3 py-1.5 focus-within:border-primary">
-          <Icon name="search" className="text-outline" />
-          <input
-            type="search"
-            placeholder={searchPlaceholder}
-            className="ml-2 w-full border-none bg-transparent text-body-md focus:outline-none focus:ring-0"
-          />
-        </div>
-      )}
+  const showSearchBar = !title || searchOpen;
 
-      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-        {action}
-        <Link
-          href="/dashboard"
-          className="relative rounded-full p-2 transition hover:bg-surface-container-high"
-          aria-label="Notificações"
-        >
-          <Icon name="notifications" className="text-on-surface-variant" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-error" />
-        </Link>
-        <Link
-          href="/profile"
-          className="rounded-full p-2 transition hover:bg-surface-container-high"
-          aria-label="Perfis de usuário"
-        >
-          <Icon name="switch_account" className="text-on-surface-variant" />
-        </Link>
-        <Link
-          href="/partners/docs"
-          className="rounded-full p-2 transition hover:bg-surface-container-high"
-          aria-label="Configurações"
-        >
-          <Icon name="settings" className="text-on-surface-variant" />
-        </Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="rounded-lg border border-outline-variant px-3 py-1.5 text-label-md text-on-surface-variant transition hover:border-primary hover:text-primary"
-        >
-          Sair
-        </button>
+  return (
+    <header
+      className="sticky top-0 z-40 border-b border-outline-variant bg-surface/90 backdrop-blur-md safe-area-top"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
+      <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2 sm:min-h-16 sm:gap-3 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {action}
+          {title && !searchOpen ? (
+            <span className="truncate text-headline-sm font-bold text-primary">{title}</span>
+          ) : showSearchBar ? (
+            <div className="flex min-w-0 flex-1 items-center rounded-lg border border-outline-variant bg-surface-container-high/50 px-3 py-2 focus-within:border-primary">
+              <Icon name="search" className="shrink-0 text-outline" />
+              <input
+                type="search"
+                placeholder={searchPlaceholder}
+                className="ml-2 min-w-0 flex-1 border-none bg-transparent text-body-md focus:outline-none focus:ring-0"
+                enterKeyHint="search"
+                autoComplete="off"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+          {title && (
+            <button
+              type="button"
+              className="touch-target rounded-full p-2 transition hover:bg-surface-container-high md:hidden"
+              aria-label={searchOpen ? "Fechar busca" : "Abrir busca"}
+              onClick={() => setSearchOpen((v) => !v)}
+            >
+              <Icon
+                name={searchOpen ? "close" : "search"}
+                className="text-on-surface-variant"
+              />
+            </button>
+          )}
+          <Link
+            href="/dashboard"
+            className="touch-target relative hidden rounded-full p-2 transition hover:bg-surface-container-high sm:block"
+            aria-label="Notificações"
+          >
+            <Icon name="notifications" className="text-on-surface-variant" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-error" />
+          </Link>
+          <Link
+            href="/profile"
+            className="touch-target rounded-full p-2 transition hover:bg-surface-container-high"
+            aria-label="Perfil"
+          >
+            <Icon name="account_circle" className="text-on-surface-variant" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="touch-target hidden rounded-lg border border-outline-variant px-2 py-1.5 text-label-md text-on-surface-variant transition hover:border-primary hover:text-primary sm:inline-flex sm:px-3"
+          >
+            Sair
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="touch-target rounded-full p-2 transition hover:bg-surface-container-high sm:hidden"
+            aria-label="Sair"
+          >
+            <Icon name="logout" className="text-on-surface-variant" />
+          </button>
+        </div>
       </div>
     </header>
   );

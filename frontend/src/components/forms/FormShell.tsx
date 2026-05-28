@@ -80,10 +80,12 @@ export default function FormShell({
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         {children}
-        <button type="submit" disabled={loading} className="btn-primary">
-          <Icon name="save" />
-          {loading ? "Salvando..." : submitLabel}
-        </button>
+        <div className="sticky-mobile-actions">
+          <button type="submit" disabled={loading} className="btn-primary w-full sm:w-auto">
+            <Icon name="save" />
+            {loading ? "Salvando..." : submitLabel}
+          </button>
+        </div>
       </form>
     </AppShell>
   );

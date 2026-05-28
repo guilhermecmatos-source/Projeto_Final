@@ -20,7 +20,7 @@ export default function Sidebar({ user, open = false, onClose, onProfileChange }
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-outline-variant bg-surface-container-low py-6 transition-transform duration-200 lg:translate-x-0 ${
+      className={`fixed left-0 top-0 z-50 flex h-screen w-[min(100vw-3rem,16rem)] max-w-[85vw] flex-col border-r border-outline-variant bg-surface-container-low py-6 transition-transform duration-200 lg:w-64 lg:max-w-none lg:translate-x-0 ${
         open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
     >

@@ -76,6 +76,13 @@ const config: Config = {
         raised: "0 2px 4px rgba(0,0,0,0.05)",
         overlay: "0 12px 24px rgba(0,0,0,0.1)",
       },
+      padding: {
+        "safe-bottom": "env(safe-area-inset-bottom, 0px)",
+        "safe-top": "env(safe-area-inset-top, 0px)",
+      },
+      minHeight: {
+        "screen-safe": "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
+      },
     },
   },
   plugins: [],

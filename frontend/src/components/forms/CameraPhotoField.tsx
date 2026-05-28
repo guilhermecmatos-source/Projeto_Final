@@ -72,7 +72,7 @@ export default function CameraPhotoField({
           <button
             type="button"
             onClick={() => cameraRef.current?.click()}
-            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary-container/5 px-5 py-6 transition hover:bg-primary-container/15"
+            className="touch-target flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary-container/5 px-5 py-6 transition hover:bg-primary-container/15"
           >
             <Icon name="photo_camera" className="mb-2 text-3xl text-primary" />
             <span className="text-sm font-medium text-primary">Tirar foto</span>
@@ -81,7 +81,7 @@ export default function CameraPhotoField({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant bg-surface-container-low px-5 py-6 transition hover:border-primary"
+            className="touch-target flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant bg-surface-container-low px-5 py-6 transition hover:border-primary"
           >
             <Icon name="add_a_photo" className="mb-2 text-3xl text-primary" />
             <span className="text-sm font-medium text-primary">Galeria</span>

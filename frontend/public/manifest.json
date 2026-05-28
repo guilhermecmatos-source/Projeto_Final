@@ -1,0 +1,19 @@
+{
+  "name": "FleetAI - Gestão de Frotas",
+  "short_name": "FleetAI",
+  "description": "Plataforma de mobilidade, logística e gestão de frotas",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8f9fb",
+  "theme_color": "#003d9b",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
