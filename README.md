@@ -1,97 +1,90 @@
-# FleetAI — Plataforma Inteligente de Mobilidade e Gestão de Frotas
+# Projeto Final - Aplicação Full Stack (React + Node.js + SQLite) 🚀
 
-Sistema completo para gestão operacional, logística e administrativa de frotas empresariais com módulos de IA baseados em regras inteligentes.
+<p align="center">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/React-20232a?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express" />
+  <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+</p>
 
-## Stack
+## 📋 Sobre o Projeto
 
-- **Frontend:** Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend:** Node.js, Express, TypeScript
-- **Banco:** MySQL 8+
-- **Infra:** Docker & Docker Compose
+Este é o nosso projeto final de curso, onde desenvolvemos uma aplicação **Full Stack** completa e integrada. O ecossistema une uma interface rica e dinâmica no Front-end com uma API RESTful estruturada no Back-end, utilizando persistência de dados real com banco de dados.
 
-## Estrutura
+---
 
-```
-/backend   → API RESTful
-/frontend  → Interface web
-```
+## 👥 Equipe do Projeto
 
-## Início rápido
+O projeto foi planejado e desenvolvido em conjunto por:
 
-### Com Docker
+- 💻 **Guilherme Matos** — [GitHub](https://github.com/guilhermecmatos-source)
+- 👩‍💻 **Jeovana**
+- 👨‍💻 **Wanderson**
+- 👨‍💻 **Marco Túlio**
+
+---
+
+## 🛠️ Tecnologias e Arquitetura
+
+O projeto foi componentizado e dividido estritamente entre cliente e servidor:
+
+### **Front-end (`/front`)**
+- **React**: Biblioteca para construção de uma interface Single Page Application (SPA) moderna e responsiva.
+
+### **Back-end & Banco de Dados (`/backend`)**
+- **Node.js & Express**: Framework minimalista para criação das rotas da API e gerenciamento das requisições HTTP.
+- **CORS**: Middleware para permitir o compartilhamento de recursos entre o front e o back com segurança.
+- **SQLite3**: Banco de dados relacional leve e integrado para persistência de dados local de forma eficiente.
+
+---
+
+## 🚀 Como Executar o Projeto
+
+### Pré-requisitos
+Você vai precisar do [Git](https://git-scm.com) e do [Node.js](https://nodejs.org/en/) instalados na sua máquina.
+
+### 📦 Clonando o Repositório
+```bash
+git clone [https://github.com/guilhermecmatos-source/Projeto_Final.git](https://github.com/guilhermecmatos-source/Projeto_Final.git)
+cd Projeto_Final
+
+⚙️ Configurando o Back-end
+
+# Entre na pasta do servidor
+cd backend
+
+# Instale as dependências
+npm install
+
+# Inicie o servidor
+npm start
+
+💻 Configurando o Front-end
+
+# Abra um novo terminal na raiz do projeto e acesse a pasta do cliente
+cd front
+
+# Instale as dependências do React
+npm install
+
+# Inicie a aplicação em modo de desenvolvimento
+npm start
+---
+
+🧠 Aprendizados Consolidados
+Desenvolver esta aplicação em equipe nos permitiu dominar conceitos fundamentais do mercado:
+Gerenciamento de branches e resolução de conflitos usando Git/GitHub.
+Comunicação assíncrona entre Front-end e Back-end.
+Criação de endpoints (rotas) e manipulação de requisições HTTP (GET, POST, etc.) com Express.
+Modelagem, criação e manipulação de tabelas em banco de dados relacional com SQLite.
+Gerenciamento de estado e renderização dinâmica de componentes em React.
+
+### 🚀 Comandos para subir pro GitHub:
+
+Depois de colar e salvar o arquivo, roda isso aqui no seu terminal para atualizar o repositório:
 
 ```bash
-docker compose up -d
-docker compose exec backend npm run db:migrate
-```
-
-- Frontend: http://localhost:3000
-- API: http://localhost:3001
-- **Swagger UI:** http://localhost:3001/api-docs
-- **OpenAPI JSON:** http://localhost:3001/api-docs.json
-
-### Acesso pelo celular (mobile)
-
-1. PC e celular na **mesma rede Wi‑Fi**.
-2. Descubra o IP do PC (Windows: `ipconfig` → IPv4, ex. `192.168.1.10`).
-3. No celular, abra: `http://<IP_DO_PC>:3000`
-4. A API usa o proxy `/api` do Next — **não** use `localhost:3001` no telefone.
-5. Opcional: no navegador do celular, use **Adicionar à tela inicial** (PWA).
-
-Interface otimizada para mobile: barra inferior de navegação, menu lateral, tabelas em cards, botões com área de toque ≥ 44px, câmera em formulários de inspeção e suporte a notch (safe area).
-
-### Local (sem Docker)
-
-1. Configure o MySQL em `backend/.env` (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`)
-2. Backend:
-   ```bash
-   cd backend
-   npm install
-   npm run db:migrate
-   npm run dev
-   ```
-3. Frontend:
-   ```bash
-   cd frontend
-   npm install
-   cp .env.example .env.local
-   npm run dev
-   ```
-
-## Administrador padrão
-
-| Campo | Valor |
-|-------|-------|
-| E-mail | `admin@fleetplatform.com` |
-| Senha | `Admin@123` |
-
-## Documentação da API (Swagger)
-
-Com o backend em execução, acesse **http://localhost:3001/api-docs** para explorar e testar todos os endpoints.
-
-1. Faça login em `POST /api/auth/login` com o admin padrão.
-2. Copie o `token` da resposta.
-3. Clique em **Authorize** no Swagger e informe: `Bearer <seu_token>`.
-
-## Endpoints principais
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/api/auth/login` | Login JWT |
-| GET | `/api/vehicles` | Listar veículos |
-| POST | `/api/vehicles` | Cadastrar veículo |
-| GET | `/api/drivers` | Listar motoristas |
-| POST | `/api/drivers` | Cadastrar motorista |
-| GET | `/api/travels` | Listar viagens |
-| POST | `/api/travels` | Criar despacho |
-| POST | `/api/fuel` | Registrar abastecimento |
-| GET | `/api/fuel/report` | Relatório de combustível |
-| POST | `/api/maintenance` | Agendar manutenção |
-| GET | `/api/maintenance/alerts` | Alertas preventivos |
-| GET | `/api/dashboard` | KPIs e alertas IA |
-
-## Papéis de usuário
-
-- **admin** — controle total
-- **attendant** — registro operacional
-- **client** — autocadastro e consulta
+git add README.md
+git commit -m "docs: add team members and official project overview"
+git push origin main
