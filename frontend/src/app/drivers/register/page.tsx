@@ -10,14 +10,15 @@ import CurrencyField from "@/components/forms/CurrencyField";
 import FormActions from "@/components/forms/FormActions";
 import ChecklistToggle from "@/components/ui/ChecklistToggle";
 import Icon from "@/components/ui/Icon";
-import { getQuickChecklist, setQuickChecklistItem } from "@/lib/offline";
 import { driversApi } from "@/services/api";
 import {
   addToSyncQueue,
   formatSavedAt,
   getDriverDraft,
+  getQuickChecklist,
   isOnline,
   saveDriverDraft,
+  setQuickChecklistItem,
 } from "@/lib/offline";
 import { useOffline } from "@/hooks/useOffline";
 
