@@ -20,7 +20,7 @@ O projeto foi planejado e desenvolvido em conjunto por:
 
 - 💻 **Guilherme Matos** — [GitHub](https://github.com/guilhermecmatos-source)
 - 👩‍💻 **Jeovana**
-- 👨‍💻 **Wanderson**
+- 👨‍💻 **Wanderson** — [GitHub](https://github.com/rodrigues123321)
 - 👨‍💻 **Marco Túlio**
 
 ---
