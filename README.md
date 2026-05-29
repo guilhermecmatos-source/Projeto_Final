@@ -71,7 +71,6 @@ npm install
 # Inicie a aplicação em modo de desenvolvimento
 npm start
 ---
-
 🧠 Aprendizados Consolidados
 Desenvolver esta aplicação em equipe nos permitiu dominar conceitos fundamentais do mercado:
 Gerenciamento de branches e resolução de conflitos usando Git/GitHub.
