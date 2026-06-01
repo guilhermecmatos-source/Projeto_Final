@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
-const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:3001";
+const backendUrl =
+  process.env.BACKEND_URL ||
+  (process.env.NODE_ENV === "production" ? "http://backend:3001" : "http://127.0.0.1:3001");
 
 const nextConfig = {
   reactStrictMode: true,
@@ -8,6 +10,10 @@ const nextConfig = {
       {
         source: "/api/:path*",
         destination: `${backendUrl}/api/:path*`,
+      },
+      {
+        source: "/uploads/:path*",
+        destination: `${backendUrl}/uploads/:path*`,
       },
     ];
   },

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FormField from "@/components/forms/FormField";
 import FormShell from "@/components/forms/FormShell";
-import { driversApi, travelsApi, vehiclesApi } from "@/services/api";
+import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
+import { driversApi, geocodingApi, travelsApi, vehiclesApi } from "@/services/api";
+import { resolveEntityId } from "@/lib/form-resolve";
 
 interface VehicleOption {
   id: string;
@@ -17,20 +19,16 @@ interface DriverOption {
   name: string;
 }
 
-const FALLBACK_VEHICLES: VehicleOption[] = [
-  { id: "demo-1", plate: "ABC-1234", brand: "Toyota", model: "Hilux" },
-  { id: "demo-2", plate: "DEF-5678", brand: "VW", model: "Delivery" },
-];
-
-const FALLBACK_DRIVERS: DriverOption[] = [
-  { id: "demo-d1", name: "Carlos Eduardo" },
-  { id: "demo-d2", name: "Ana Martins" },
-];
-
 export default function TravelRegisterPage() {
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
+  const [vehicleId, setVehicleId] = useState("");
+  const [driverId, setDriverId] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
+  const [distanceKm, setDistanceKm] = useState("");
+  const [distanceLoading, setDistanceLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([vehiclesApi.list(), driversApi.list()])
@@ -38,82 +36,138 @@ export default function TravelRegisterPage() {
         const vList = Array.isArray(vRes.data) ? vRes.data : [];
         const dList = Array.isArray(dRes.data) ? dRes.data : [];
         setVehicles(
-          vList.length > 0
-            ? vList.map((v: VehicleOption & { brand?: string; model?: string }) => ({
-                id: String(v.id),
-                plate: v.plate,
-                brand: v.brand,
-                model: v.model,
-              }))
-            : FALLBACK_VEHICLES
+          vList.map((v: VehicleOption) => ({
+            id: String(v.id),
+            plate: v.plate,
+            brand: v.brand,
+            model: v.model,
+          }))
         );
-        setDrivers(
-          dList.length > 0
-            ? dList.map((d: DriverOption) => ({ id: String(d.id), name: d.name }))
-            : FALLBACK_DRIVERS
-        );
+        setDrivers(dList.map((d: DriverOption) => ({ id: String(d.id), name: d.name })));
       })
       .catch(() => {
-        setVehicles(FALLBACK_VEHICLES);
-        setDrivers(FALLBACK_DRIVERS);
+        setVehicles([]);
+        setDrivers([]);
       })
       .finally(() => setLoadingOptions(false));
   }, []);
 
-  const vehicleOptions = [
-    { value: "", label: loadingOptions ? "Carregando veículos..." : "Selecione um veículo" },
-    ...vehicles.map((v) => ({
-      value: v.id,
-      label: `${v.plate}${v.brand ? ` — ${v.brand} ${v.model ?? ""}` : ""}`,
-    })),
-  ];
+  const vehicleOptions: ComboboxOption[] = useMemo(
+    () =>
+      vehicles.map((v) => ({
+        value: v.id,
+        label: `${v.plate}${v.brand ? ` — ${v.brand} ${v.model ?? ""}` : ""}`,
+      })),
+    [vehicles]
+  );
 
-  const driverOptions = [
-    { value: "", label: loadingOptions ? "Carregando motoristas..." : "Selecione um motorista" },
-    ...drivers.map((d) => ({ value: d.id, label: d.name })),
-  ];
+  const driverOptions: ComboboxOption[] = useMemo(
+    () => drivers.map((d) => ({ value: d.id, label: d.name })),
+    [drivers]
+  );
+
+  useEffect(() => {
+    if (!origin.trim() || !destination.trim()) return;
+    const timer = setTimeout(async () => {
+      setDistanceLoading(true);
+      try {
+        const res = await geocodingApi.distance(origin, destination);
+        setDistanceKm(String(res.data.distanceKm ?? ""));
+      } catch {
+        /* mantém valor manual */
+      } finally {
+        setDistanceLoading(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [origin, destination]);
 
   return (
     <FormShell
       title="Novo Despacho"
-      subtitle="Agende viagem com origem, destino e recursos."
+      subtitle="Agende viagem com origem, destino e recursos. Veículo e motorista com busca dinâmica."
       backHref="/travels"
       redirectOnSuccess="/travels"
       submitLabel="Criar Despacho"
-      onSubmit={async (form) => {
-        const vehicleId = String(form.get("vehicle_id"));
-        const driverId = String(form.get("driver_id"));
-        if (!vehicleId || !driverId) {
-          throw { response: { data: { error: "Selecione veículo e motorista." } } };
+      onSubmit={async () => {
+        const resolvedVehicle = resolveEntityId(vehicleId, vehicleOptions);
+        const resolvedDriver = resolveEntityId(driverId, driverOptions);
+        if (!resolvedVehicle || !resolvedDriver) {
+          throw {
+            response: {
+              data: {
+                error:
+                  "Selecione ou digite um veículo e motorista válidos cadastrados no sistema.",
+              },
+            },
+          };
         }
         await travelsApi.create({
-          vehicle_id: vehicleId,
-          driver_id: driverId,
-          origin: form.get("origin"),
-          destination: form.get("destination"),
-          distance_km: Number(form.get("distance_km") || 0),
-          fuel_consumption: Number(form.get("fuel_consumption") || 0),
+          vehicle_id: resolvedVehicle,
+          driver_id: resolvedDriver,
+          origin,
+          destination,
+          distance_km: Number(distanceKm || 0),
+          fuel_consumption: Number(0),
         });
       }}
     >
       <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
-        <FormField
+        <SearchableCombobox
           label="Veículo"
           name="vehicle_id"
           required
           disabled={loadingOptions}
           options={vehicleOptions}
+          placeholder={loadingOptions ? "Carregando..." : "Digite placa ou modelo..."}
+          allowCustom
+          onValueChange={(v) => setVehicleId(v)}
         />
-        <FormField
+        <SearchableCombobox
           label="Motorista"
           name="driver_id"
           required
           disabled={loadingOptions}
           options={driverOptions}
+          placeholder={loadingOptions ? "Carregando..." : "Digite nome do motorista..."}
+          allowCustom
+          onValueChange={(v) => setDriverId(v)}
         />
-        <FormField label="Origem" name="origin" required placeholder="Ex: São Paulo, SP" />
-        <FormField label="Destino" name="destination" required placeholder="Ex: Curitiba, PR" />
-        <FormField label="Distância (km)" name="distance_km" type="number" placeholder="0" />
+        <div>
+          <label className="mb-1 block text-label-md text-on-surface-variant">Origem</label>
+          <input
+            className="input-fleet"
+            name="origin"
+            required
+            value={origin}
+            onChange={(e) => setOrigin(e.target.value)}
+            placeholder="Ex: São Paulo, SP"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-label-md text-on-surface-variant">Destino</label>
+          <input
+            className="input-fleet"
+            name="destination"
+            required
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            placeholder="Ex: Curitiba, PR"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-label-md text-on-surface-variant">
+            Distância (km) {distanceLoading && "— calculando..."}
+          </label>
+          <input
+            className="input-fleet"
+            name="distance_km"
+            type="number"
+            value={distanceKm}
+            onChange={(e) => setDistanceKm(e.target.value)}
+            placeholder="0"
+          />
+        </div>
         <FormField label="Consumo estimado (L)" name="fuel_consumption" type="number" placeholder="0" />
       </section>
     </FormShell>

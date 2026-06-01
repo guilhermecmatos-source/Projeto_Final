@@ -1,22 +1,33 @@
-export interface NavItem {
+import type { LucideIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  Car,
+  ClipboardCheck,
+  Fuel,
+  LayoutDashboard,
+  Map,
+  Sparkles,
+  Users,
+  Wrench,
+} from "lucide-react";
+import { ROUTES } from "./constants";
+
+export interface ItemNavegacao {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard Principal", icon: "dashboard" },
-  { href: "/vehicles", label: "Veículos", icon: "directions_car" },
-  { href: "/drivers", label: "Motoristas", icon: "person" },
-  { href: "/travels", label: "Viagens", icon: "alt_route" },
-  { href: "/logistics", label: "Logística", icon: "route" },
-  { href: "/maintenance", label: "Manutenção", icon: "build" },
-  { href: "/fuel", label: "Abastecimentos", icon: "local_gas_station" },
-  { href: "/inspection", label: "Inspeção", icon: "fact_check" },
-  { href: "/ai-security", label: "IA Sandbox", icon: "psychology" },
-  { href: "/intelligence", label: "Inteligência", icon: "insights" },
-  { href: "/reports", label: "Relatórios", icon: "bar_chart" },
-  { href: "/partners", label: "Parceiros", icon: "handshake" },
+export const ITENS_SIDEBAR: ItemNavegacao[] = [
+  { href: ROUTES.dashboard, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.vehicles, label: "Veículos", icon: Car },
+  { href: ROUTES.fuel, label: "Abastecimentos", icon: Fuel },
+  { href: ROUTES.alerts, label: "Alertas IA", icon: AlertTriangle },
+  { href: ROUTES.fleetIntelligence, label: "Fleet Intelligence", icon: Sparkles },
+  { href: ROUTES.mapOperations, label: "Mapa Operacional", icon: Map },
+  { href: ROUTES.maintenance, label: "Manutenção", icon: Wrench },
+  { href: ROUTES.inspection, label: "Inspeção", icon: ClipboardCheck },
+  { href: ROUTES.reports, label: "Relatórios", icon: BarChart3 },
+  { href: ROUTES.profiles, label: "Perfis", icon: Users },
 ];
-
-export const AUTH_ROUTES = ["/login", "/forgot-password"];

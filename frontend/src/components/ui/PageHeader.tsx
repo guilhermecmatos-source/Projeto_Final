@@ -19,7 +19,7 @@ export default function PageHeader({ title, subtitle, breadcrumb, actions }: Pag
             <span className="font-bold text-primary">{breadcrumb}</span>
           </nav>
         )}
-        <h1 className="text-headline-lg text-on-surface">{title}</h1>
+        <h1 className="text-headline-lg text-on-surface sm:text-headline-lg">{title}</h1>
         {subtitle && <p className="mt-1 text-body-md text-on-surface-variant">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-3">{actions}</div>}

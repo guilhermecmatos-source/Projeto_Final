@@ -8,29 +8,45 @@ import {
   removeFromSyncQueue,
   SyncItem,
 } from "@/lib/offline";
+import { persistence } from "@/lib/persistence/store";
 import { driversApi, fuelApi, maintenanceApi, travelsApi } from "@/services/api";
+
+export interface SyncResult {
+  ok: boolean;
+  synced: number;
+  failed: number;
+  message: string;
+}
 
 async function processSyncItem(item: SyncItem): Promise<boolean> {
   try {
     const p = item.payload;
     switch (item.type) {
-      case "driver":
+      case "driver": {
+        const name = String(p.name || "").trim();
+        const license = String(p.license_number || "").trim();
+        if (!name || !license) return false;
         await driversApi.create({
-          name: p.name,
-          license_number: p.license_number,
-          phone: p.phone || "",
+          name,
+          license_number: license,
+          phone: String(p.phone || ""),
         });
         break;
-      case "travel":
+      }
+      case "travel": {
+        const vehicleId = String(p.vehicle_id || "");
+        const driverId = String(p.driver_id || "");
+        if (!vehicleId || !driverId) return false;
         await travelsApi.create({
-          vehicle_id: p.vehicle_id,
-          driver_id: p.driver_id,
+          vehicle_id: vehicleId,
+          driver_id: driverId,
           origin: p.origin,
           destination: p.destination,
           distance_km: Number(p.distance_km || 0),
           fuel_consumption: Number(p.fuel_consumption || 0),
         });
         break;
+      }
       case "fuel":
         await fuelApi.create({
           vehicle_id: p.vehicle_id,
@@ -51,12 +67,16 @@ async function processSyncItem(item: SyncItem): Promise<boolean> {
         });
         break;
       case "ruv":
+        persistence.saveRuv(item.payload);
+        return true;
       case "logistics":
+        persistence.saveLogistics(item.payload);
+        return true;
       case "inspection":
-        /* persistidos localmente; sem endpoint dedicado */
-        break;
+        persistence.saveInspection(item.payload);
+        return true;
       default:
-        break;
+        return true;
     }
     return true;
   } catch {
@@ -68,6 +88,7 @@ export function useOffline() {
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
 
   const refresh = useCallback(() => {
     setOnline(isOnline());
@@ -88,25 +109,63 @@ export function useOffline() {
     };
   }, [refresh]);
 
-  const syncNow = useCallback(async () => {
-    if (!isOnline()) return false;
+  const syncNow = useCallback(async (): Promise<SyncResult> => {
+    if (!isOnline()) {
+      const result: SyncResult = {
+        ok: false,
+        synced: 0,
+        failed: 0,
+        message: "Sem conexão. Aguarde voltar online.",
+      };
+      setLastSyncResult(result);
+      return result;
+    }
+
     setSyncing(true);
     const queue = getSyncQueue();
-    let ok = 0;
+    if (queue.length === 0) {
+      const empty: SyncResult = {
+        ok: true,
+        synced: 0,
+        failed: 0,
+        message: "Nenhum item pendente na fila.",
+      };
+      setLastSyncResult(empty);
+      setSyncing(false);
+      return empty;
+    }
+
+    let synced = 0;
+    let failed = 0;
     for (const item of queue) {
       const success = await processSyncItem(item);
       if (success) {
         removeFromSyncQueue(item.id);
-        ok++;
+        synced++;
+      } else {
+        failed++;
       }
     }
-    if (ok === queue.length && queue.length > 0) {
+
+    if (synced > 0 && failed === 0) {
       clearSyncQueue();
     }
+
     refresh();
     setSyncing(false);
-    return ok > 0 || queue.length === 0;
+
+    const result: SyncResult = {
+      ok: failed === 0,
+      synced,
+      failed,
+      message:
+        failed === 0
+          ? `Sincronização concluída (${synced} item(ns)).`
+          : `Parcial: ${synced} ok, ${failed} com erro. Tente novamente.`,
+    };
+    setLastSyncResult(result);
+    return result;
   }, [refresh]);
 
-  return { online, pendingCount, syncing, refresh, syncNow };
+  return { online, pendingCount, syncing, lastSyncResult, refresh, syncNow };
 }

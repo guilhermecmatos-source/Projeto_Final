@@ -47,9 +47,13 @@ export interface TripCostResult {
 export function calculateTripCost(
   origin: string,
   destination: string,
-  vehicle: VehicleProfile
+  vehicle: VehicleProfile,
+  distanceKmOverride?: number
 ): TripCostResult {
-  const distanceKm = estimateDistanceKm(origin, destination);
+  const distanceKm =
+    distanceKmOverride && distanceKmOverride > 0
+      ? distanceKmOverride
+      : estimateDistanceKm(origin, destination);
   const litersNeeded = distanceKm / vehicle.avgKmPerLiter;
   const fuelCost = litersNeeded * vehicle.fuelPricePerLiter;
   const tollCost = (distanceKm / 100) * vehicle.tollPer100km;
