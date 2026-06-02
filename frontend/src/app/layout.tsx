@@ -1,21 +1,50 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { Providers } from "./providers";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: "FleetAI — Gestão Inteligente de Frotas",
-  description: "Plataforma SaaS de gestão de frotas com IA",
+  title: "FleetAI - Gestão Inteligente de Frotas",
+  description: "Plataforma de mobilidade, logística e gestão de frotas com IA",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FleetAI",
+  },
+  formatDetection: {
+    telephone: false,
+    email: false,
+  },
+  icons: {
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#003d9b",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
-      </body>
+    <html lang="pt-BR">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body className={`${inter.variable} antialiased`}>{children}</body>
     </html>
   );
 }

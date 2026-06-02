@@ -19,11 +19,11 @@ export default function AuthHero({ imageUrl, alt = "" }: AuthHeroProps) {
       <div className="technical-pattern absolute inset-0 opacity-30" />
       <div className="relative z-10 max-w-lg text-white">
         <div className="mb-6 flex items-center gap-3">
-          <Icon name="local_shipping" className="text-5xl text-white" filled />
+          <Icon name="local_shipping" className="text-5xl text-primary-fixed" filled />
           <h1 className="text-headline-lg tracking-tight">FleetAI</h1>
         </div>
         <h2 className="mb-4 text-headline-md">Intelligent Fleet Management</h2>
-        <p className="text-body-md leading-relaxed text-white/90">
+        <p className="text-body-lg leading-relaxed text-primary-fixed/90">
           A plataforma definitiva para controle operacional, manutenção preditiva e otimização de
           logística em tempo real.
         </p>

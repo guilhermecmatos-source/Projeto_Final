@@ -30,7 +30,7 @@ export function defaultDateRange(days = 30): DateRange {
 export default function DateRangePicker({ value, onChange, className = "" }: DateRangePickerProps) {
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2">
         <Icon name="calendar_today" className="text-sm text-primary" />
         <label className="sr-only" htmlFor="date-range-start">
           Data inicial

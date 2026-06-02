@@ -8,7 +8,6 @@ import {
   removeFromSyncQueue,
   SyncItem,
 } from "@/lib/offline";
-import { persistence } from "@/lib/persistence/store";
 import { driversApi, fuelApi, maintenanceApi, travelsApi } from "@/services/api";
 
 export interface SyncResult {
@@ -67,13 +66,8 @@ async function processSyncItem(item: SyncItem): Promise<boolean> {
         });
         break;
       case "ruv":
-        persistence.saveRuv(item.payload);
-        return true;
       case "logistics":
-        persistence.saveLogistics(item.payload);
-        return true;
       case "inspection":
-        persistence.saveInspection(item.payload);
         return true;
       default:
         return true;

@@ -1,47 +1,87 @@
 import type { Config } from "tailwindcss";
 
-/** RGB triplet for Tailwind opacity modifiers (e.g. bg-primary/10) */
-function c(name: string) {
-  return `rgb(var(--color-${name}) / <alpha-value>)`;
-}
-
 const config: Config = {
-  darkMode: "class",
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      colors: {
+        primary: {
+          DEFAULT: "#003d9b",
+          container: "#0052cc",
+          fixed: "#dae2ff",
+        },
+        secondary: {
+          DEFAULT: "#825500",
+          container: "#feaa00",
+          fixed: "#ffddb3",
+        },
+        tertiary: {
+          DEFAULT: "#7b2600",
+          container: "#a33500",
+        },
+        surface: {
+          DEFAULT: "#f8f9fb",
+          dim: "#d9dadc",
+          bright: "#f8f9fb",
+          variant: "#e1e2e4",
+          container: {
+            DEFAULT: "#edeef0",
+            low: "#f3f4f6",
+            lowest: "#ffffff",
+            high: "#e7e8ea",
+            highest: "#e1e2e4",
+          },
+        },
+        outline: {
+          DEFAULT: "#737685",
+          variant: "#c3c6d6",
+        },
+        error: {
+          DEFAULT: "#ba1a1a",
+          container: "#ffdad6",
+        },
+        "on-surface": "#191c1e",
+        "on-surface-variant": "#434654",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#c4d2ff",
+        "on-secondary-container": "#684300",
+        "on-error-container": "#93000a",
+        background: "#f8f9fb",
+        fleet: {
+          50: "#eff6ff",
+          100: "#dbeafe",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+          900: "#1e3a5f",
+        },
+      },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
       },
       fontSize: {
-        "headline-lg": ["1.75rem", { lineHeight: "2.25rem", fontWeight: "700" }],
-        "headline-md": ["1.5rem", { lineHeight: "2rem", fontWeight: "700" }],
-        "headline-sm": ["1.125rem", { lineHeight: "1.75rem", fontWeight: "600" }],
-        "body-md": ["0.9375rem", { lineHeight: "1.5rem" }],
-        "label-md": ["0.75rem", { lineHeight: "1rem", fontWeight: "600", letterSpacing: "0.04em" }],
+        "headline-lg": ["32px", { lineHeight: "40px", fontWeight: "700", letterSpacing: "-0.02em" }],
+        "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+        "headline-sm": ["18px", { lineHeight: "28px", fontWeight: "600" }],
+        "body-lg": ["16px", { lineHeight: "24px" }],
+        "body-md": ["14px", { lineHeight: "20px" }],
+        "label-md": ["12px", { lineHeight: "16px", fontWeight: "600", letterSpacing: "0.05em" }],
+      },
+      spacing: {
+        gutter: "24px",
+        "margin-mobile": "16px",
+        "margin-desktop": "32px",
       },
       boxShadow: {
-        raised: "var(--shadow-raised)",
+        raised: "0 2px 4px rgba(0,0,0,0.05)",
+        overlay: "0 12px 24px rgba(0,0,0,0.1)",
       },
-      colors: {
-        primary: c("primary"),
-        "on-primary": c("on-primary"),
-        "primary-container": c("primary-container"),
-        "on-primary-container": c("on-primary-container"),
-        "primary-fixed": c("primary-fixed"),
-        "secondary-container": c("secondary-container"),
-        "on-secondary-container": c("on-secondary-container"),
-        surface: c("surface"),
-        "on-surface": c("on-surface"),
-        "on-surface-variant": c("on-surface-variant"),
-        "surface-container": c("surface-container"),
-        "surface-container-low": c("surface-container-low"),
-        "surface-container-high": c("surface-container-high"),
-        "surface-container-lowest": c("surface-container-lowest"),
-        outline: c("outline"),
-        "outline-variant": c("outline-variant"),
-        error: c("error"),
-        "error-container": c("error-container"),
+      padding: {
+        "safe-bottom": "env(safe-area-inset-bottom, 0px)",
+        "safe-top": "env(safe-area-inset-top, 0px)",
+      },
+      minHeight: {
+        "screen-safe": "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
       },
     },
   },

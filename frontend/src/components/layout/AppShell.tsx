@@ -1,7 +1,12 @@
 "use client";
 
-import { ReactNode } from "react";
-import { DashboardShell } from "./dashboard-shell";
+import { ReactNode, useState } from "react";
+import Sidebar from "./Sidebar";
+import TopHeader from "./TopHeader";
+import MobileBottomNav from "./MobileBottomNav";
+import OfflineIndicator from "@/components/ui/OfflineIndicator";
+import { useAuth } from "@/hooks/useAuth";
+import Icon from "@/components/ui/Icon";
 
 interface AppShellProps {
   children: ReactNode;
@@ -9,19 +14,74 @@ interface AppShellProps {
   searchPlaceholder?: string;
   headerAction?: ReactNode;
   showOfflineForPilot?: boolean;
-  fullWidth?: boolean;
 }
 
-/** Compatibilidade com páginas legadas — delega ao DashboardShell */
 export default function AppShell({
   children,
   headerTitle,
+  searchPlaceholder,
   headerAction,
-  fullWidth,
+  showOfflineForPilot = false,
 }: AppShellProps) {
+  const { user, ready, setUser } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center safe-area-padding">
+        <p className="text-on-surface-variant">Carregando...</p>
+      </div>
+    );
+  }
+
+  const isPilotContext =
+    showOfflineForPilot ||
+    user?.role === "attendant" ||
+    (typeof window !== "undefined" && window.location.pathname.includes("/drivers"));
+
   return (
-    <DashboardShell titulo={headerTitle} acao={headerAction} semPadding={fullWidth}>
-      {children}
-    </DashboardShell>
+    <div className="min-h-screen bg-background">
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          aria-label="Fechar menu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <Sidebar
+        user={user}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onProfileChange={setUser}
+      />
+
+      <div className="flex min-h-screen flex-col lg:ml-64">
+        <TopHeader
+          title={headerTitle}
+          searchPlaceholder={searchPlaceholder}
+          action={
+            <>
+              <button
+                type="button"
+                className="touch-target rounded-lg p-2 lg:hidden"
+                aria-label="Abrir menu"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Icon name="menu" className="text-2xl text-primary" />
+              </button>
+              {headerAction}
+            </>
+          }
+        />
+        <div className="main-content flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
+          {isPilotContext && <OfflineIndicator />}
+          {children}
+        </div>
+      </div>
+
+      <MobileBottomNav onOpenMenu={() => setSidebarOpen(true)} />
+    </div>
   );
 }

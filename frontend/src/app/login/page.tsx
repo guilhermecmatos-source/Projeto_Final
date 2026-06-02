@@ -132,7 +132,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary h-14 w-full rounded-xl">
+            <button type="submit" disabled={loading} className="btn-secondary h-14 w-full rounded-xl">
               {loading ? "Entrando..." : "Entrar"}
               <Icon name="arrow_forward" />
             </button>
