@@ -28,14 +28,14 @@ export function DashboardShell({
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <Skeleton className="h-12 w-48" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-surface text-on-surface">
       <Sidebar
         usuario={user}
         aberta={menuAberta}
