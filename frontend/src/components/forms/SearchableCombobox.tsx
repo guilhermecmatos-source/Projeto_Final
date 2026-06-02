@@ -106,7 +106,7 @@ export default function SearchableCombobox({
       </div>
       {open && filtered.length > 0 && (
         <ul
-          className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-outline-variant bg-white shadow-lg"
+          className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-outline-variant bg-surface-container-lowest shadow-lg"
           role="listbox"
         >
           {filtered.slice(0, 20).map((opt) => (

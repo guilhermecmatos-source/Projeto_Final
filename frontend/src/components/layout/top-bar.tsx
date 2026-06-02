@@ -14,11 +14,11 @@ interface TopBarProps {
 
 export function TopBar({ titulo, onAbrirMenu, tema, onAlternarTema, acao }: TopBarProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-gray-800 bg-gray-950/95 px-4 backdrop-blur">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-outline-variant bg-surface-container-lowest/95 px-4 backdrop-blur">
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={onAbrirMenu}>
         <Menu className="h-5 w-5" />
       </Button>
-      <h1 className="flex-1 truncate text-base font-semibold text-gray-100">{titulo ?? "FleetAI"}</h1>
+      <h1 className="flex-1 truncate text-base font-semibold text-on-surface">{titulo ?? "FleetAI"}</h1>
       {acao}
       <Button variant="ghost" size="icon" onClick={onAlternarTema} aria-label="Tema">
         {tema === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

@@ -6,7 +6,7 @@ import { STORAGE_KEYS } from "@/lib/constants";
 export type Theme = "light" | "dark";
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEYS.theme) as Theme | null;

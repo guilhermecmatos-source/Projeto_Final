@@ -44,21 +44,21 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-gray-800 bg-gray-950 transition-all duration-300",
+          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-outline-variant bg-surface-container-lowest transition-all duration-300",
           largura,
           aberta ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-gray-800 px-3">
+        <div className="flex h-16 items-center justify-between border-b border-outline-variant px-3">
           {!colapsada && (
             <div className="px-1">
-              <p className="text-lg font-bold tracking-tight text-gray-50">FleetAI</p>
-              <p className="text-[10px] uppercase tracking-widest text-gray-500">Gestão de Frotas</p>
+              <p className="text-lg font-bold tracking-tight text-on-surface">FleetAI</p>
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Gestão de Frotas</p>
             </div>
           )}
           <button
             type="button"
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-900 lg:hidden"
+            className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container-low lg:hidden"
             onClick={onFechar}
             aria-label="Fechar"
           >
@@ -66,7 +66,7 @@ export function Sidebar({
           </button>
           <button
             type="button"
-            className="hidden rounded-lg p-2 text-gray-400 hover:bg-gray-900 lg:block"
+            className="hidden rounded-lg p-2 text-on-surface-variant hover:bg-surface-container-low lg:block"
             onClick={onAlternarColapso}
             aria-label={colapsada ? "Expandir" : "Recolher"}
           >
@@ -85,14 +85,14 @@ export function Sidebar({
                   className={cn(
                     "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                     ativo
-                      ? "bg-cyan-500/10 text-cyan-300"
-                      : "text-gray-400 hover:bg-gray-900 hover:text-gray-100"
+                      ? "bg-primary-container/40 text-primary"
+                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
                   )}
                 >
                   {ativo && (
-                    <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-cyan-500" />
+                    <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
                   )}
-                  <Icone className={cn("h-5 w-5 shrink-0", ativo && "text-cyan-400")} />
+                  <Icone className={cn("h-5 w-5 shrink-0", ativo && "text-primary")} />
                   {!colapsada && item.label}
                 </motion.span>
               </Link>
@@ -101,9 +101,9 @@ export function Sidebar({
         </nav>
 
         {!colapsada && usuario && (
-          <div className="border-t border-gray-800 p-4">
-            <p className="truncate text-sm font-semibold text-gray-200">{usuario.name}</p>
-            <p className="truncate text-xs capitalize text-gray-500">{usuario.role}</p>
+          <div className="border-t border-outline-variant p-4">
+            <p className="truncate text-sm font-semibold text-on-surface">{usuario.name}</p>
+            <p className="truncate text-xs capitalize text-on-surface-variant">{usuario.role}</p>
           </div>
         )}
       </aside>
