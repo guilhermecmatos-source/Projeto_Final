@@ -11,10 +11,10 @@ import PageHeader from "@/components/ui/PageHeader";
 import { dashboardApi } from "@/services/api";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
-import { DashboardData, PredictiveAlert } from "@/types";
+import { DashboardData } from "@/types";
 import { formatBRL } from "@/lib/currency";
 
-function severityBorder(severity: PredictiveAlert["severity"]) {
+function severityBorder(severity: DashboardData["alerts"][number]["severity"]) {
   if (severity === "high") return "border-l-error";
   if (severity === "medium") return "border-l-secondary-container";
   return "border-l-primary";

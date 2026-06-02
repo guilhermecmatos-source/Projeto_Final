@@ -105,4 +105,9 @@ export interface DashboardData {
     status: string;
     mileage: number;
   }>;
+  forecast: {
+    expectedTrips: number;
+    peakDays: string[];
+    recommendation: string;
+  };
 }
