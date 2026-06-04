@@ -61,7 +61,7 @@ services:
       start_period: 40s
     volumes:
       - ./backend/src:/app/src
-    command: sh -c "chmod +x scripts/wait-for-mysql.sh 2>/dev/null; ./scripts/wait-for-mysql.sh && npm run db:migrate && npm run dev"
+    command: sh -c "npm run db:migrate && npm run dev"
 
   frontend:
     build: ./frontend
@@ -76,6 +76,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    volumes:
+      - ./frontend/src:/app/src
 
 volumes:
-  mysql_data:
+  mysql_data: {}
