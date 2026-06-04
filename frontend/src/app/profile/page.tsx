@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
+import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 import {
   addProfile,
   getProfiles,
@@ -102,6 +103,11 @@ export default function ProfilePage() {
       {profiles.length === 0 && (
         <p className="text-on-surface-variant">Nenhum perfil salvo. Crie o primeiro perfil acima.</p>
       )}
+
+      <div className="mt-8 raised-card max-w-md p-6">
+        <h3 className="mb-4 text-headline-sm font-bold">Acessibilidade</h3>
+        <ThemeSwitcher />
+      </div>
     </AppShell>
   );
 }

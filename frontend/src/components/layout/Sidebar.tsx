@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { NAV_ITEMS } from "@/lib/navigation";
+import { filterNavByRole } from "@/lib/permissions";
 import { IMAGES } from "@/lib/images";
 import { User } from "@/types";
 import ProfileSwitcher from "./ProfileSwitcher";
@@ -17,6 +18,7 @@ interface SidebarProps {
 
 export default function Sidebar({ user, open = false, onClose, onProfileChange }: SidebarProps) {
   const pathname = usePathname();
+  const navItems = filterNavByRole(NAV_ITEMS, user);
 
   return (
     <aside
@@ -42,7 +44,7 @@ export default function Sidebar({ user, open = false, onClose, onProfileChange }
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-2">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (

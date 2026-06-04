@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { UserRole } from "../models/types";
+import { normalizeRole, FleetUserRole } from "../utils/validators";
 
 export interface AuthPayload {
   userId: string;
@@ -39,13 +40,17 @@ export function authenticate(
   }
 }
 
-export function authorize(...roles: UserRole[]) {
+export function authorize(...roles: (UserRole | FleetUserRole | string)[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    if (roles.length > 0 && !roles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Insufficient permissions" });
+    if (roles.length > 0) {
+      const allowed = new Set(roles.map((r) => normalizeRole(String(r))));
+      const userRole = normalizeRole(req.user.role);
+      if (!allowed.has(userRole)) {
+        return res.status(403).json({ error: "Permissão insuficiente" });
+      }
     }
     next();
   };

@@ -2,12 +2,13 @@ import bcrypt from "bcryptjs";
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 import { getDbName } from "./connection";
+import { waitForDatabase } from "./wait-db";
+import { runSeed } from "./seed";
 
 dotenv.config();
 
 function getBaseConfig(): mysql.ConnectionOptions {
   const url = process.env.DATABASE_URL;
-
   if (url?.startsWith("mysql://")) {
     const parsed = new URL(url);
     return {
@@ -17,7 +18,6 @@ function getBaseConfig(): mysql.ConnectionOptions {
       password: decodeURIComponent(parsed.password),
     };
   }
-
   return {
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT) || 3306,
@@ -26,7 +26,34 @@ function getBaseConfig(): mysql.ConnectionOptions {
   };
 }
 
+async function columnExists(
+  conn: mysql.Connection,
+  table: string,
+  column: string
+): Promise<boolean> {
+  const dbName = getDbName();
+  const [rows] = await conn.query<mysql.RowDataPacket[]>(
+    `SELECT COUNT(*) as c FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+    [dbName, table, column]
+  );
+  return Number(rows[0]?.c) > 0;
+}
+
+async function ensureColumn(
+  conn: mysql.Connection,
+  table: string,
+  column: string,
+  definition: string
+) {
+  if (!(await columnExists(conn, table, column))) {
+    await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN ${definition}`);
+    console.log(`[migrate] Coluna ${table}.${column} adicionada.`);
+  }
+}
+
 async function migrate() {
+  await waitForDatabase();
   const dbName = getDbName();
   const baseConfig = getBaseConfig();
 
@@ -45,11 +72,44 @@ async function migrate() {
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'solicitante',
+        cpf VARCHAR(14) NULL,
+        rg VARCHAR(20) NULL,
+        cargo VARCHAR(100) NULL,
+        unidade VARCHAR(100) NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        CHECK (role IN ('admin', 'attendant', 'client'))
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+
+    await ensureColumn(conn, "users", "cpf", "cpf VARCHAR(14) NULL");
+    await ensureColumn(conn, "users", "rg", "rg VARCHAR(20) NULL");
+    await ensureColumn(conn, "users", "cargo", "cargo VARCHAR(100) NULL");
+    await ensureColumn(conn, "users", "unidade", "unidade VARCHAR(100) NULL");
+    await ensureColumn(
+      conn,
+      "users",
+      "updated_at",
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+    );
+
+    const [userChecks] = await conn.query<mysql.RowDataPacket[]>(
+      `SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND CONSTRAINT_TYPE = 'CHECK'`,
+      [dbName]
+    );
+    for (const row of userChecks) {
+      try {
+        await conn.query(`ALTER TABLE users DROP CHECK \`${row.CONSTRAINT_NAME}\``);
+        console.log(`[migrate] CHECK removido: users.${row.CONSTRAINT_NAME}`);
+      } catch {
+        /* constraint já removida */
+      }
+    }
+
+    await conn.query(`UPDATE users SET role = 'administrador' WHERE role = 'admin'`);
+    await conn.query(`UPDATE users SET role = 'gestor' WHERE role = 'attendant'`);
+    await conn.query(`UPDATE users SET role = 'solicitante' WHERE role = 'client'`);
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS vehicles (
@@ -60,11 +120,14 @@ async function migrate() {
         year INT NOT NULL,
         status VARCHAR(50) DEFAULT 'active',
         mileage DECIMAL(12,2) DEFAULT 0,
+        avg_consumption DECIMAL(8,2) NULL,
+        autonomy_km DECIMAL(10,2) NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        CHECK (status IN ('active', 'maintenance', 'inactive'))
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+    await ensureColumn(conn, "vehicles", "avg_consumption", "avg_consumption DECIMAL(8,2) NULL");
+    await ensureColumn(conn, "vehicles", "autonomy_km", "autonomy_km DECIMAL(10,2) NULL");
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS drivers (
@@ -74,10 +137,20 @@ async function migrate() {
         phone VARCHAR(30),
         score DECIMAL(5,2) DEFAULT 100,
         active TINYINT(1) DEFAULT 1,
+        cpf VARCHAR(14) NULL,
+        rg VARCHAR(20) NULL,
+        cnh_category VARCHAR(5) NULL,
+        cnh_expiry DATE NULL,
+        status VARCHAR(30) DEFAULT 'ativo',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+    await ensureColumn(conn, "drivers", "cpf", "cpf VARCHAR(14) NULL");
+    await ensureColumn(conn, "drivers", "rg", "rg VARCHAR(20) NULL");
+    await ensureColumn(conn, "drivers", "cnh_category", "cnh_category VARCHAR(5) NULL");
+    await ensureColumn(conn, "drivers", "cnh_expiry", "cnh_expiry DATE NULL");
+    await ensureColumn(conn, "drivers", "status", "status VARCHAR(30) DEFAULT 'ativo'");
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS travels (
@@ -89,14 +162,25 @@ async function migrate() {
         distance_km DECIMAL(10,2) DEFAULT 0,
         fuel_consumption DECIMAL(10,2) DEFAULT 0,
         status VARCHAR(50) DEFAULT 'scheduled',
+        km_start DECIMAL(12,2) NULL,
+        km_end DECIMAL(12,2) NULL,
+        estimated_duration_min INT NULL,
+        cost DECIMAL(12,2) DEFAULT 0,
+        checklist_departure JSON NULL,
+        checklist_arrival JSON NULL,
         started_at DATETIME NULL,
         ended_at DATETIME NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
-        FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
+        FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE RESTRICT,
         FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE SET NULL
       )
     `);
+    await ensureColumn(conn, "travels", "km_start", "km_start DECIMAL(12,2) NULL");
+    await ensureColumn(conn, "travels", "km_end", "km_end DECIMAL(12,2) NULL");
+    await ensureColumn(conn, "travels", "estimated_duration_min", "estimated_duration_min INT NULL");
+    await ensureColumn(conn, "travels", "cost", "cost DECIMAL(12,2) DEFAULT 0");
+    await ensureColumn(conn, "travels", "checklist_departure", "checklist_departure JSON NULL");
+    await ensureColumn(conn, "travels", "checklist_arrival", "checklist_arrival JSON NULL");
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS fuel_records (
@@ -124,27 +208,48 @@ async function migrate() {
         completed_at DATETIME NULL,
         alert_sent TINYINT(1) DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        CHECK (type IN ('preventive', 'corrective')),
         FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
       )
     `);
 
-    const adminEmail = "admin@fleetplatform.com";
-    const adminPassword = "Admin@123";
-    const hash = await bcrypt.hash(adminPassword, 10);
-    await conn.query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES (?, ?, ?, 'admin')
-       ON DUPLICATE KEY UPDATE
-         name = VALUES(name),
-         password_hash = VALUES(password_hash),
-         role = 'admin'`,
-      ["System Administrator", adminEmail, hash]
-    );
-    console.log(`Admin garantido: ${adminEmail} / ${adminPassword}`);
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS ruv_requests (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        requester_id CHAR(36) NOT NULL,
+        origin VARCHAR(255) NOT NULL,
+        destination VARCHAR(255) NOT NULL,
+        purpose TEXT NOT NULL,
+        status VARCHAR(30) DEFAULT 'pendente',
+        passengers INT DEFAULT 1,
+        justification TEXT NULL,
+        approved_by CHAR(36) NULL,
+        rejected_by CHAR(36) NULL,
+        vehicle_id CHAR(36) NULL,
+        driver_id CHAR(36) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id CHAR(36) NOT NULL,
+        action VARCHAR(20) NOT NULL,
+        user_id CHAR(36) NULL,
+        user_email VARCHAR(255) NULL,
+        details TEXT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     await conn.commit();
-    console.log(`Migration completed successfully on database "${dbName}".`);
+    console.log(`[migrate] Schema OK em "${dbName}".`);
+
+    await runSeed(conn);
+    console.log(`[migrate] Concluído.`);
   } catch (error) {
     await conn.rollback();
     throw error;
@@ -154,6 +259,6 @@ async function migrate() {
 }
 
 migrate().catch((err) => {
-  console.error("Migration failed:", err);
+  console.error("[migrate] Falhou:", err);
   process.exit(1);
 });

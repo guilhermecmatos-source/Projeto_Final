@@ -82,11 +82,36 @@ export const driversApi = {
 };
 
 export const travelsApi = {
-  list: () => api.get("/travels"),
+  list: (search?: string) => api.get("/travels", { params: search ? { search } : {} }),
   get: (id: string) => api.get(`/travels/${id}`),
   create: (data: Record<string, unknown>) => api.post("/travels", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/travels/${id}`, data),
+  remove: (id: string) => api.delete(`/travels/${id}`),
   cancel: (id: string) => api.patch(`/travels/${id}/cancel`),
+};
+
+export const usersApi = {
+  list: () => api.get("/users"),
+  get: (id: string) => api.get(`/users/${id}`),
+  create: (data: Record<string, unknown>) => api.post("/users", data),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/users/${id}`, data),
+  remove: (id: string) => api.delete(`/users/${id}`),
+};
+
+export const ruvApi = {
+  list: (status?: string) => api.get("/ruv", { params: status ? { status } : {} }),
+  get: (id: string) => api.get(`/ruv/${id}`),
+  create: (data: Record<string, unknown>) => api.post("/ruv", data),
+  approve: (id: string, justification?: string) =>
+    api.patch(`/ruv/${id}/approve`, { justification }),
+  reject: (id: string, justification: string) =>
+    api.patch(`/ruv/${id}/reject`, { justification }),
+};
+
+export const intelligenceApi = {
+  metrics: () => api.get("/intelligence/metrics"),
+  discovery: () => api.get("/intelligence/discovery"),
+  ceo: () => api.get("/intelligence/ceo"),
 };
 
 export const fuelApi = {

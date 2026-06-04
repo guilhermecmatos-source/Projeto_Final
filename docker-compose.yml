@@ -20,10 +20,10 @@ services:
           "CMD-SHELL",
           "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent",
         ]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 12
-      start_period: 20s
+      retries: 15
+      start_period: 30s
 
   backend:
     build: ./backend
@@ -33,6 +33,7 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
+      DATABASE_URL: mysql://${MYSQL_USER:-fleet_user}:${MYSQL_PASSWORD:-fleet_pass}@mysql:3306/${MYSQL_DATABASE:-fleet_db}
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: ${MYSQL_USER:-fleet_user}
@@ -40,13 +41,27 @@ services:
       DB_NAME: ${MYSQL_DATABASE:-fleet_db}
       JWT_SECRET: ${JWT_SECRET:-fleet-platform-jwt-secret-dev}
       NODE_ENV: development
+      DB_WAIT_RETRIES: 60
+      DB_WAIT_INTERVAL: 2
+      SERVER_DB_RETRIES: 30
+      GEO_PROVIDER_ORDER: google,osm,qualp,mapeia,heuristic
       TZ: America/Sao_Paulo
     depends_on:
       mysql:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3001/health').then(r=>r.json()).then(j=>process.exit(j.status==='ok'?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     volumes:
       - ./backend/src:/app/src
-    command: sh -c "npm run db:migrate && npm run dev"
+    command: sh -c "chmod +x scripts/wait-for-mysql.sh 2>/dev/null; ./scripts/wait-for-mysql.sh && npm run db:migrate && npm run dev"
 
   frontend:
     build: ./frontend
@@ -55,12 +70,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Proxy /api no Next → backend (funciona no celular na mesma rede Wi‑Fi)
       BACKEND_URL: http://backend:3001
       NEXT_PUBLIC_API_URL: /api
       TZ: America/Sao_Paulo
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   mysql_data:

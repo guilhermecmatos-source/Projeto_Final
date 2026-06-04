@@ -1,4 +1,4 @@
-type GeoProvider = "google" | "qualp" | "mapeia" | "heuristic";
+type GeoProvider = "google" | "osm" | "qualp" | "mapeia" | "heuristic";
 
 export interface RouteDistanceResult {
   distanceKm: number;
@@ -78,6 +78,48 @@ async function qualpDistance(origin: string, destination: string): Promise<Route
   }
 }
 
+async function geocodeNominatim(place: string): Promise<{ lat: number; lon: number } | null> {
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", place);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", "1");
+  url.searchParams.set("countrycodes", "br");
+
+  const res = await fetch(url.toString(), {
+    headers: { "User-Agent": "FleetAI/1.0 (fleet-management)" },
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { lat: string; lon: string }[];
+  if (!data[0]) return null;
+  return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+}
+
+async function osmDistance(origin: string, destination: string): Promise<RouteDistanceResult | null> {
+  try {
+    const [o, d] = await Promise.all([geocodeNominatim(origin), geocodeNominatim(destination)]);
+    if (!o || !d) return null;
+
+    const routeUrl = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=false`;
+    const res = await fetch(routeUrl, {
+      headers: { "User-Agent": "FleetAI/1.0" },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      routes?: { distance: number; duration: number }[];
+    };
+    const route = data.routes?.[0];
+    if (!route) return null;
+
+    return {
+      distanceKm: Math.round((route.distance / 1000) * 10) / 10,
+      durationMinutes: Math.round(route.duration / 60),
+      provider: "osm",
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function mapeiaDistance(origin: string, destination: string): Promise<RouteDistanceResult | null> {
   const key = process.env.MAPEIA_API_KEY;
   const base = process.env.MAPEIA_API_URL;
@@ -115,13 +157,14 @@ export async function resolveRouteDistance(
     return { distanceKm: 0, provider: "heuristic" };
   }
 
-  const providerOrder = (process.env.GEO_PROVIDER_ORDER || "google,qualp,mapeia,heuristic")
+  const providerOrder = (process.env.GEO_PROVIDER_ORDER || "google,osm,qualp,mapeia,heuristic")
     .split(",")
     .map((p) => p.trim().toLowerCase());
 
   for (const provider of providerOrder) {
     let result: RouteDistanceResult | null = null;
     if (provider === "google") result = await googleDistance(o, d);
+    else if (provider === "osm") result = await osmDistance(o, d);
     else if (provider === "qualp") result = await qualpDistance(o, d);
     else if (provider === "mapeia") result = await mapeiaDistance(o, d);
     if (result && result.distanceKm > 0) return result;

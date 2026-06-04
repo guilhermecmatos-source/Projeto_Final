@@ -1,4 +1,11 @@
-export type UserRole = "admin" | "attendant" | "client";
+export type UserRole =
+  | "administrador"
+  | "gestor"
+  | "motorista"
+  | "solicitante"
+  | "admin"
+  | "attendant"
+  | "client";
 
 export interface User {
   id: string;
@@ -6,6 +13,10 @@ export interface User {
   email: string;
   password_hash: string;
   role: UserRole;
+  cpf?: string | null;
+  rg?: string | null;
+  cargo?: string | null;
+  unidade?: string | null;
   created_at: Date;
 }
 
@@ -19,6 +30,8 @@ export interface Vehicle {
   year: number;
   status: VehicleStatus;
   mileage: number;
+  avg_consumption?: number | null;
+  autonomy_km?: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -30,6 +43,11 @@ export interface Driver {
   phone: string;
   score: number;
   active: boolean;
+  cpf?: string | null;
+  rg?: string | null;
+  cnh_category?: string | null;
+  cnh_expiry?: string | null;
+  status?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -45,6 +63,14 @@ export interface Travel {
   distance_km: number;
   fuel_consumption: number;
   status: TravelStatus;
+  km_start?: number | null;
+  km_end?: number | null;
+  estimated_duration_min?: number | null;
+  cost?: number;
+  checklist_departure?: Record<string, unknown> | null;
+  checklist_arrival?: Record<string, unknown> | null;
+  vehicle_plate?: string;
+  driver_name?: string;
   started_at: Date | null;
   ended_at: Date | null;
   created_at: Date;

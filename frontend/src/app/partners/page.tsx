@@ -91,9 +91,8 @@ export default function PartnersPage() {
           <div className="raised-card p-6">
             <h3 className="mb-4 text-headline-sm">Suporte Técnico</h3>
             {[
-              { title: "Manual de Telemetria", icon: "menu_book" },
               { title: "API de Integração", icon: "code" },
-              { title: "Troubleshooting IA", icon: "psychology" },
+              { title: "Histórico de Chamados", icon: "history" },
             ].map((doc) => (
               <ActionLink
                 key={doc.title}

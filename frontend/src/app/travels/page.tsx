@@ -1,53 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import RouteTrackerMap from "@/components/map/RouteTrackerMap";
+import { travelsApi } from "@/services/api";
+import { formatBRL } from "@/lib/currency";
 
-const KPI = [
-  { label: "Viagens Ativas", value: "24", sub: "+12%" },
-  { label: "Em Curso", value: "18", sub: "Frota 75%" },
-  { label: "Concluídas (Hoje)", value: "142", sub: "Meta: 150" },
-  { label: "Manutenção", value: "3", sub: "Atenção", warn: true },
-];
+interface TravelRow {
+  id: string;
+  origin: string;
+  destination: string;
+  vehicle_plate?: string;
+  driver_name?: string;
+  status: string;
+  distance_km: number;
+  cost?: number;
+}
 
-const DISPATCHES = [
-  {
-    id: "V-4029",
-    route: "São Paulo → Curitiba",
-    vehicle: "Scania R450",
-    driver: "Carlos Eduardo",
-    status: "Em curso",
-    carpool: 2,
-  },
-  {
-    id: "V-3310",
-    route: "Campinas → Santos",
-    vehicle: "VW Constellation",
-    driver: "Ana Martins",
-    status: "Agendado",
-    carpool: 0,
-  },
-];
+const STATUS_LABEL: Record<string, string> = {
+  scheduled: "Agendado",
+  in_progress: "Em curso",
+  completed: "Concluído",
+  cancelled: "Cancelado",
+};
 
 export default function TravelsPage() {
+  const searchParams = useSearchParams();
+  const [travels, setTravels] = useState<TravelRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Todos");
+  const [search, setSearch] = useState("");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    travelsApi
+      .list(search || undefined)
+      .then((res) => setTravels(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setTravels([]))
+      .finally(() => setLoading(false));
+  }, [search]);
+
+  useEffect(() => {
+    load();
+  }, [load, searchParams.get("t")]);
+
+  const kpis = useMemo(() => {
+    const active = travels.filter((t) => t.status === "in_progress").length;
+    const scheduled = travels.filter((t) => t.status === "scheduled").length;
+    const completed = travels.filter((t) => t.status === "completed").length;
+    const maintenance = travels.filter((t) => t.status === "cancelled").length;
+    return { total: travels.length, active, scheduled, completed, maintenance };
+  }, [travels]);
+
+  const filtered = travels.filter((t) => {
+    if (activeTab === "Ativos") return t.status === "in_progress";
+    if (activeTab === "Pendentes") return t.status === "scheduled";
+    if (activeTab === "Caronas") return false;
+    return true;
+  });
 
   return (
     <AppShell
-      searchPlaceholder="Buscar despachos, rotas ou IDs..."
+      searchPlaceholder="Buscar despachos, rotas..."
       headerAction={
         <ActionLink href={ACTION_ROUTES.travelsAssign}>Atribuir Veículo</ActionLink>
       }
     >
       <PageHeader
         title="Controle de Viagens e Logística"
-        subtitle="Monitoramento, agendamento assistido e matching de caronas"
+        subtitle="Monitoramento, agendamento assistido e Smart RUV"
         actions={
           <>
             <ActionLink
@@ -56,11 +83,11 @@ export default function TravelsPage() {
               className="!rounded-xl !border-primary !px-6 !py-3 !font-bold !text-primary"
             >
               <Icon name="auto_awesome" />
-              Matching AI
+              Matching
             </ActionLink>
             <ActionLink href={ACTION_ROUTES.travelsRuv} variant="outline" className="!rounded-xl !py-3">
               <Icon name="description" />
-              RUV
+              Smart RUV
             </ActionLink>
             <ActionLink href={ACTION_ROUTES.travelsRegister} variant="secondary" className="!rounded-xl !py-3">
               <Icon name="add_circle" />
@@ -70,45 +97,38 @@ export default function TravelsPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {KPI.map((k) => (
-          <div key={k.label} className="raised-card p-6">
-            <p className="mb-2 text-label-md uppercase text-on-surface-variant">{k.label}</p>
-            <div className="flex items-baseline gap-2">
-              <span
-                className={`text-headline-lg font-bold ${k.warn ? "text-secondary-container" : "text-primary"}`}
-              >
-                {k.value}
-              </span>
-              <span className="text-xs font-medium text-on-surface-variant">{k.sub}</span>
-            </div>
-          </div>
-        ))}
+      <div className="mb-4">
+        <input
+          className="input-fleet max-w-md"
+          placeholder="Pesquisar origem, destino, placa..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && load()}
+        />
       </div>
 
-      <div className="mb-8 flex items-center justify-between rounded-xl border border-primary/20 bg-primary-container p-6 text-on-primary-container">
-        <div className="flex items-center gap-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-            <Icon name="psychology" className="text-white" />
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Total de Viagens", value: kpis.total },
+          { label: "Em Curso", value: kpis.active },
+          { label: "Agendadas", value: kpis.scheduled },
+          { label: "Concluídas", value: kpis.completed },
+        ].map((k) => (
+          <div key={k.label} className="raised-card p-6">
+            <p className="mb-2 text-label-md uppercase text-on-surface-variant">{k.label}</p>
+            <span className="text-headline-lg font-bold text-primary">
+              {loading ? "—" : k.value}
+            </span>
           </div>
-          <div>
-            <h3 className="font-bold">Agendamento Assistido</h3>
-            <p className="text-sm opacity-90">
-              5 oportunidades de carona corporativa para amanhã. Economia estimada: R$ 1.240,00.
-            </p>
-          </div>
-        </div>
-        <ActionLink href={ACTION_ROUTES.travelsSuggestions} className="!rounded-xl">
-          Ver Sugestões
-        </ActionLink>
+        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
         <section className="space-y-4 lg:col-span-7">
           <div className="flex items-center justify-between">
-            <h3 className="text-headline-sm">Listagem de Despachos</h3>
+            <h3 className="text-headline-sm">Listagem de Viagens</h3>
             <div className="flex gap-1 rounded-full border border-outline-variant bg-surface-container-low p-1">
-              {["Todos", "Ativos", "Caronas", "Pendentes"].map((t) => (
+              {["Todos", "Ativos", "Pendentes"].map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -120,49 +140,53 @@ export default function TravelsPage() {
               ))}
             </div>
           </div>
-          {DISPATCHES.filter((d) => {
-            if (activeTab === "Todos") return true;
-            if (activeTab === "Ativos") return d.status === "Em curso";
-            if (activeTab === "Caronas") return d.carpool > 0;
-            if (activeTab === "Pendentes") return d.status === "Agendado";
-            return true;
-          }).map((d) => (
-            <Link
-              key={d.id}
-              href={ACTION_ROUTES.travelsRegister}
-              className="raised-card block cursor-pointer border-l-4 border-l-primary p-6 transition hover:shadow-md"
-            >
-              <div className="flex justify-between">
-                <div className="flex gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-container text-on-primary">
-                    <Icon name="local_shipping" />
+          {loading ? (
+            <p className="text-on-surface-variant">Carregando viagens...</p>
+          ) : filtered.length === 0 ? (
+            <p className="rounded-xl border border-outline-variant p-6 text-on-surface-variant">
+              Nenhuma viagem encontrada. Cadastre veículos e motoristas, depois crie um despacho.
+            </p>
+          ) : (
+            filtered.map((d) => (
+              <div
+                key={d.id}
+                className="raised-card block border-l-4 border-l-primary p-6"
+              >
+                <div className="flex justify-between gap-4">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-container text-on-primary">
+                      <Icon name="local_shipping" />
+                    </div>
+                    <div>
+                      <h4 className="text-headline-sm">
+                        {d.origin} → {d.destination}
+                      </h4>
+                      <p className="text-sm text-on-surface-variant">
+                        {d.vehicle_plate ?? "—"} | {d.driver_name ?? "—"} | {Number(d.distance_km).toFixed(0)} km
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-headline-sm">
-                      {d.id} • {d.route}
-                    </h4>
-                    <p className="text-sm text-on-surface-variant">
-                      {d.vehicle} | Motorista: {d.driver}
-                    </p>
+                  <div className="text-right">
+                    <span className="chip-active">{STATUS_LABEL[d.status] ?? d.status}</span>
+                    {d.cost != null && Number(d.cost) > 0 && (
+                      <p className="mt-2 text-xs font-bold text-primary">{formatBRL(Number(d.cost))}</p>
+                    )}
                   </div>
-                </div>
-                <div className="text-right">
-                  <span className="chip-active">{d.status}</span>
-                  {d.carpool > 0 && (
-                    <p className="mt-2 flex items-center justify-end gap-1 text-xs font-bold text-secondary">
-                      <Icon name="group" className="text-xs" />
-                      {d.carpool} Passageiros (Carona)
-                    </p>
-                  )}
                 </div>
               </div>
-            </Link>
-          ))}
+            ))
+          )}
         </section>
 
         <section className="lg:col-span-5">
           <h3 className="mb-4 text-headline-sm">Rota em Tempo Real</h3>
           <RouteTrackerMap heightClass="min-h-[220px] md:min-h-[280px]" />
+          <Link
+            href={ACTION_ROUTES.travelsRegister}
+            className="btn-primary mt-4 w-full"
+          >
+            Nova viagem com checklist
+          </Link>
         </section>
       </div>
     </AppShell>

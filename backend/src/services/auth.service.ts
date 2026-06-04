@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { query } from "../database/connection";
 import { User, UserRole } from "../models/types";
 import { AuthPayload } from "../middlewares/auth.middleware";
+import { normalizeRole } from "../utils/validators";
 
 export class AuthService {
   async login(email: string, password: string) {
@@ -22,10 +23,11 @@ export class AuthService {
       throw new Error("Invalid credentials");
     }
 
+    const role = normalizeRole(user.role);
     const payload: AuthPayload = {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: role as UserRole,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET || "fallback-secret", {
@@ -34,7 +36,7 @@ export class AuthService {
 
     return {
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role },
     };
   }
 

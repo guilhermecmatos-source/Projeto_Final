@@ -8,13 +8,6 @@ import { ACTION_ROUTES } from "@/lib/action-routes";
 
 const DOCS = [
   {
-    title: "Manual de Telemetria",
-    icon: "menu_book",
-    desc: "Guia de sensores, odômetro e integração GPS.",
-    href: ACTION_ROUTES.apiDocs,
-    external: true,
-  },
-  {
     title: "API de Integração",
     icon: "code",
     desc: "Documentação Swagger da API REST FleetAI.",
@@ -22,10 +15,10 @@ const DOCS = [
     external: true,
   },
   {
-    title: "Troubleshooting IA",
-    icon: "psychology",
-    desc: "Boas práticas para alertas e sandbox de IA.",
-    href: "/ai-security",
+    title: "Chamados e Suporte",
+    icon: "support_agent",
+    desc: "Abertura e acompanhamento de chamados com dados reais.",
+    href: "/partners/support",
     external: false,
   },
 ];

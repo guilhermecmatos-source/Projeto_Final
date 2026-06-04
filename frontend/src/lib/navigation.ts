@@ -6,6 +6,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard Principal", icon: "dashboard" },
+  { href: "/users", label: "Usuários", icon: "manage_accounts" },
   { href: "/vehicles", label: "Veículos", icon: "directions_car" },
   { href: "/drivers", label: "Motoristas", icon: "person" },
   { href: "/travels", label: "Viagens", icon: "alt_route" },

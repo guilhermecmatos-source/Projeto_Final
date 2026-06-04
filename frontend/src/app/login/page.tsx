@@ -11,8 +11,8 @@ import { ensureCurrentProfileInList } from "@/lib/profiles";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@fleetplatform.com");
-  const [password, setPassword] = useState("Admin@123");
+  const [email, setEmail] = useState("admin@fleetai.com");
+  const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +36,7 @@ export default function LoginPage() {
           "Não foi possível conectar à API. No celular, use o IP do PC (ex.: http://192.168.1.10:3000), mesma Wi‑Fi, e NEXT_PUBLIC_API_URL=/api."
         );
       } else {
-        setError(apiMsg || "Credenciais inválidas. Use admin@fleetplatform.com / Admin@123");
+        setError(apiMsg || "Credenciais inválidas. Use admin@fleetai.com / admin123");
       }
     } finally {
       setLoading(false);

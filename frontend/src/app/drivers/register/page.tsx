@@ -8,35 +8,16 @@ import FormField from "@/components/forms/FormField";
 import FileUploadField from "@/components/forms/FileUploadField";
 import CurrencyField from "@/components/forms/CurrencyField";
 import FormActions from "@/components/forms/FormActions";
-import ChecklistToggle from "@/components/ui/ChecklistToggle";
 import Icon from "@/components/ui/Icon";
 import { driversApi } from "@/services/api";
 import {
   addToSyncQueue,
   formatSavedAt,
   getDriverDraft,
-  getQuickChecklist,
   isOnline,
   saveDriverDraft,
-  setQuickChecklistItem,
 } from "@/lib/offline";
 import { useOffline } from "@/hooks/useOffline";
-
-const DEPARTURE_CHECKLIST = [
-  "Pneus calibrados",
-  "Nível de óleo OK",
-  "Documentação no veículo",
-  "Extintor válido",
-  "Kit primeiros socorros",
-];
-
-const ARRIVAL_CHECKLIST = [
-  "Veículo limpo",
-  "Sem avarias novas",
-  "Combustível registrado",
-  "Quilometragem anotada",
-  "Relatório de rota preenchido",
-];
 
 function formToObject(form: FormData): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
@@ -70,37 +51,12 @@ export default function DriverRegisterPage() {
   const [success, setSuccess] = useState("");
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [createdDriverId, setCreatedDriverId] = useState<string | null>(null);
-  const [departureCheck, setDepartureCheck] = useState<Record<string, boolean>>({});
-  const [arrivalCheck, setArrivalCheck] = useState<Record<string, boolean>>({});
   const { online, pendingCount, syncing, syncNow } = useOffline();
 
   useEffect(() => {
     const draft = getDriverDraft();
     if (draft?.savedAt) setLastSaved(draft.savedAt as string);
-    const saved = getQuickChecklist();
-    const dep: Record<string, boolean> = {};
-    const arr: Record<string, boolean> = {};
-    DEPARTURE_CHECKLIST.forEach((item) => {
-      dep[item] = saved[`dep_${item}`] ?? false;
-    });
-    ARRIVAL_CHECKLIST.forEach((item) => {
-      arr[item] = saved[`arr_${item}`] ?? false;
-    });
-    setDepartureCheck(dep);
-    setArrivalCheck(arr);
   }, []);
-
-  function toggleDeparture(item: string) {
-    const next = !departureCheck[item];
-    setDepartureCheck((p) => ({ ...p, [item]: next }));
-    setQuickChecklistItem(`dep_${item}`, next);
-  }
-
-  function toggleArrival(item: string) {
-    const next = !arrivalCheck[item];
-    setArrivalCheck((p) => ({ ...p, [item]: next }));
-    setQuickChecklistItem(`arr_${item}`, next);
-  }
 
   async function submitToApi(form: FormData) {
     const name = String(form.get("name") || "").trim();
@@ -259,34 +215,6 @@ export default function DriverRegisterPage() {
             <FormField label="Placa" name="vehicle_plate" placeholder="ABC-1234" />
             <FormField label="Modelo" name="vehicle_model" placeholder="Toyota Hilux" />
             <FormField label="Data da inspeção" name="inspection_date" type="date" className="md:col-span-2" />
-          </div>
-        </section>
-
-        <section className="raised-card p-4 sm:p-6">
-          <h2 className="mb-4 text-headline-sm">Checklist de saída</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {DEPARTURE_CHECKLIST.map((item) => (
-              <ChecklistToggle
-                key={item}
-                label={item}
-                completed={!!departureCheck[item]}
-                onToggle={() => toggleDeparture(item)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="raised-card p-4 sm:p-6">
-          <h2 className="mb-4 text-headline-sm">Checklist de chegada</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {ARRIVAL_CHECKLIST.map((item) => (
-              <ChecklistToggle
-                key={item}
-                label={item}
-                completed={!!arrivalCheck[item]}
-                onToggle={() => toggleArrival(item)}
-              />
-            ))}
           </div>
         </section>
 

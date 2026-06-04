@@ -5,6 +5,7 @@ import FormField from "@/components/forms/FormField";
 import FormShell from "@/components/forms/FormShell";
 import CameraPhotoField from "@/components/forms/CameraPhotoField";
 import { vehiclesApi, uploadsApi } from "@/services/api";
+import { validatePlate } from "@/lib/validators";
 
 export default function VehicleRegisterPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -18,6 +19,10 @@ export default function VehicleRegisterPage() {
       redirectOnSuccess="/vehicles"
       onSubmit={async (form) => {
         const plate = String(form.get("plate")).trim();
+        const plateCheck = validatePlate(plate);
+        if (!plateCheck.valid) {
+          throw { response: { data: { error: plateCheck.message } } };
+        }
         const res = await vehiclesApi.create({
           plate,
           brand: form.get("brand"),

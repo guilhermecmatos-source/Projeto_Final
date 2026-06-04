@@ -2,7 +2,18 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "attendant" | "client";
+  role:
+    | "administrador"
+    | "gestor"
+    | "motorista"
+    | "solicitante"
+    | "admin"
+    | "attendant"
+    | "client";
+  cpf?: string | null;
+  rg?: string | null;
+  cargo?: string | null;
+  unidade?: string | null;
 }
 
 export interface Kpis {
