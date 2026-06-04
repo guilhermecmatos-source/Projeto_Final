@@ -23,6 +23,20 @@ export function validateCpf(cpf: string): { valid: boolean; message?: string } {
 export function validateCnpj(cnpj: string): { valid: boolean; message?: string } {
   const d = onlyDigits(cnpj);
   if (d.length !== 14) return { valid: false, message: "CNPJ deve ter 14 dígitos." };
+  if (/^(\d)\1{13}$/.test(d)) return { valid: false, message: "CNPJ inválido." };
+  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const nums = d.split("").map(Number);
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += nums[i] * w1[i];
+  let r = sum % 11;
+  const d1 = r < 2 ? 0 : 11 - r;
+  if (d1 !== nums[12]) return { valid: false, message: "CNPJ inválido." };
+  sum = 0;
+  for (let i = 0; i < 13; i++) sum += nums[i] * w2[i];
+  r = sum % 11;
+  const d2 = r < 2 ? 0 : 11 - r;
+  if (d2 !== nums[13]) return { valid: false, message: "CNPJ inválido." };
   return { valid: true };
 }
 

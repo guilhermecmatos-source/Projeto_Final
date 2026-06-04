@@ -1,53 +1,80 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
+import { maintenanceApi } from "@/services/api";
+import { formatBRL } from "@/lib/currency";
+import { formatPlateDisplay } from "@/lib/validators";
 
-const ALERTS = [
-  {
-    title: "Troca de Óleo - VKL-9021",
-    desc: "Faltam 350km para o limite de revisão preventiva.",
-    level: "ALERTA PRÓXIMO",
-    border: "border-l-secondary-container",
-    icon: "warning",
-    iconColor: "text-secondary",
-  },
-  {
-    title: "Vistoria Vencida - PTR-3342",
-    desc: "Licenciamento anual expirou há 2 dias.",
-    level: "URGENTE",
-    border: "border-l-error",
-    icon: "emergency",
-    iconColor: "text-error",
-    urgent: true,
-  },
-];
+interface MaintenanceRow {
+  id: string;
+  vehicle_plate: string;
+  type: string;
+  description: string;
+  cost: number;
+  scheduled_at: string;
+  completed_at?: string | null;
+}
 
-const HISTORY = [
-  { date: "12/05/2026", vehicle: "ABC-1234", type: "Preventiva", cost: "R$ 890,00", status: "Concluída" },
-  { date: "10/05/2026", vehicle: "DEF-5678", type: "Corretiva", cost: "R$ 2.340,00", status: "Em andamento" },
-  { date: "08/05/2026", vehicle: "GHI-9012", type: "Ocorrência", cost: "R$ 450,00", status: "Concluída" },
-];
+interface AlertBundle {
+  pending?: MaintenanceRow[];
+  maintenanceVehicles?: { plate: string; status: string }[];
+  predictive?: { message: string; severity: string; type: string }[];
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  preventive: "Preventiva",
+  corrective: "Corretiva",
+  occurrence: "Ocorrência",
+};
 
 export default function MaintenancePage() {
+  const [history, setHistory] = useState<MaintenanceRow[]>([]);
+  const [alerts, setAlerts] = useState<AlertBundle | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([maintenanceApi.list(), maintenanceApi.alerts()])
+      .then(([listRes, alertRes]) => {
+        setHistory(Array.isArray(listRes.data) ? listRes.data : []);
+        setAlerts(alertRes.data as AlertBundle);
+      })
+      .catch(() => {
+        setHistory([]);
+        setAlerts(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const alertCards = [
+    ...(alerts?.pending?.filter((m) => !m.completed_at).slice(0, 4).map((m) => ({
+      title: `${TYPE_LABEL[m.type] ?? m.type} — ${formatPlateDisplay(m.vehicle_plate)}`,
+      desc: m.description,
+      level: new Date(m.scheduled_at) < new Date() ? "URGENTE" : "ALERTA PRÓXIMO",
+      urgent: new Date(m.scheduled_at) < new Date(),
+    })) ?? []),
+    ...(alerts?.maintenanceVehicles?.map((v) => ({
+      title: `Veículo em manutenção — ${formatPlateDisplay(v.plate)}`,
+      desc: "Status operacional: em oficina/manutenção.",
+      level: "EM MANUTENÇÃO",
+      urgent: true,
+    })) ?? []),
+  ];
+
   return (
-    <AppShell
-      searchPlaceholder="Buscar logs de manutenção ou veículos..."
-      headerAction={
-        <ActionLink href={ACTION_ROUTES.travelsAssign}>Atribuir Veículo</ActionLink>
-      }
-    >
+    <AppShell searchPlaceholder="Buscar manutenções...">
       <PageHeader
         title="Manutenção e Ocorrências"
-        subtitle="Controle preventivo e histórico operacional da frota."
+        subtitle="Alertas e histórico reais dos veículos cadastrados."
         actions={
           <>
             <ActionLink href="/vehicles" variant="outline" className="!bg-white">
-              <Icon name="filter_list" className="text-lg" />
-              Filtrar Frota
+              <Icon name="directions_car" className="text-lg" />
+              Ver Frota
             </ActionLink>
             <ActionLink href={ACTION_ROUTES.maintenanceRegister} variant="secondary">
               <Icon name="add_alert" className="text-lg" />
@@ -59,47 +86,39 @@ export default function MaintenancePage() {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 flex flex-col gap-6 lg:col-span-4">
-          {ALERTS.map((a) => (
-            <div key={a.title} className={`raised-card border-l-4 p-6 ${a.border}`}>
-              <div className="mb-4 flex justify-between">
-                <Icon name={a.icon} className={`text-3xl ${a.iconColor}`} />
-                <span className="rounded-full bg-secondary-fixed px-2 py-0.5 text-[10px] font-bold">
-                  {a.level}
-                </span>
-              </div>
-              <h3 className="mb-1 text-headline-sm">{a.title}</h3>
-              <p className="mb-4 text-body-md text-on-surface-variant">{a.desc}</p>
-              {a.urgent ? (
+          {loading ? (
+            <p className="text-on-surface-variant">Carregando alertas...</p>
+          ) : alertCards.length === 0 ? (
+            <div className="raised-card p-6 text-on-surface-variant">
+              Nenhum alerta pendente. Frota em dia.
+            </div>
+          ) : (
+            alertCards.map((a) => (
+              <div
+                key={a.title}
+                className={`raised-card border-l-4 p-6 ${a.urgent ? "border-l-error" : "border-l-secondary-container"}`}
+              >
+                <div className="mb-4 flex justify-between">
+                  <Icon
+                    name={a.urgent ? "emergency" : "warning"}
+                    className={`text-3xl ${a.urgent ? "text-error" : "text-secondary"}`}
+                  />
+                  <span className="rounded-full bg-secondary-fixed px-2 py-0.5 text-[10px] font-bold">
+                    {a.level}
+                  </span>
+                </div>
+                <h3 className="mb-1 text-headline-sm">{a.title}</h3>
+                <p className="mb-4 text-body-md text-on-surface-variant">{a.desc}</p>
                 <ActionLink
                   href={ACTION_ROUTES.maintenanceRegister}
-                  className="!w-full !justify-center !rounded-lg !bg-error !text-on-error"
+                  variant={a.urgent ? "secondary" : "ghost"}
+                  className={a.urgent ? "!w-full !justify-center" : ""}
                 >
-                  Regularizar Veículo
+                  Registrar / Agendar
                 </ActionLink>
-              ) : (
-                <div className="flex gap-4">
-                  <ActionLink href={ACTION_ROUTES.maintenanceSchedule} variant="ghost">
-                    Agendar Agora
-                  </ActionLink>
-                  <ActionLink href="/maintenance" variant="ghost" className="!text-on-surface-variant">
-                    Ignorar
-                  </ActionLink>
-                </div>
-              )}
-            </div>
-          ))}
-          <div className="raised-card p-6">
-            <h4 className="mb-4 text-label-md uppercase tracking-widest text-on-surface-variant">
-              Resumo Mensal
-            </h4>
-            <div className="flex justify-between text-body-md">
-              <span>Preventivas em dia</span>
-              <span className="font-bold text-primary">88%</span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
-              <div className="h-full w-[88%] bg-primary" />
-            </div>
-          </div>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="col-span-12 lg:col-span-8">
@@ -118,23 +137,37 @@ export default function MaintenancePage() {
                 </tr>
               </thead>
               <tbody>
-                {HISTORY.map((h) => (
-                  <tr key={h.date + h.vehicle}>
-                    <td className="px-6 py-4">{h.date}</td>
-                    <td className="px-6 py-4 font-medium">{h.vehicle}</td>
-                    <td className="px-6 py-4">{h.type}</td>
-                    <td className="px-6 py-4">{h.cost}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={
-                          h.status === "Concluída" ? "chip-active" : "chip-pending"
-                        }
-                      >
-                        {h.status}
-                      </span>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center">
+                      Carregando...
                     </td>
                   </tr>
-                ))}
+                ) : history.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-on-surface-variant">
+                      Nenhuma manutenção registrada.
+                    </td>
+                  </tr>
+                ) : (
+                  history.map((h) => (
+                    <tr key={h.id}>
+                      <td className="px-6 py-4">
+                        {new Date(h.scheduled_at).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-6 py-4 font-medium">
+                        {formatPlateDisplay(h.vehicle_plate)}
+                      </td>
+                      <td className="px-6 py-4">{TYPE_LABEL[h.type] ?? h.type}</td>
+                      <td className="px-6 py-4">{formatBRL(Number(h.cost))}</td>
+                      <td className="px-6 py-4">
+                        <span className={h.completed_at ? "chip-active" : "chip-pending"}>
+                          {h.completed_at ? "Concluída" : "Pendente"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

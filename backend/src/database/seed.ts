@@ -73,14 +73,54 @@ export async function runSeed(conn: mysql.Connection): Promise<void> {
   const [driverCount] = await conn.query<mysql.RowDataPacket[]>(
     "SELECT COUNT(*) as c FROM drivers"
   );
-  if (Number(driverCount[0]?.c) === 0) {
+  const [vehiclesForDrivers] = await conn.query<mysql.RowDataPacket[]>(
+    "SELECT id, plate FROM vehicles ORDER BY created_at LIMIT 3"
+  );
+  if (Number(driverCount[0]?.c) === 0 && vehiclesForDrivers.length >= 2) {
+    await conn.query(
+      `INSERT INTO drivers (name, license_number, phone, score, active, cpf, rg, cnh_category, cnh_expiry, status, vehicle_id) VALUES
+       ('Carlos Eduardo Silva', '12345678901', '11987654321', 94, 1, '39053344705', 'SP-4455667', 'AB', '2028-06-15', 'ativo', ?),
+       ('Ana Martins Costa', '98765432109', '11976543210', 88, 1, '15350946056', 'SP-7788990', 'C', '2027-03-20', 'ativo', ?),
+       ('João Pereira Santos', '45678912345', '11965432109', 72, 1, '23100299900', 'MG-1122334', 'D', '2026-11-30', 'treinamento', ?)`,
+      [
+        vehiclesForDrivers[0].id,
+        vehiclesForDrivers[1].id,
+        vehiclesForDrivers[2]?.id ?? vehiclesForDrivers[0].id,
+      ]
+    );
+    console.log("[seed] Motoristas de exemplo com CNH e veículos vinculados.");
+  } else if (vehiclesForDrivers.length > 0) {
+    const [unlinked] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT id FROM drivers WHERE vehicle_id IS NULL LIMIT 3"
+    );
+    for (let i = 0; i < unlinked.length; i++) {
+      await conn.query("UPDATE drivers SET vehicle_id = ? WHERE id = ?", [
+        vehiclesForDrivers[i % vehiclesForDrivers.length].id,
+        unlinked[i].id,
+      ]);
+    }
+  }
+
+  const [partnerCount] = await conn.query<mysql.RowDataPacket[]>(
+    "SELECT COUNT(*) as c FROM partners"
+  );
+  if (Number(partnerCount[0]?.c) === 0) {
     await conn.query(`
-      INSERT INTO drivers (name, license_number, phone, score, active, cpf, rg, cnh_category, cnh_expiry, status) VALUES
-      ('Carlos Eduardo Silva', '12345678901', '11987654321', 94, 1, '39053344705', 'SP-4455667', 'AB', '2028-06-15', 'ativo'),
-      ('Ana Martins Costa', '98765432109', '11976543210', 88, 1, '15350946056', 'SP-7788990', 'C', '2027-03-20', 'ativo'),
-      ('João Pereira Santos', '45678912345', '11965432109', 72, 1, '23100299900', 'MG-1122334', 'D', '2026-11-30', 'treinamento')
+      INSERT INTO partners (name, city, type, email, cnpj, score, status) VALUES
+      ('AutoPeças Central Ltda', 'São Paulo, SP', 'distributor', 'contato@autopecas.com', '11222333000181', 94, 'ativo'),
+      ('Oficina Velocidade', 'Curitiba, PR', 'workshop', 'suporte@velocidade.com', '11444777000161', 62, 'pendente'),
+      ('Revenda Premium Motors', 'Belo Horizonte, MG', 'dealer', 'vendas@premium.com', '11555666000191', 88, 'ativo')
     `);
-    console.log("[seed] Motoristas de exemplo criados.");
+    const [partners] = await conn.query<mysql.RowDataPacket[]>("SELECT id, name FROM partners LIMIT 2");
+    if (partners.length) {
+      await conn.query(
+        `INSERT INTO partner_tickets (partner_id, subject, partner_name, message, status, priority) VALUES
+         (?, 'Integração API frota', ?, 'Solicitação de credenciais para integração REST.', 'aberto', 'alta'),
+         (NULL, 'Suporte técnico geral', 'FleetAI Rede', 'Dúvida sobre relatórios de abastecimento.', 'aberto', 'normal')`,
+        [partners[0].id, partners[0].name]
+      );
+    }
+    console.log("[seed] Parceiros e chamados de exemplo criados.");
   }
 
   const [travelCount] = await conn.query<mysql.RowDataPacket[]>(

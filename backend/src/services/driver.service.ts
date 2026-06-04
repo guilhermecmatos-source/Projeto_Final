@@ -2,20 +2,27 @@ import { query } from "../database/connection";
 import { Driver } from "../models/types";
 import { predictiveService } from "../ai/predictive.service";
 import { validateCnh, validateCpf, validatePhone, validateRg } from "../utils/validators";
+import { vehicleService } from "./vehicle.service";
 
 export class DriverService {
   async findAll() {
-    return query<Driver & { trip_count?: number }>(
-      `SELECT d.*, CAST(COUNT(t.id) AS UNSIGNED) as trip_count
+    return query<Driver & { trip_count?: number; vehicle_plate?: string }>(
+      `SELECT d.*, CAST(COUNT(t.id) AS UNSIGNED) as trip_count, v.plate as vehicle_plate
        FROM drivers d
        LEFT JOIN travels t ON t.driver_id = d.id
+       LEFT JOIN vehicles v ON v.id = d.vehicle_id
        GROUP BY d.id
        ORDER BY d.created_at DESC`
     );
   }
 
   async findById(id: string) {
-    const rows = await query<Driver>("SELECT * FROM drivers WHERE id = $1", [id]);
+    const rows = await query<Driver & { vehicle_plate?: string }>(
+      `SELECT d.*, v.plate as vehicle_plate FROM drivers d
+       LEFT JOIN vehicles v ON v.id = d.vehicle_id
+       WHERE d.id = $1`,
+      [id]
+    );
     return rows[0] || null;
   }
 
@@ -25,15 +32,16 @@ export class DriverService {
     cpf?: string;
     rg?: string;
     phone?: string;
+    vehicle_id?: string;
+    requireVehicle?: boolean;
   }): string | null {
     if (!data.name?.trim()) return "Nome é obrigatório.";
     if (!data.license_number?.trim()) return "CNH é obrigatória.";
     const cnh = validateCnh(data.license_number);
     if (!cnh.valid) return cnh.message ?? "CNH inválida.";
-    if (data.cpf) {
-      const c = validateCpf(data.cpf);
-      if (!c.valid) return c.message ?? "CPF inválido.";
-    }
+    if (!data.cpf?.trim()) return "CPF é obrigatório.";
+    const c = validateCpf(data.cpf);
+    if (!c.valid) return c.message ?? "CPF inválido.";
     if (data.rg) {
       const r = validateRg(data.rg);
       if (!r.valid) return r.message ?? "RG inválido.";
@@ -41,6 +49,9 @@ export class DriverService {
     if (data.phone) {
       const p = validatePhone(data.phone);
       if (!p.valid) return p.message ?? "Telefone inválido.";
+    }
+    if (data.requireVehicle !== false && !data.vehicle_id?.trim()) {
+      return "Veículo vinculado é obrigatório.";
     }
     return null;
   }
@@ -54,13 +65,19 @@ export class DriverService {
     cnh_category?: string;
     cnh_expiry?: string;
     status?: string;
+    vehicle_id?: string;
   }) {
-    const err = this.validatePayload(data);
+    const err = this.validatePayload({ ...data, requireVehicle: true });
     if (err) throw new Error(err);
 
+    if (data.vehicle_id) {
+      const vehicle = await vehicleService.findById(data.vehicle_id);
+      if (!vehicle) throw new Error("Veículo vinculado não encontrado.");
+    }
+
     const rows = await query<Driver>(
-      `INSERT INTO drivers (name, license_number, phone, cpf, rg, cnh_category, cnh_expiry, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO drivers (name, license_number, phone, cpf, rg, cnh_category, cnh_expiry, status, vehicle_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [
         data.name.trim(),
         data.license_number.replace(/\D/g, ""),
@@ -70,22 +87,30 @@ export class DriverService {
         data.cnh_category?.toUpperCase() ?? null,
         data.cnh_expiry ?? null,
         data.status ?? "ativo",
+        data.vehicle_id ?? null,
       ]
     );
-    return rows[0];
+    return this.findById(rows[0].id);
   }
 
-  async update(id: string, data: Partial<Driver>) {
+  async update(id: string, data: Partial<Driver> & { vehicle_id?: string }) {
     const current = await this.findById(id);
     if (!current) return null;
     const err = this.validatePayload({
       name: data.name ?? current.name,
       license_number: data.license_number ?? current.license_number,
-      cpf: data.cpf ?? undefined,
+      cpf: data.cpf ?? current.cpf ?? undefined,
       rg: data.rg ?? undefined,
       phone: data.phone ?? undefined,
+      vehicle_id: data.vehicle_id ?? current.vehicle_id ?? undefined,
+      requireVehicle: true,
     });
     if (err) throw new Error(err);
+
+    if (data.vehicle_id) {
+      const vehicle = await vehicleService.findById(data.vehicle_id);
+      if (!vehicle) throw new Error("Veículo vinculado não encontrado.");
+    }
 
     const rows = await query<Driver>(
       `UPDATE drivers SET
@@ -98,6 +123,7 @@ export class DriverService {
         cnh_category = COALESCE($8, cnh_category),
         cnh_expiry = COALESCE($9, cnh_expiry),
         status = COALESCE($10, status),
+        vehicle_id = COALESCE($11, vehicle_id),
         updated_at = NOW()
        WHERE id = $1 RETURNING *`,
       [
@@ -111,6 +137,7 @@ export class DriverService {
         data.cnh_category,
         data.cnh_expiry,
         data.status,
+        data.vehicle_id,
       ]
     );
     if (rows[0]) {
@@ -118,7 +145,7 @@ export class DriverService {
       await query("UPDATE drivers SET score = $2 WHERE id = $1", [id, score]);
       rows[0].score = score;
     }
-    return rows[0] || null;
+    return this.findById(id);
   }
 
   async delete(id: string) {

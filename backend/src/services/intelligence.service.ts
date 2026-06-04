@@ -92,6 +92,19 @@ export class IntelligenceService {
     };
   }
 
+  async getRecentTravels(limit = 10) {
+    return query(
+      `SELECT t.id, t.origin, t.destination, t.status, t.distance_km, t.cost,
+              t.created_at, v.plate as vehicle_plate, d.name as driver_name
+       FROM travels t
+       LEFT JOIN vehicles v ON v.id = t.vehicle_id
+       LEFT JOIN drivers d ON d.id = t.driver_id
+       ORDER BY t.created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+  }
+
   async getCeoInsights() {
     const topVehicle = await query<{ plate: string; brand: string; model: string; trips: number }>(
       `SELECT v.plate, v.brand, v.model, CAST(COUNT(t.id) AS UNSIGNED) as trips

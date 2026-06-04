@@ -77,9 +77,9 @@ export default function VehiclesPage() {
     <AppShell
       searchPlaceholder="Buscar veículos ou placas..."
       headerAction={
-        <ActionLink href={ACTION_ROUTES.travelsAssign}>
+        <ActionLink href={ACTION_ROUTES.vehiclesRegister}>
           <Icon name="add" className="text-lg" />
-          Atribuir Veículo
+          Novo Veículo
         </ActionLink>
       }
     >

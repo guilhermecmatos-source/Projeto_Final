@@ -1,22 +1,43 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Icon from "@/components/ui/Icon";
-import {
-  calculateTripCost,
-  DEFAULT_VEHICLES,
-  TripCostResult,
-} from "@/lib/ai/trip-cost";
+import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
+import { calculateTripCost, TripCostResult } from "@/lib/ai/trip-cost";
 import { fetchRouteDistance } from "@/lib/geocoding/route-distance";
+import { vehiclesApi } from "@/services/api";
+import { formatPlateDisplay } from "@/lib/validators";
+
+interface FleetVehicle {
+  id: string;
+  plate: string;
+  brand: string;
+  model: string;
+  avg_consumption?: number | null;
+}
 
 export default function TripCostCalculator() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [vehicleId, setVehicleId] = useState(DEFAULT_VEHICLES[0].id);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [vehicleId, setVehicleId] = useState("");
   const [result, setResult] = useState<TripCostResult | null>(null);
-  const [provider, setProvider] = useState<string>("");
+  const [provider, setProvider] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    vehiclesApi
+      .list()
+      .then((res) => {
+        const list = (res.data as FleetVehicle[]) ?? [];
+        setVehicles(list);
+        if (list[0]) setVehicleId(list[0].id);
+      })
+      .catch(() => setVehicles([]));
+  }, []);
+
+  const selected = vehicles.find((v) => v.id === vehicleId);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,17 +47,24 @@ export default function TripCostCalculator() {
     try {
       const route = await fetchRouteDistance(origin, destination);
       setProvider(route.provider);
-      const vehicle = DEFAULT_VEHICLES.find((v) => v.id === vehicleId) ?? DEFAULT_VEHICLES[0];
-      const calc = calculateTripCost(origin, destination, vehicle, route.distanceKm);
+      const avg = Number(selected?.avg_consumption || 10);
+      const vehicleProfile = {
+        id: vehicleId,
+        label: selected
+          ? `${formatPlateDisplay(selected.plate)} — ${selected.brand} ${selected.model}`
+          : "Veículo",
+        avgKmPerLiter: avg,
+        fuelPricePerLiter: 5.9,
+        tollPer100km: 22,
+      };
+      const calc = calculateTripCost(origin, destination, vehicleProfile, route.distanceKm);
       setResult(calc);
     } catch {
-      setError("Não foi possível calcular a rota. Tente novamente.");
+      setError("Não foi possível calcular a rota. Verifique origem e destino.");
     } finally {
       setLoading(false);
     }
   }
-
-  const vehicle = DEFAULT_VEHICLES.find((v) => v.id === vehicleId);
 
   return (
     <div className="raised-card flex flex-col p-4 sm:p-6">
@@ -45,36 +73,39 @@ export default function TripCostCalculator() {
         Calculadora de Gastos de Viagem
       </h3>
       <p className="mb-4 text-xs text-on-surface-variant">
-        Distância real (Google Maps / Qualp / Mapeia com fallback), combustível e pedágios
+        Geolocalização real (Google Maps / OSM) e veículos da frota
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          className="input-fleet"
-          placeholder="Origem"
-          value={origin}
-          onChange={(e) => setOrigin(e.target.value)}
-          required
-        />
-        <input
-          className="input-fleet"
-          placeholder="Destino"
+        <AddressAutocomplete label="Origem" name="calc_origin" value={origin} onChange={setOrigin} required />
+        <AddressAutocomplete
+          label="Destino"
+          name="calc_destination"
           value={destination}
-          onChange={(e) => setDestination(e.target.value)}
+          onChange={setDestination}
           required
         />
-        <select
-          className="input-fleet"
-          value={vehicleId}
-          onChange={(e) => setVehicleId(e.target.value)}
-        >
-          {DEFAULT_VEHICLES.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-        <button type="submit" disabled={loading} className="btn-primary w-full">
+        <div>
+          <label className="mb-1 block text-label-md text-on-surface-variant">Veículo</label>
+          <select
+            className="input-fleet"
+            value={vehicleId}
+            onChange={(e) => setVehicleId(e.target.value)}
+            required
+          >
+            {vehicles.length === 0 ? (
+              <option value="">Cadastre veículos na frota</option>
+            ) : (
+              vehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {formatPlateDisplay(v.plate)} — {v.brand} {v.model} (
+                  {v.avg_consumption ?? 10} km/L)
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+        <button type="submit" disabled={loading || !vehicleId} className="btn-primary w-full">
           {loading ? "Calculando rota..." : "Calcular"}
         </button>
       </form>
@@ -103,15 +134,13 @@ export default function TripCostCalculator() {
                 icon: "toll",
               },
             ].map((c) => (
-              <div key={c.label} className="rounded-lg border border-outline-variant bg-surface-container-low p-3">
+              <div
+                key={c.label}
+                className="rounded-lg border border-outline-variant bg-surface-container-low p-3"
+              >
                 <Icon name={c.icon} className="mb-1 text-lg text-primary" />
                 <p className="text-[10px] uppercase text-on-surface-variant">{c.label}</p>
                 <p className="text-lg font-bold text-on-surface">{c.value}</p>
-                {c.label === "Combustível" && (
-                  <p className="text-xs text-on-surface-variant">
-                    ~{result.litersNeeded} L • {vehicle?.label}
-                  </p>
-                )}
               </div>
             ))}
             <div className="rounded-lg bg-primary-container/10 p-4 text-center sm:col-span-2">

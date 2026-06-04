@@ -51,6 +51,7 @@ export const dashboardApi = {
 export const geocodingApi = {
   distance: (origin: string, destination: string) =>
     api.get("/geocoding/distance", { params: { origin, destination } }),
+  places: (q: string) => api.get("/geocoding/places", { params: { q } }),
 };
 
 export const uploadsApi = {
@@ -83,6 +84,7 @@ export const driversApi = {
 
 export const travelsApi = {
   list: (search?: string) => api.get("/travels", { params: search ? { search } : {} }),
+  carpoolMatches: () => api.get("/travels/carpool/matches"),
   get: (id: string) => api.get(`/travels/${id}`),
   create: (data: Record<string, unknown>) => api.post("/travels", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/travels/${id}`, data),
@@ -112,6 +114,18 @@ export const intelligenceApi = {
   metrics: () => api.get("/intelligence/metrics"),
   discovery: () => api.get("/intelligence/discovery"),
   ceo: () => api.get("/intelligence/ceo"),
+  travels: () => api.get("/intelligence/travels"),
+};
+
+export const reportsApi = {
+  summary: (dateFrom?: string, dateTo?: string) =>
+    api.get("/reports", { params: { dateFrom, dateTo } }),
+};
+
+export const partnersApi = {
+  list: () => api.get("/partners"),
+  create: (data: Record<string, unknown>) => api.post("/partners", data),
+  createTicket: (data: Record<string, unknown>) => api.post("/partners/tickets", data),
 };
 
 export const fuelApi = {

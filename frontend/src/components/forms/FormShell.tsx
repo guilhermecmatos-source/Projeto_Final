@@ -42,8 +42,7 @@ export default function FormShell({
       await onSubmit(form);
       setSuccess("Registro salvo com sucesso.");
       if (redirectOnSuccess) {
-        router.refresh();
-        setTimeout(() => router.push(`${redirectOnSuccess}?t=${Date.now()}`), 600);
+        router.replace(`${redirectOnSuccess}?t=${Date.now()}`);
       }
     } catch (err: unknown) {
       const msg =

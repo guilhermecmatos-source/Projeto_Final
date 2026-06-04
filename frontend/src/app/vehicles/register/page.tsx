@@ -30,6 +30,8 @@ export default function VehicleRegisterPage() {
           year: Number(form.get("year")),
           status: form.get("status") || "active",
           mileage: Number(form.get("mileage") || 0),
+          avg_consumption: Number(form.get("avg_consumption") || 10),
+          autonomy_km: Number(form.get("autonomy_km") || 500),
         });
 
         const vehicleId = (res.data as { id?: string })?.id;
@@ -61,6 +63,8 @@ export default function VehicleRegisterPage() {
           ]}
         />
         <FormField label="Quilometragem" name="mileage" type="number" placeholder="0" />
+        <FormField label="Consumo médio (km/L)" name="avg_consumption" type="number" placeholder="10" />
+        <FormField label="Autonomia estimada (km)" name="autonomy_km" type="number" placeholder="500" />
 
         <div className="md:col-span-2">
           <CameraPhotoField

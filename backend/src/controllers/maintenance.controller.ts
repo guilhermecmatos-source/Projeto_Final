@@ -23,7 +23,7 @@ export class MaintenanceController {
   }
 
   async alerts(_req: Request, res: Response) {
-    const result = await maintenanceService.emitAlerts();
+    const result = await maintenanceService.getAlerts();
     return res.json(result);
   }
 }

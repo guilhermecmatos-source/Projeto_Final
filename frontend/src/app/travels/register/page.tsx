@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import FormField from "@/components/forms/FormField";
 import FormShell from "@/components/forms/FormShell";
 import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
+import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
 import { driversApi, geocodingApi, travelsApi, vehiclesApi } from "@/services/api";
 import { resolveEntityId } from "@/lib/form-resolve";
 
@@ -12,6 +12,8 @@ interface VehicleOption {
   plate: string;
   brand?: string;
   model?: string;
+  avg_consumption?: number | null;
+  autonomy_km?: number | null;
 }
 
 interface DriverOption {
@@ -29,6 +31,8 @@ export default function TravelRegisterPage() {
   const [destination, setDestination] = useState("");
   const [distanceKm, setDistanceKm] = useState("");
   const [distanceLoading, setDistanceLoading] = useState(false);
+  const [geoProvider, setGeoProvider] = useState("");
+  const [autonomyHint, setAutonomyHint] = useState("");
 
   useEffect(() => {
     Promise.all([vehiclesApi.list(), driversApi.list()])
@@ -41,6 +45,8 @@ export default function TravelRegisterPage() {
             plate: v.plate,
             brand: v.brand,
             model: v.model,
+            avg_consumption: v.avg_consumption,
+            autonomy_km: v.autonomy_km,
           }))
         );
         setDrivers(dList.map((d: DriverOption) => ({ id: String(d.id), name: d.name })));
@@ -66,26 +72,52 @@ export default function TravelRegisterPage() {
     [drivers]
   );
 
+  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+
   useEffect(() => {
     if (!origin.trim() || !destination.trim()) return;
     const timer = setTimeout(async () => {
       setDistanceLoading(true);
       try {
         const res = await geocodingApi.distance(origin, destination);
-        setDistanceKm(String(res.data.distanceKm ?? ""));
+        const km = res.data.distanceKm ?? 0;
+        setDistanceKm(String(km));
+        setGeoProvider(res.data.provider ?? "");
+        if (selectedVehicle?.autonomy_km) {
+          const autonomy = Number(selectedVehicle.autonomy_km);
+          const ok = Number(km) <= autonomy;
+          setAutonomyHint(
+            ok
+              ? `Autonomia estimada do veículo: ${autonomy} km — rota compatível.`
+              : `Atenção: rota (${km} km) excede autonomia (${autonomy} km).`
+          );
+        }
       } catch {
-        /* mantém valor manual */
+        setAutonomyHint("");
       } finally {
         setDistanceLoading(false);
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [origin, destination]);
+  }, [origin, destination, selectedVehicle?.autonomy_km]);
+
+  useEffect(() => {
+    if (selectedVehicle?.autonomy_km) {
+      setAutonomyHint(`Autonomia estimada: ${selectedVehicle.autonomy_km} km`);
+    }
+  }, [vehicleId, selectedVehicle?.autonomy_km]);
+
+  const estimatedFuel = useMemo(() => {
+    const km = Number(distanceKm || 0);
+    const avg = Number(selectedVehicle?.avg_consumption || 10);
+    if (km <= 0) return "";
+    return String(Math.round((km / avg) * 10) / 10);
+  }, [distanceKm, selectedVehicle?.avg_consumption]);
 
   return (
     <FormShell
       title="Novo Despacho"
-      subtitle="Agende viagem com origem, destino e recursos. Veículo e motorista com busca dinâmica."
+      subtitle="Origem e destino com geolocalização. Apenas veículos e motoristas cadastrados."
       backHref="/travels"
       redirectOnSuccess="/travels"
       submitLabel="Criar Despacho"
@@ -96,11 +128,13 @@ export default function TravelRegisterPage() {
           throw {
             response: {
               data: {
-                error:
-                  "Selecione ou digite um veículo e motorista válidos cadastrados no sistema.",
+                error: "Selecione veículo e motorista válidos cadastrados no sistema.",
               },
             },
           };
+        }
+        if (!origin.trim() || !destination.trim()) {
+          throw { response: { data: { error: "Origem e destino são obrigatórios." } } };
         }
         await travelsApi.create({
           vehicle_id: resolvedVehicle,
@@ -108,7 +142,7 @@ export default function TravelRegisterPage() {
           origin,
           destination,
           distance_km: Number(distanceKm || 0),
-          fuel_consumption: Number(0),
+          fuel_consumption: Number(estimatedFuel || 0),
         });
       }}
     >
@@ -119,8 +153,8 @@ export default function TravelRegisterPage() {
           required
           disabled={loadingOptions}
           options={vehicleOptions}
-          placeholder={loadingOptions ? "Carregando..." : "Digite placa ou modelo..."}
-          allowCustom
+          placeholder={loadingOptions ? "Carregando..." : "Selecione veículo cadastrado..."}
+          allowCustom={false}
           onValueChange={(v) => setVehicleId(v)}
         />
         <SearchableCombobox
@@ -129,35 +163,24 @@ export default function TravelRegisterPage() {
           required
           disabled={loadingOptions}
           options={driverOptions}
-          placeholder={loadingOptions ? "Carregando..." : "Digite nome do motorista..."}
-          allowCustom
+          placeholder={loadingOptions ? "Carregando..." : "Selecione motorista..."}
+          allowCustom={false}
           onValueChange={(v) => setDriverId(v)}
         />
-        <div>
-          <label className="mb-1 block text-label-md text-on-surface-variant">Origem</label>
-          <input
-            className="input-fleet"
-            name="origin"
-            required
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            placeholder="Ex: São Paulo, SP"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-label-md text-on-surface-variant">Destino</label>
-          <input
-            className="input-fleet"
-            name="destination"
-            required
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder="Ex: Curitiba, PR"
-          />
-        </div>
+        <AddressAutocomplete label="Origem" name="origin" value={origin} onChange={setOrigin} required />
+        <AddressAutocomplete
+          label="Destino"
+          name="destination"
+          value={destination}
+          onChange={setDestination}
+          required
+        />
         <div>
           <label className="mb-1 block text-label-md text-on-surface-variant">
             Distância (km) {distanceLoading && "— calculando..."}
+            {geoProvider && !distanceLoading && (
+              <span className="ml-2 text-xs uppercase text-primary">via {geoProvider}</span>
+            )}
           </label>
           <input
             className="input-fleet"
@@ -165,10 +188,25 @@ export default function TravelRegisterPage() {
             type="number"
             value={distanceKm}
             onChange={(e) => setDistanceKm(e.target.value)}
+            placeholder="Calculada automaticamente"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-label-md text-on-surface-variant">
+            Consumo estimado (L)
+          </label>
+          <input
+            className="input-fleet"
+            name="fuel_consumption"
+            type="number"
+            readOnly
+            value={estimatedFuel}
             placeholder="0"
           />
         </div>
-        <FormField label="Consumo estimado (L)" name="fuel_consumption" type="number" placeholder="0" />
+        {autonomyHint && (
+          <p className="md:col-span-2 text-sm text-on-surface-variant">{autonomyHint}</p>
+        )}
       </section>
     </FormShell>
   );

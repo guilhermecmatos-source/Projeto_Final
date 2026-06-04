@@ -9,6 +9,10 @@ export class TravelController {
     return res.json(await travelService.findAll(search));
   }
 
+  async carpool(_req: Request, res: Response) {
+    return res.json(await travelService.findCarpoolMatches());
+  }
+
   async get(req: Request, res: Response) {
     const travel = await travelService.findById(req.params.id);
     if (!travel) return sendError(res, 404, "Viagem não encontrada");

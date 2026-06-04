@@ -13,6 +13,7 @@ interface DriverRow {
   id: string;
   name: string;
   license_number: string;
+  vehicle_plate?: string | null;
   cnh_category?: string | null;
   score: number;
   status?: string | null;
@@ -86,6 +87,7 @@ export default function DriversPage() {
             <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
               <th className="px-6 py-4">Nome</th>
               <th className="px-6 py-4">CNH</th>
+              <th className="px-6 py-4">Veículo</th>
               <th className="px-6 py-4">Categoria</th>
               <th className="px-6 py-4">Score</th>
               <th className="px-6 py-4">Viagens</th>
@@ -95,13 +97,13 @@ export default function DriversPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
+                <td colSpan={7} className="px-6 py-8 text-center text-on-surface-variant">
                   Carregando motoristas...
                 </td>
               </tr>
             ) : drivers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-on-surface-variant">
+                <td colSpan={7} className="px-6 py-8 text-center text-on-surface-variant">
                   Nenhum motorista cadastrado.
                 </td>
               </tr>
@@ -110,6 +112,7 @@ export default function DriversPage() {
                 <tr key={d.id}>
                   <td className="px-6 py-4 font-bold">{d.name}</td>
                   <td className="px-6 py-4">{d.license_number}</td>
+                  <td className="px-6 py-4">{d.vehicle_plate ?? "—"}</td>
                   <td className="px-6 py-4">{d.cnh_category ?? "—"}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">

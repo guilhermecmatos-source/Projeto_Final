@@ -8,6 +8,7 @@ import PredictiveMaintenancePanel from "@/components/ai/PredictiveMaintenancePan
 import Link from "next/link";
 import { intelligenceApi } from "@/services/api";
 import { formatBRL } from "@/lib/currency";
+import { formatPlateDisplay } from "@/lib/validators";
 
 interface Metrics {
   operationalEfficiency: number;
@@ -18,45 +19,59 @@ interface Metrics {
   totalFuelCost: number;
 }
 
+interface TravelInsight {
+  id: string;
+  origin: string;
+  destination: string;
+  status: string;
+  distance_km: number;
+  cost: number;
+  vehicle_plate?: string;
+  driver_name?: string;
+  created_at: string;
+}
+
+const STATUS_PT: Record<string, string> = {
+  scheduled: "Agendado",
+  in_progress: "Em curso",
+  completed: "Concluído",
+  cancelled: "Cancelado",
+};
+
 export default function IntelligencePage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [discovery, setDiscovery] = useState<{
     opportunities: string[];
     pendingRequests: number;
   } | null>(null);
+  const [travels, setTravels] = useState<TravelInsight[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([intelligenceApi.metrics(), intelligenceApi.discovery()])
-      .then(([mRes, dRes]) => {
+    Promise.all([
+      intelligenceApi.metrics(),
+      intelligenceApi.discovery(),
+      intelligenceApi.travels(),
+    ])
+      .then(([mRes, dRes, tRes]) => {
         setMetrics(mRes.data);
         setDiscovery(dRes.data);
+        setTravels(Array.isArray(tRes.data) ? tRes.data : []);
       })
       .catch(() => {
         setMetrics(null);
         setDiscovery(null);
+        setTravels([]);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const cards = metrics
     ? [
-        {
-          label: "Eficiência Operacional",
-          value: `${metrics.operationalEfficiency}%`,
-        },
-        {
-          label: "Custo por km (abastecimento)",
-          value: formatBRL(metrics.costPerDelivery),
-        },
-        {
-          label: "Utilização da Frota",
-          value: `${metrics.fleetUtilization}%`,
-        },
-        {
-          label: "Score Médio Motoristas",
-          value: String(metrics.averageDriverScore),
-        },
+        { label: "Eficiência Operacional", value: `${metrics.operationalEfficiency}%` },
+        { label: "Custo por km (abastecimento)", value: formatBRL(metrics.costPerDelivery) },
+        { label: "Utilização da Frota", value: `${metrics.fleetUtilization}%` },
+        { label: "Viagens em curso", value: String(metrics.activeTrips) },
       ]
     : [];
 
@@ -64,7 +79,7 @@ export default function IntelligencePage() {
     <AppShell>
       <PageHeader
         title="Fleet Operational Intelligence"
-        subtitle="Análises derivadas de viagens, abastecimentos e manutenções reais."
+        subtitle="Indicadores e viagens cadastradas no sistema."
       />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -88,13 +103,54 @@ export default function IntelligencePage() {
               <li key={o}>{o}</li>
             ))}
           </ul>
-          {discovery.pendingRequests > 0 && (
-            <p className="mt-2 text-sm text-on-surface-variant">
-              {discovery.pendingRequests} solicitação(ões) RUV pendente(s).
-            </p>
-          )}
         </div>
       )}
+
+      <section className="raised-card mb-8 overflow-hidden">
+        <div className="border-b border-outline-variant p-4">
+          <h3 className="text-headline-sm">Viagens cadastradas</h3>
+        </div>
+        <table className="zebra-table w-full text-body-md">
+          <thead>
+            <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
+              <th className="px-4 py-3">Rota</th>
+              <th className="px-4 py-3">Veículo</th>
+              <th className="px-4 py-3">Motorista</th>
+              <th className="px-4 py-3">Km</th>
+              <th className="px-4 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center">
+                  Carregando...
+                </td>
+              </tr>
+            ) : travels.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-on-surface-variant">
+                  Nenhuma viagem cadastrada ainda.
+                </td>
+              </tr>
+            ) : (
+              travels.map((t) => (
+                <tr key={t.id}>
+                  <td className="px-4 py-3 font-medium">
+                    {t.origin} → {t.destination}
+                  </td>
+                  <td className="px-4 py-3">{formatPlateDisplay(t.vehicle_plate ?? "")}</td>
+                  <td className="px-4 py-3">{t.driver_name ?? "—"}</td>
+                  <td className="px-4 py-3">{Number(t.distance_km).toFixed(0)}</td>
+                  <td className="px-4 py-3">
+                    <span className="chip-active">{STATUS_PT[t.status] ?? t.status}</span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
 
       <div className="mb-8 grid gap-6 lg:grid-cols-2">
         <TripCostCalculator />
@@ -102,13 +158,9 @@ export default function IntelligencePage() {
       </div>
 
       <p className="text-sm">
-        CEO AI e diagnósticos em{" "}
+        CEO AI em{" "}
         <Link href="/cockpit" className="font-bold text-primary hover:underline">
           Cockpit Executivo
-        </Link>
-        {" · "}
-        <Link href="/ai-security" className="font-bold text-primary hover:underline">
-          IA Suporte
         </Link>
         .
       </p>

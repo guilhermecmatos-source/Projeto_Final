@@ -16,6 +16,8 @@ import uploadRoutes from "./routes/upload.routes";
 import userRoutes from "./routes/user.routes";
 import ruvRoutes from "./routes/ruv.routes";
 import intelligenceRoutes from "./routes/intelligence.routes";
+import partnerRoutes from "./routes/partner.routes";
+import reportsRoutes from "./routes/reports.routes";
 import { pingDatabase } from "./database/connection";
 import { waitForDatabase } from "./database/wait-db";
 
@@ -53,6 +55,8 @@ app.use("/api/geocoding", geocodingRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/ruv", ruvRoutes);
 app.use("/api/intelligence", intelligenceRoutes);
+app.use("/api/partners", partnerRoutes);
+app.use("/api/reports", reportsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found" });

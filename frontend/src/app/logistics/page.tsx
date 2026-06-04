@@ -1,26 +1,76 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import ActionLink from "@/components/ui/ActionLink";
+import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
 import { ACTION_ROUTES } from "@/lib/action-routes";
+import { travelsApi, vehiclesApi } from "@/services/api";
+import { formatPlateDisplay } from "@/lib/validators";
 
-const MATCHES = [
-  { pct: 98, time: "14:30 Today", from: "Showroom Alpha", to: "Oficina Central", pax: 4 },
-  { pct: 82, time: "15:45 Today", from: "Matriz SP", to: "CD Guarulhos", pax: 2 },
-];
+interface Vehicle {
+  id: string;
+  plate: string;
+  brand: string;
+  model: string;
+  status: string;
+}
 
-const DISPATCHES = [
-  { id: "DSP-8821", dest: "Unidade Barueri", type: "Utilitário", status: "Confirmado" },
-  { id: "DSP-8822", dest: "Cliente VIP", type: "Van Executiva", status: "Pendente" },
-];
+interface CarpoolMatch {
+  id: string;
+  origin: string;
+  destination: string;
+  vehicle_plate: string;
+  driver_name: string;
+  match_score: number;
+  status: string;
+}
+
+interface TravelRow {
+  id: string;
+  origin: string;
+  destination: string;
+  status: string;
+  vehicle_plate?: string;
+}
+
+const STATUS_PT: Record<string, string> = {
+  scheduled: "Agendado",
+  in_progress: "Em curso",
+  completed: "Concluído",
+  cancelled: "Cancelado",
+};
 
 export default function LogisticsPage() {
   const router = useRouter();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleId, setVehicleId] = useState("");
+  const [destination, setDestination] = useState("");
+  const [matches, setMatches] = useState<CarpoolMatch[]>([]);
+  const [travels, setTravels] = useState<TravelRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([vehiclesApi.list(), travelsApi.list(), travelsApi.carpoolMatches()])
+      .then(([vRes, tRes, mRes]) => {
+        setVehicles((vRes.data as Vehicle[]) ?? []);
+        setTravels((tRes.data as TravelRow[]) ?? []);
+        setMatches((mRes.data as CarpoolMatch[]) ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const activeVehicles = vehicles.filter((v) => v.status === "active");
 
   return (
     <AppShell headerTitle="Logística & Caronas">
+      <p className="mb-6 text-body-md text-on-surface-variant">
+        Agende despachos com veículos da frota e aproveite viagens compatíveis para carona corporativa.
+      </p>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <section className="tonal-card flex flex-col rounded-lg p-6 lg:col-span-5">
           <div className="mb-6 flex items-center justify-between">
@@ -31,133 +81,123 @@ export default function LogisticsPage() {
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              router.push(ACTION_ROUTES.logisticsDispatch);
+              if (!vehicleId) return;
+              router.push(
+                `${ACTION_ROUTES.travelsRegister}?vehicle=${vehicleId}&destination=${encodeURIComponent(destination)}`
+              );
             }}
           >
             <div>
               <label className="mb-1 block text-label-md text-on-surface-variant">
-                Funcionário / Equipe
+                Veículo da frota
               </label>
-              <input className="input-fleet" placeholder="Nome ou Matrícula" />
+              <select
+                className="input-fleet"
+                required
+                value={vehicleId}
+                onChange={(e) => setVehicleId(e.target.value)}
+              >
+                <option value="">Selecione um veículo cadastrado</option>
+                {activeVehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {formatPlateDisplay(v.plate)} — {v.brand} {v.model}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1 block text-label-md text-on-surface-variant">
-                  Tipo de Veículo
-                </label>
-                <select className="input-fleet">
-                  <option>Utilitário</option>
-                  <option>Moto (Express)</option>
-                  <option>Van Executiva</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-label-md text-on-surface-variant">Prioridade</label>
-                <select className="input-fleet">
-                  <option>Normal</option>
-                  <option>Alta (Urgente)</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-label-md text-on-surface-variant">Destino Final</label>
-              <div className="relative">
-                <Icon
-                  name="location_on"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant"
-                />
-                <input className="input-fleet pl-10" placeholder="Endereço ou Unidade" />
-              </div>
-            </div>
-            <button type="submit" className="btn-primary w-full">
+            <AddressAutocomplete
+              label="Destino final"
+              name="destination"
+              value={destination}
+              onChange={setDestination}
+              required
+            />
+            <button type="submit" className="btn-primary w-full" disabled={!vehicleId}>
               <Icon name="add_task" />
-              Agendar Despacho
+              Continuar para despacho
             </button>
           </form>
         </section>
 
         <section className="space-y-4 lg:col-span-7">
           <div className="flex items-center justify-between">
-            <h2 className="text-headline-sm">Sugestões de Matching AI</h2>
-            <span className="rounded-full bg-primary-container/10 px-3 py-1 text-label-md text-primary-container">
-              3 Matches Encontrados
+            <h2 className="text-headline-sm">Caronas — viagens compatíveis</h2>
+            <span className="rounded-full bg-primary-container/10 px-3 py-1 text-label-md text-primary">
+              {loading ? "..." : `${matches.length} sugestão(ões)`}
             </span>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {MATCHES.map((m) => (
-              <div
-                key={m.pct}
-                className={`tonal-card flex flex-col justify-between border-l-4 p-4 ${m.pct > 90 ? "border-l-secondary-container" : "border-l-primary"}`}
-              >
-                <div>
-                  <div className="mb-2 flex justify-between">
-                    <span className="text-label-md font-bold text-primary">MATCH {m.pct}%</span>
-                    <span className="text-label-md text-on-surface-variant">{m.time}</span>
+          {loading ? (
+            <p className="text-on-surface-variant">Carregando matching...</p>
+          ) : matches.length === 0 ? (
+            <p className="rounded-lg border border-outline-variant p-4 text-on-surface-variant">
+              Cadastre viagens com origem/destino semelhantes para ver sugestões de carona.
+            </p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {matches.map((m) => {
+                const pct = Math.min(99, 70 + Number(m.match_score) * 8);
+                return (
+                  <div
+                    key={m.id}
+                    className={`tonal-card flex flex-col justify-between border-l-4 p-4 ${pct > 85 ? "border-l-secondary-container" : "border-l-primary"}`}
+                  >
+                    <div>
+                      <div className="mb-2 flex justify-between">
+                        <span className="text-label-md font-bold text-primary">
+                          MATCH {pct}%
+                        </span>
+                        <span className="text-label-md text-on-surface-variant">
+                          {STATUS_PT[m.status] ?? m.status}
+                        </span>
+                      </div>
+                      <p className="font-bold">{m.origin}</p>
+                      <p className="text-sm text-on-surface-variant">→ {m.destination}</p>
+                      <p className="mt-2 text-xs text-on-surface-variant">
+                        {formatPlateDisplay(m.vehicle_plate)} • {m.driver_name}
+                      </p>
+                    </div>
+                    <ActionLink
+                      href={ACTION_ROUTES.travelsRegister}
+                      variant="secondary"
+                      className="mt-4 w-full justify-center"
+                    >
+                      Criar despacho relacionado
+                    </ActionLink>
                   </div>
-                  <p className="font-bold">{m.from}</p>
-                  <p className="text-sm text-on-surface-variant">{m.to}</p>
-                  <p className="mt-2 text-xs text-on-surface-variant">+{m.pax} passageiros</p>
-                </div>
-                <ActionLink
-                  href={ACTION_ROUTES.travelsRegister}
-                  variant="secondary"
-                  className="mt-4 w-full justify-center"
-                >
-                  <Icon name="sms" className="text-lg" />
-                  Aprovar & SMS
-                </ActionLink>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
       <section className="mt-8 raised-card p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-headline-sm">Movimentação do Veículo</h2>
-            <p className="text-sm text-on-surface-variant">
-              Saída, chegada, hodômetro e fechamento de RUV
-            </p>
-          </div>
-          <ActionLink href={ACTION_ROUTES.logisticsMovement}>
-            <Icon name="edit_road" />
-            Registrar Movimentação
-          </ActionLink>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3 text-sm">
-          <div className="rounded-lg bg-surface-container-low p-4">
-            <p className="text-on-surface-variant">Última saída</p>
-            <p className="font-bold">Hub Cajamar</p>
-          </div>
-          <div className="rounded-lg bg-surface-container-low p-4">
-            <p className="text-on-surface-variant">Hodômetro</p>
-            <p className="font-bold">48.520 → 48.892 km</p>
-          </div>
-          <div className="rounded-lg bg-surface-container-low p-4">
-            <p className="text-on-surface-variant">RUV fechamento</p>
-            <p className="font-bold">372 km rodados</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-4 text-headline-sm">Listagem de Despachos</h2>
-        <div className="raised-card divide-y divide-outline-variant/30 overflow-hidden">
-          {DISPATCHES.map((d) => (
-            <div key={d.id} className="flex items-center justify-between p-4 hover:bg-surface-container-low">
-              <div>
-                <p className="font-bold">{d.id}</p>
-                <p className="text-sm text-on-surface-variant">
-                  {d.dest} • {d.type}
-                </p>
+        <h2 className="mb-4 text-headline-sm">Despachos cadastrados</h2>
+        <div className="divide-y divide-outline-variant/30 overflow-hidden rounded-lg border border-outline-variant">
+          {travels.length === 0 ? (
+            <p className="p-4 text-on-surface-variant">Nenhum despacho no sistema.</p>
+          ) : (
+            travels.slice(0, 8).map((d) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between p-4 hover:bg-surface-container-low"
+              >
+                <div>
+                  <p className="font-bold">
+                    {d.origin} → {d.destination}
+                  </p>
+                  <p className="text-sm text-on-surface-variant">
+                    {formatPlateDisplay(d.vehicle_plate ?? "")}
+                  </p>
+                </div>
+                <span className="chip-active">{STATUS_PT[d.status] ?? d.status}</span>
               </div>
-              <span className={d.status === "Confirmado" ? "chip-active" : "chip-pending"}>
-                {d.status}
-              </span>
-            </div>
-          ))}
+            ))
+          )}
         </div>
+        <ActionLink href={ACTION_ROUTES.logisticsMovement} variant="outline" className="mt-4">
+          Registrar movimentação
+        </ActionLink>
       </section>
     </AppShell>
   );

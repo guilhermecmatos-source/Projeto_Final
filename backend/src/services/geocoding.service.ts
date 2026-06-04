@@ -147,6 +147,68 @@ async function mapeiaDistance(origin: string, destination: string): Promise<Rout
   }
 }
 
+export interface PlaceSuggestion {
+  label: string;
+  lat: number;
+  lon: number;
+}
+
+export async function searchPlaces(queryText: string, limit = 6): Promise<PlaceSuggestion[]> {
+  const q = queryText?.trim();
+  if (!q || q.length < 3) return [];
+
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (key) {
+    try {
+      const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
+      url.searchParams.set("input", q);
+      url.searchParams.set("key", key);
+      url.searchParams.set("language", "pt-BR");
+      url.searchParams.set("components", "country:br");
+      const res = await fetch(url.toString());
+      if (res.ok) {
+        const data = (await res.json()) as {
+          predictions?: { description: string; place_id: string }[];
+        };
+        const preds = data.predictions?.slice(0, limit) ?? [];
+        const out: PlaceSuggestion[] = [];
+        for (const p of preds) {
+          const detailUrl = new URL("https://maps.googleapis.com/maps/api/place/details/json");
+          detailUrl.searchParams.set("place_id", p.place_id);
+          detailUrl.searchParams.set("fields", "geometry");
+          detailUrl.searchParams.set("key", key);
+          const dRes = await fetch(detailUrl.toString());
+          if (!dRes.ok) continue;
+          const dData = (await dRes.json()) as {
+            result?: { geometry?: { location?: { lat: number; lng: number } } };
+          };
+          const loc = dData.result?.geometry?.location;
+          if (loc) out.push({ label: p.description, lat: loc.lat, lon: loc.lng });
+        }
+        if (out.length) return out;
+      }
+    } catch {
+      /* fallback OSM */
+    }
+  }
+
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", q);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("countrycodes", "br");
+  const res = await fetch(url.toString(), {
+    headers: { "User-Agent": "FleetAI/1.0 (fleet-management)" },
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { display_name: string; lat: string; lon: string }[];
+  return data.map((row) => ({
+    label: row.display_name,
+    lat: parseFloat(row.lat),
+    lon: parseFloat(row.lon),
+  }));
+}
+
 export async function resolveRouteDistance(
   origin: string,
   destination: string

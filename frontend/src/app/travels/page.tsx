@@ -61,7 +61,7 @@ export default function TravelsPage() {
   const filtered = travels.filter((t) => {
     if (activeTab === "Ativos") return t.status === "in_progress";
     if (activeTab === "Pendentes") return t.status === "scheduled";
-    if (activeTab === "Caronas") return false;
+    if (activeTab === "Concluídos") return t.status === "completed";
     return true;
   });
 
@@ -128,7 +128,7 @@ export default function TravelsPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-headline-sm">Listagem de Viagens</h3>
             <div className="flex gap-1 rounded-full border border-outline-variant bg-surface-container-low p-1">
-              {["Todos", "Ativos", "Pendentes"].map((t) => (
+              {["Todos", "Ativos", "Pendentes", "Concluídos"].map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -181,11 +181,14 @@ export default function TravelsPage() {
         <section className="lg:col-span-5">
           <h3 className="mb-4 text-headline-sm">Rota em Tempo Real</h3>
           <RouteTrackerMap heightClass="min-h-[220px] md:min-h-[280px]" />
+          <Link href="/inspection" className="btn-primary mt-4 w-full">
+            Checklist de inspeção
+          </Link>
           <Link
             href={ACTION_ROUTES.travelsRegister}
-            className="btn-primary mt-4 w-full"
+            className="btn-secondary mt-2 w-full"
           >
-            Nova viagem com checklist
+            Novo despacho
           </Link>
         </section>
       </div>

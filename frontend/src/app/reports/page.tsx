@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
@@ -8,61 +8,50 @@ import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { formatBRL } from "@/lib/currency";
+import { reportsApi } from "@/services/api";
+import { formatPlateDisplay } from "@/lib/validators";
 
-const REPORTS = [
-  { name: "Performance Operacional", period: "Mensal", type: "Operacional", updated: "Hoje" },
-  { name: "Custos e Combustível", period: "Semanal", type: "Financeiro", updated: "Ontem" },
-  { name: "Conformidade de Frota", period: "Trimestral", type: "Compliance", updated: "12/05" },
-  { name: "Score de Motoristas", period: "Mensal", type: "RH", updated: "10/05" },
-  { name: "Eficiência KM/Custo", period: "30 dias", type: "Estratégico", updated: "Hoje" },
-];
-
-const TOP_DRIVERS = [
-  { name: "Carlos Eduardo", score: 98, km: 12400, costPerKm: 1.12 },
-  { name: "Ana Martins", score: 96, km: 11850, costPerKm: 1.18 },
-  { name: "João Pereira", score: 94, km: 10920, costPerKm: 1.21 },
-  { name: "Maria Silva", score: 92, km: 9850, costPerKm: 1.25 },
-  { name: "Pedro Costa", score: 90, km: 8720, costPerKm: 1.28 },
-];
-
-const RECENT_REPORTS = [
-  { title: "Custos vs KM — Abril", date: "24/05/2026", status: "Pronto" },
-  { title: "Distribuição de Gastos Q2", date: "22/05/2026", status: "Pronto" },
-  { title: "Desempenho Frota SP", date: "20/05/2026", status: "Processando" },
-];
+interface ReportData {
+  vehicleRows: { plate: string; km: number; cost: number; efficiency: number }[];
+  topDrivers: { name: string; score: number; km: number; cost_per_km: number }[];
+  costBreakdown: { label: string; pct: number; amount: number }[];
+  recentTravels: {
+    id: string;
+    origin: string;
+    destination: string;
+    status: string;
+    created_at: string;
+    vehicle_plate?: string;
+  }[];
+  totals: { travels: number; completed: number; totalCost: number };
+}
 
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange>(() => defaultDateRange(30));
+  const [data, setData] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    reportsApi
+      .summary(dateRange.start, dateRange.end)
+      .then((res) => setData(res.data as ReportData))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [dateRange]);
 
   const periodLabel = `${dateRange.start.split("-").reverse().join("/")} — ${dateRange.end.split("-").reverse().join("/")}`;
 
-  const periodDays = useMemo(() => {
-    const start = new Date(dateRange.start);
-    const end = new Date(dateRange.end);
-    return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-  }, [dateRange]);
-
   const chartBars = useMemo(() => {
-    return Array.from({ length: Math.min(periodDays, 12) }, (_, i) => {
-      const h = 55 + ((i * 23 + periodDays) % 35);
-      return h;
-    });
-  }, [periodDays]);
-
-  const vehicleRows = useMemo(() => {
-    const factor = periodDays / 30;
-    return [
-      { plate: "ABC-1234", km: Math.round(4200 * factor), cost: Math.round(5940 * factor), efficiency: 92 },
-      { plate: "DEF-5678", km: Math.round(3800 * factor), cost: Math.round(5890 * factor), efficiency: 85 },
-      { plate: "GHI-9012", km: Math.round(5100 * factor), cost: Math.round(6120 * factor), efficiency: 96 },
-    ];
-  }, [periodDays]);
+    const rows = data?.vehicleRows ?? [];
+    return rows.slice(0, 12).map((v) => Math.min(100, Math.round(Number(v.efficiency))));
+  }, [data]);
 
   return (
     <AppShell>
       <PageHeader
         title="Relatórios Estratégicos"
-        subtitle="Análises consolidadas para tomada de decisão executiva."
+        subtitle="Dados consolidados de viagens, combustível e manutenção."
         actions={
           <>
             <DateRangePicker value={dateRange} onChange={setDateRange} />
@@ -76,16 +65,16 @@ export default function ReportsPage() {
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Relatórios Gerados", value: String(Math.round(128 * (periodDays / 30))), icon: "description" },
-          { label: "Exportações", value: String(Math.round(42 * (periodDays / 30))), icon: "cloud_download" },
-          { label: "Agendados", value: "12", icon: "schedule" },
-          { label: "Compartilhados", value: "8", icon: "share" },
+          { label: "Viagens no período", value: data?.totals.travels ?? 0, icon: "route" },
+          { label: "Concluídas", value: data?.totals.completed ?? 0, icon: "check_circle" },
+          { label: "Custo operacional", value: formatBRL(data?.totals.totalCost ?? 0), icon: "payments" },
+          { label: "Veículos analisados", value: data?.vehicleRows.length ?? 0, icon: "directions_car" },
         ].map((s) => (
           <div key={s.label} className="raised-card flex items-center gap-4 p-4">
             <Icon name={s.icon} className="text-2xl text-primary" />
             <div>
               <p className="text-label-md text-on-surface-variant">{s.label}</p>
-              <p className="text-headline-md font-bold">{s.value}</p>
+              <p className="text-headline-md font-bold">{loading ? "—" : s.value}</p>
             </div>
           </div>
         ))}
@@ -93,7 +82,7 @@ export default function ReportsPage() {
 
       <section className="mb-8 raised-card p-4 sm:p-6">
         <h2 className="mb-6 text-headline-sm text-primary">
-          Evolução de Custos vs KM Rodados
+          Evolução de Custos vs KM
           <span className="ml-2 text-sm font-normal text-on-surface-variant">({periodLabel})</span>
         </h2>
 
@@ -101,23 +90,32 @@ export default function ReportsPage() {
           <div className="rounded-xl border border-outline-variant p-4">
             <h3 className="mb-4 flex items-center gap-2 text-title-md font-bold">
               <Icon name="speed" className="text-primary" />
-              Desempenho do veículo
+              Desempenho por veículo
             </h3>
-            <div className="space-y-3">
-              {vehicleRows.map((v) => (
-                <div key={v.plate}>
-                  <div className="mb-1 flex justify-between text-sm">
-                    <span className="font-semibold">{v.plate}</span>
-                    <span>
-                      {v.km.toLocaleString("pt-BR")} km • {formatBRL(v.cost)}
-                    </span>
+            {loading ? (
+              <p className="text-on-surface-variant">Carregando...</p>
+            ) : (data?.vehicleRows.length ?? 0) === 0 ? (
+              <p className="text-on-surface-variant">Sem dados no período.</p>
+            ) : (
+              <div className="space-y-3">
+                {data?.vehicleRows.map((v) => (
+                  <div key={v.plate}>
+                    <div className="mb-1 flex justify-between text-sm">
+                      <span className="font-semibold">{formatPlateDisplay(v.plate)}</span>
+                      <span>
+                        {Number(v.km).toLocaleString("pt-BR")} km • {formatBRL(Number(v.cost))}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${Math.min(100, Number(v.efficiency))}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-                    <div className="h-full bg-primary transition-all" style={{ width: `${v.efficiency}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-outline-variant p-4">
@@ -126,19 +124,16 @@ export default function ReportsPage() {
               Distribuição de gastos
             </h3>
             <div className="space-y-3">
-              {[
-                { label: "Combustível", pct: 42, color: "bg-primary" },
-                { label: "Manutenção", pct: 28, color: "bg-secondary-container" },
-                { label: "Pedágio", pct: 15, color: "bg-primary-container" },
-                { label: "Outros", pct: 15, color: "bg-outline-variant" },
-              ].map((g) => (
+              {(data?.costBreakdown ?? []).map((g) => (
                 <div key={g.label}>
                   <div className="mb-1 flex justify-between text-sm">
                     <span>{g.label}</span>
-                    <span className="font-bold">{g.pct}%</span>
+                    <span className="font-bold">
+                      {g.pct}% ({formatBRL(g.amount)})
+                    </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-                    <div className={`h-full ${g.color}`} style={{ width: `${g.pct}%` }} />
+                    <div className="h-full bg-primary" style={{ width: `${g.pct}%` }} />
                   </div>
                 </div>
               ))}
@@ -148,21 +143,18 @@ export default function ReportsPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-outline-variant p-4">
-            <h3 className="mb-4 flex items-center gap-2 text-title-md font-bold">
-              <Icon name="emoji_events" className="text-primary" />
-              Top 5 motoristas mais eficientes
-            </h3>
+            <h3 className="mb-4 font-bold text-primary">Top motoristas</h3>
             <ol className="space-y-2">
-              {TOP_DRIVERS.map((d, i) => (
+              {(data?.topDrivers ?? []).map((d, i) => (
                 <li
                   key={d.name}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-container-low p-3 text-sm"
+                  className="flex flex-wrap justify-between gap-2 rounded-lg bg-surface-container-low p-3 text-sm"
                 >
                   <span className="font-bold">
                     {i + 1}. {d.name}
                   </span>
                   <span className="text-on-surface-variant">
-                    Score {d.score} • {d.km.toLocaleString("pt-BR")} km • {formatBRL(d.costPerKm)}/km
+                    Score {Math.round(d.score)} • {Number(d.km).toLocaleString("pt-BR")} km
                   </span>
                 </li>
               ))}
@@ -170,85 +162,36 @@ export default function ReportsPage() {
           </div>
 
           <div className="rounded-xl border border-outline-variant p-4">
-            <h3 className="mb-4 flex items-center gap-2 text-title-md font-bold">
-              <Icon name="history" className="text-primary" />
-              Relatórios recentes
-            </h3>
+            <h3 className="mb-4 font-bold text-primary">Viagens recentes</h3>
             <ul className="space-y-2">
-              {RECENT_REPORTS.map((r) => (
-                <li
-                  key={r.title}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-outline-variant/50 p-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold">{r.title}</p>
-                    <p className="text-xs text-on-surface-variant">{r.date}</p>
-                  </div>
-                  <span className={r.status === "Pronto" ? "chip-active" : "chip-pending"}>
-                    {r.status}
-                  </span>
+              {(data?.recentTravels ?? []).map((t) => (
+                <li key={t.id} className="rounded-lg border border-outline-variant/50 p-3 text-sm">
+                  <p className="font-semibold">
+                    {t.origin} → {t.destination}
+                  </p>
+                  <p className="text-xs text-on-surface-variant">
+                    {formatPlateDisplay(t.vehicle_plate ?? "")} • {t.status} •{" "}
+                    {new Date(t.created_at).toLocaleDateString("pt-BR")}
+                  </p>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="mt-6">
-          <h3 className="mb-3 text-sm font-bold text-on-surface-variant">
-            Comparativo custo × km ({periodLabel})
-          </h3>
-          <div className="flex h-40 items-end gap-1 sm:gap-2">
-            {chartBars.map((h, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t bg-primary-container/80 transition-all duration-300"
-                  style={{ height: `${h}%` }}
-                  title={`Dia ${i + 1}`}
-                />
-              </div>
-            ))}
+        {chartBars.length > 0 && (
+          <div className="mt-6">
+            <h3 className="mb-3 text-sm font-bold text-on-surface-variant">Eficiência por veículo</h3>
+            <div className="flex h-32 items-end gap-2">
+              {chartBars.map((h, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="w-full rounded-t bg-primary-container/80" style={{ height: `${h}%` }} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </section>
-
-      <div className="raised-card table-responsive overflow-hidden">
-        <table className="zebra-table w-full min-w-[600px] text-body-md">
-          <thead>
-            <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
-              <th className="px-4 py-4 sm:px-6">Relatório</th>
-              <th className="px-4 py-4 sm:px-6">Período</th>
-              <th className="px-4 py-4 sm:px-6">Tipo</th>
-              <th className="px-4 py-4 sm:px-6">Atualizado</th>
-              <th className="px-4 py-4 text-right sm:px-6">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {REPORTS.map((r) => (
-              <tr key={r.name}>
-                <td className="px-4 py-4 font-bold sm:px-6" data-label="Relatório">
-                  {r.name}
-                </td>
-                <td className="px-4 py-4 sm:px-6" data-label="Período">
-                  {periodLabel}
-                </td>
-                <td className="px-4 py-4 sm:px-6" data-label="Tipo">
-                  <span className="rounded bg-surface-container-high px-2 py-0.5 text-[11px] font-bold uppercase">
-                    {r.type}
-                  </span>
-                </td>
-                <td className="px-4 py-4 sm:px-6" data-label="Atualizado">
-                  {r.updated}
-                </td>
-                <td className="px-4 py-4 text-right sm:px-6" data-label="Ações">
-                  <ActionLink href={ACTION_ROUTES.reportsExport} variant="ghost" className="!p-0">
-                    <Icon name="visibility" className="inline text-lg" />
-                  </ActionLink>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </AppShell>
   );
 }

@@ -13,6 +13,10 @@ export class IntelligenceController {
   async ceo(_req: Request, res: Response) {
     return res.json(await intelligenceService.getCeoInsights());
   }
+
+  async travels(_req: Request, res: Response) {
+    return res.json(await intelligenceService.getRecentTravels(15));
+  }
 }
 
 export const intelligenceController = new IntelligenceController();

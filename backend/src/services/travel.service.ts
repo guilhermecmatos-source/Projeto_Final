@@ -32,10 +32,15 @@ export class TravelService {
   }
 
   async validateRefs(vehicleId: string, driverId: string) {
+    if (!vehicleId?.trim()) throw new Error("Veículo é obrigatório.");
+    if (!driverId?.trim()) throw new Error("Motorista é obrigatório.");
     const vehicle = await vehicleService.findById(vehicleId);
-    if (!vehicle) throw new Error("Veículo não encontrado.");
+    if (!vehicle) throw new Error("Veículo não cadastrado no sistema.");
     const driver = await driverService.findById(driverId);
-    if (!driver) throw new Error("Motorista não encontrado.");
+    if (!driver) throw new Error("Motorista não cadastrado no sistema.");
+    if (vehicle.status === "inactive") {
+      throw new Error("Veículo inativo não pode ser usado em viagens.");
+    }
     return { vehicle, driver };
   }
 
@@ -56,7 +61,34 @@ export class TravelService {
     if (!data.origin?.trim() || !data.destination?.trim()) {
       throw new Error("Origem e destino são obrigatórios.");
     }
-    await this.validateRefs(data.vehicle_id, data.driver_id);
+    const { vehicle, driver } = await this.validateRefs(data.vehicle_id, data.driver_id);
+
+    const distanceKm = Number(data.distance_km || 0);
+    const avgConsumption = Number(vehicle.avg_consumption || 10);
+    const fuelConsumption =
+      data.fuel_consumption && data.fuel_consumption > 0
+        ? data.fuel_consumption
+        : distanceKm > 0
+          ? Math.round((distanceKm / avgConsumption) * 10) / 10
+          : 0;
+    const estimatedDuration =
+      data.estimated_duration_min ??
+      (distanceKm > 0 ? Math.round((distanceKm / 60) * 60) : null);
+    const autonomyKm = Number(vehicle.autonomy_km || 0);
+    const estimatedCost =
+      data.cost && data.cost > 0
+        ? data.cost
+        : fuelConsumption > 0
+          ? Math.round(fuelConsumption * 5.9 * 100) / 100
+          : 0;
+
+    if (autonomyKm > 0 && distanceKm > autonomyKm) {
+      throw new Error(
+        `Distância (${distanceKm} km) excede a autonomia estimada do veículo (${autonomyKm} km).`
+      );
+    }
+
+    void driver;
 
     const rows = await query<Travel>(
       `INSERT INTO travels (vehicle_id, driver_id, origin, destination, distance_km, fuel_consumption, status, km_start, km_end, estimated_duration_min, cost, checklist_departure, checklist_arrival)
@@ -66,12 +98,12 @@ export class TravelService {
         data.driver_id,
         data.origin.trim(),
         data.destination.trim(),
-        data.distance_km || 0,
-        data.fuel_consumption || 0,
-        data.km_start ?? null,
+        distanceKm,
+        fuelConsumption,
+        data.km_start ?? vehicle.mileage ?? null,
         data.km_end ?? null,
-        data.estimated_duration_min ?? null,
-        data.cost ?? 0,
+        estimatedDuration,
+        estimatedCost,
         data.checklist_departure ? JSON.stringify(data.checklist_departure) : null,
         data.checklist_arrival ? JSON.stringify(data.checklist_arrival) : null,
       ]
@@ -126,6 +158,34 @@ export class TravelService {
   async delete(id: string) {
     const rows = await query("DELETE FROM travels WHERE id = $1 RETURNING id", [id]);
     return rows.length > 0;
+  }
+
+  async findCarpoolMatches() {
+    return query<{
+      id: string;
+      origin: string;
+      destination: string;
+      status: string;
+      vehicle_plate: string;
+      driver_name: string;
+      match_score: number;
+    }>(
+      `SELECT t.id, t.origin, t.destination, t.status, v.plate as vehicle_plate, d.name as driver_name,
+        CAST((
+          SELECT COUNT(*) FROM travels t2
+          WHERE t2.id != t.id AND t2.status IN ('scheduled', 'in_progress')
+          AND (
+            LOWER(t2.origin) LIKE CONCAT('%', SUBSTRING_INDEX(LOWER(t.origin), ',', 1), '%')
+            OR LOWER(t2.destination) LIKE CONCAT('%', SUBSTRING_INDEX(LOWER(t.destination), ',', 1), '%')
+          )
+        ) AS UNSIGNED) as match_score
+       FROM travels t
+       LEFT JOIN vehicles v ON v.id = t.vehicle_id
+       LEFT JOIN drivers d ON d.id = t.driver_id
+       WHERE t.status IN ('scheduled', 'in_progress')
+       ORDER BY match_score DESC, t.created_at DESC
+       LIMIT 10`
+    );
   }
 
   async cancel(id: string) {

@@ -151,6 +151,38 @@ async function migrate() {
     await ensureColumn(conn, "drivers", "cnh_category", "cnh_category VARCHAR(5) NULL");
     await ensureColumn(conn, "drivers", "cnh_expiry", "cnh_expiry DATE NULL");
     await ensureColumn(conn, "drivers", "status", "status VARCHAR(30) DEFAULT 'ativo'");
+    await ensureColumn(conn, "drivers", "vehicle_id", "vehicle_id CHAR(36) NULL");
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS partners (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        name VARCHAR(255) NOT NULL,
+        city VARCHAR(120) NOT NULL,
+        type VARCHAR(50) NOT NULL DEFAULT 'workshop',
+        email VARCHAR(255) NULL,
+        cnpj VARCHAR(18) NULL,
+        phone VARCHAR(30) NULL,
+        score DECIMAL(5,2) DEFAULT 80,
+        status VARCHAR(30) DEFAULT 'ativo',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS partner_tickets (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        partner_id CHAR(36) NULL,
+        subject VARCHAR(255) NOT NULL,
+        partner_name VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status VARCHAR(30) DEFAULT 'aberto',
+        priority VARCHAR(20) DEFAULT 'normal',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (partner_id) REFERENCES partners(id) ON DELETE SET NULL
+      )
+    `);
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS travels (

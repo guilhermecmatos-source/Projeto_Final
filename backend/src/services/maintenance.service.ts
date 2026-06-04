@@ -49,19 +49,40 @@ export class MaintenanceService {
     return rows[0] || null;
   }
 
-  async emitAlerts() {
-    const alerts = await predictiveService.generateAllAlerts();
-    const pending = await query<Maintenance>(
-      `SELECT m.* FROM maintenances m
-       WHERE m.type = 'preventive' AND m.completed_at IS NULL
-       AND m.scheduled_at <= DATE_ADD(NOW(), INTERVAL 7 DAY)`
+  async getAlerts() {
+    const pending = await query<Maintenance & { vehicle_plate: string }>(
+      `SELECT m.*, v.plate as vehicle_plate, v.mileage as vehicle_mileage FROM maintenances m
+       JOIN vehicles v ON v.id = m.vehicle_id
+       WHERE m.completed_at IS NULL
+       ORDER BY m.scheduled_at ASC
+       LIMIT 20`
     );
 
-    for (const m of pending) {
-      await query("UPDATE maintenances SET alert_sent = true WHERE id = $1", [m.id]);
-    }
+    const maintenanceVehicles = await query<{ plate: string; status: string }>(
+      `SELECT plate, status FROM vehicles WHERE status = 'maintenance'`
+    );
 
-    return { alerts, pendingMaintenance: pending.length };
+    const predictive = await predictiveService.generateAllAlerts();
+
+    return {
+      pending,
+      maintenanceVehicles,
+      predictive,
+      count: pending.length + maintenanceVehicles.length,
+    };
+  }
+
+  async emitAlerts() {
+    const result = await this.getAlerts();
+    const dueSoon = result.pending.filter(
+      (m) => new Date(m.scheduled_at) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    );
+    for (const m of dueSoon) {
+      if (!m.alert_sent) {
+        await query("UPDATE maintenances SET alert_sent = true WHERE id = $1", [m.id]);
+      }
+    }
+    return { ...result, pendingMaintenance: dueSoon.length };
   }
 }
 
