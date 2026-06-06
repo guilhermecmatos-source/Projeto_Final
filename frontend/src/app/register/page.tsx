@@ -3,8 +3,9 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Icon from "@/components/ui/Icon";
+import AuthHero from "@/components/auth/AuthHero";
 import { authApi } from "@/services/api";
+import { IMAGES } from "@/lib/images";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,50 +27,69 @@ export default function RegisterPage() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       router.push("/dashboard");
     } catch (err: unknown) {
-      const msg =
+      setError(
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        "Não foi possível criar a conta.";
-      setError(msg);
+          "Não foi possível criar a conta."
+      );
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface p-6">
-      <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-8 shadow-raised">
-        <h1 className="mb-2 text-headline-lg">Solicitar Acesso</h1>
-        <p className="mb-6 text-body-md text-on-surface-variant">
-          Crie sua conta de cliente na plataforma FleetAI.
-        </p>
-        {error && (
-          <p className="mb-4 rounded-lg bg-error-container/20 px-3 py-2 text-body-md text-error">{error}</p>
-        )}
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="mb-1 block text-label-md">Nome</label>
-            <input name="name" className="input-fleet" required />
-          </div>
-          <div>
-            <label className="mb-1 block text-label-md">E-mail</label>
-            <input name="email" type="email" className="input-fleet" required />
-          </div>
-          <div>
-            <label className="mb-1 block text-label-md">Senha</label>
-            <input name="password" type="password" className="input-fleet" minLength={6} required />
-          </div>
-          <button type="submit" disabled={loading} className="btn-secondary w-full">
-            {loading ? "Criando..." : "Criar Conta"}
-            <Icon name="arrow_forward" />
-          </button>
-        </form>
-        <p className="mt-6 text-center text-body-md">
-          Já tem conta?{" "}
-          <Link href="/login" className="font-bold text-primary hover:underline">
-            Entrar
-          </Link>
-        </p>
-      </div>
-    </div>
+    <main className="flex min-h-screen-safe safe-area-padding bg-background">
+      <AuthHero imageUrl={IMAGES.loginElectricCar} alt="Concessionária premium" />
+
+      <section className="flex w-full flex-col items-center justify-center bg-background p-4 md:p-8 lg:w-1/2">
+        <div className="w-full max-w-[480px] rounded-2xl border border-outline-variant bg-surface-container-low p-8 shadow-overlay">
+          <header className="mb-8 text-center">
+            <h2 className="mb-1 text-headline-md text-on-surface">Crie conta</h2>
+            <p className="text-body-md text-on-surface-variant">
+              Solicite acesso de Administrador, Gestor ou Motorista.
+            </p>
+          </header>
+
+          {error && (
+            <div className="mb-4 rounded-lg bg-error-container p-3 text-sm text-on-error-container">{error}</div>
+          )}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label className="mb-1 block text-sm text-on-surface-variant">Nome Completo</label>
+              <input name="name" className="input-fleet" placeholder="Ex: Amanda Silveira" required />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-on-surface-variant">Email Corporativo</label>
+              <input name="email" type="email" className="input-fleet" placeholder="seu@email.com.br" required />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-on-surface-variant">Menu de Cargo rbac</label>
+              <select name="role" className="input-fleet" defaultValue="administrador">
+                <option value="administrador">Administrador de Controle</option>
+                <option value="gestor">Gestor de Logística</option>
+                <option value="solicitante">Solicitante (Motorista)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-on-surface-variant">Senha de Acesso</label>
+              <input name="password" type="password" className="input-fleet" placeholder="Mínimo 6 caracteres" minLength={6} required />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-12 w-full rounded-xl bg-tertiary-container text-sm font-bold uppercase text-white disabled:opacity-50"
+            >
+              {loading ? "Enviando..." : "Solicitar Acesso"}
+            </button>
+          </form>
+
+          <footer className="mt-6 text-center">
+            <Link href="/login" className="text-sm text-on-surface-variant hover:text-primary">
+              ← Voltar para Login
+            </Link>
+          </footer>
+        </div>
+      </section>
+    </main>
   );
 }

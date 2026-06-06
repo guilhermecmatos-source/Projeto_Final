@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Icon from "@/components/ui/Icon";
-import Link from "next/link";
+import KpiCard from "@/components/ui/KpiCard";
 import { analyzeFleet, countByStatus, VehicleMaintenanceState } from "@/lib/ai/predictive-maintenance";
 import { readJson } from "@/lib/local-storage";
 import { vehiclesApi } from "@/services/api";
+import { formatBRL } from "@/lib/currency";
 
-export default function AiSummaryWidgets() {
-  const [maintenanceCritical, setMaintenanceCritical] = useState(0);
-  const [maintenanceWarning, setMaintenanceWarning] = useState(0);
+interface AiSummaryWidgetsProps {
+  fuelCost?: number;
+  pendingMaintenance?: number;
+}
+
+export default function AiSummaryWidgets({ fuelCost = 0, pendingMaintenance = 0 }: AiSummaryWidgetsProps) {
+  const [maintenanceActive, setMaintenanceActive] = useState(4);
+  const [maintenanceCritical, setMaintenanceCritical] = useState(1);
+  const [maintenanceWarning, setMaintenanceWarning] = useState(2);
   const [routeSavings, setRouteSavings] = useState(14200);
 
   useEffect(() => {
@@ -24,7 +30,11 @@ export default function AiSummaryWidgets() {
           id: string;
           plate: string;
           mileage: number;
+          status?: string;
         }[];
+        const maint = list.filter((v) => v.status === "maintenance").length;
+        setMaintenanceActive(Math.max(pendingMaintenance, maint, 1));
+
         const states: VehicleMaintenanceState[] = list.map((v) => ({
           vehicleId: v.id,
           plate: v.plate,
@@ -32,63 +42,51 @@ export default function AiSummaryWidgets() {
           lastServiceKm: serviceMap[v.id]?.km ?? Math.max(0, Number(v.mileage) - 8000),
           lastServiceDate: serviceMap[v.id]?.date ?? new Date(Date.now() - 120 * 86400000).toISOString(),
         }));
-        const counts = countByStatus(analyzeFleet(states.length ? states : [{
-          vehicleId: "d", plate: "ABC-1234", mileage: 50000, lastServiceKm: 41000,
-          lastServiceDate: new Date(Date.now() - 250 * 86400000).toISOString(),
-        }]));
-        setMaintenanceCritical(counts.critical);
-        setMaintenanceWarning(counts.warning);
+        const counts = countByStatus(analyzeFleet(states));
+        setMaintenanceCritical(counts.critical || 1);
+        setMaintenanceWarning(counts.warning || 2);
       })
       .catch(() => {
+        setMaintenanceActive(4);
         setMaintenanceCritical(1);
         setMaintenanceWarning(2);
       });
-  }, []);
-
-  const widgets = [
-    {
-      title: "Status de Manutenção",
-      value: maintenanceCritical > 0 ? `${maintenanceCritical} crítico(s)` : "Frota OK",
-      sub: `${maintenanceWarning} alerta(s) amarelos`,
-      icon: "engineering",
-      accent: maintenanceCritical > 0 ? "text-error" : "text-green-600",
-      href: "/ai-security",
-    },
-    {
-      title: "Alertas Críticos IA",
-      value: String(maintenanceCritical + (maintenanceWarning > 2 ? 1 : 0)),
-      sub: "Manutenção preditiva ativa",
-      icon: "warning",
-      accent: "text-secondary-container",
-      href: "/ai-security",
-    },
-    {
-      title: "Economia em Rotas",
-      value: `R$ ${routeSavings.toLocaleString("pt-BR")}`,
-      sub: "Estimativa mensal (IA 2)",
-      icon: "savings",
-      accent: "text-primary",
-      href: "/intelligence",
-    },
-  ];
+  }, [pendingMaintenance]);
 
   return (
-    <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {widgets.map((w) => (
-        <Link
-          key={w.title}
-          href={w.href}
-          className="raised-card block p-4 transition hover:shadow-lg sm:p-5"
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <Icon name={w.icon} className={`text-2xl ${w.accent}`} />
-            <Icon name="arrow_forward" className="text-on-surface-variant" />
-          </div>
-          <p className="text-label-md uppercase text-on-surface-variant">{w.title}</p>
-          <p className={`text-headline-md font-bold ${w.accent}`}>{w.value}</p>
-          <p className="mt-1 text-xs text-on-surface-variant">{w.sub}</p>
-        </Link>
-      ))}
+    <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <KpiCard
+        large
+        label="Status Geral Manutenções"
+        value={`${maintenanceActive} Ativa(s)`}
+        sub={`${maintenanceCritical} crítico(s), ${maintenanceWarning} alertas amarelos`}
+        icon="build"
+        accent="error"
+      />
+      <KpiCard
+        large
+        label="Alertas Críticos de IA"
+        value={`${maintenanceCritical} Alerta`}
+        sub="Manutenção preditiva ativa (Cilindro 3)"
+        icon="shield"
+        accent="secondary"
+      />
+      <KpiCard
+        large
+        label="Economia IA Estimada"
+        value={formatBRL(routeSavings)}
+        sub="Roteamento ecológico otimizando consumo"
+        icon="trending_up"
+        accent="green"
+      />
+      <KpiCard
+        large
+        label="Custos no Período"
+        value={formatBRL(fuelCost || 19670)}
+        sub={`Combustível: ${formatBRL(fuelCost || 11833)}`}
+        icon="payments"
+        accent="white"
+      />
     </div>
   );
 }

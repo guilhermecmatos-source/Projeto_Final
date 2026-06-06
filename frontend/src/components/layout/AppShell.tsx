@@ -23,7 +23,7 @@ export default function AppShell({
   headerAction,
   showOfflineForPilot = false,
 }: AppShellProps) {
-  const { user, ready, setUser } = useAuth();
+  const { user, ready } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!ready) {
@@ -50,31 +50,28 @@ export default function AppShell({
         />
       )}
 
-      <Sidebar
-        user={user}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onProfileChange={setUser}
-      />
+      <Sidebar user={user} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-h-screen flex-col lg:ml-64">
-        <TopHeader
-          title={headerTitle}
-          searchPlaceholder={searchPlaceholder}
-          action={
-            <>
-              <button
-                type="button"
-                className="touch-target rounded-lg p-2 lg:hidden"
-                aria-label="Abrir menu"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Icon name="menu" className="text-2xl text-primary" />
-              </button>
-              {headerAction}
-            </>
-          }
-        />
+        <div className="lg:hidden">
+          <TopHeader
+            title={headerTitle}
+            searchPlaceholder={searchPlaceholder}
+            action={
+              <>
+                <button
+                  type="button"
+                  className="touch-target rounded-lg p-2"
+                  aria-label="Abrir menu"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Icon name="menu" className="text-2xl text-primary" />
+                </button>
+                {headerAction}
+              </>
+            }
+          />
+        </div>
         <div className="main-content flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
           {isPilotContext && <OfflineIndicator />}
           {children}

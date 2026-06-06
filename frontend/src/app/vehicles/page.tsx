@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
-import ActionLink from "@/components/ui/ActionLink";
-import { ACTION_ROUTES } from "@/lib/action-routes";
+import ActionButton from "@/components/ui/ActionButton";
+import FormModal from "@/components/ui/FormModal";
 import { vehiclesApi } from "@/services/api";
 import { formatPlateDisplay } from "@/lib/validators";
 
@@ -14,30 +14,35 @@ interface VehicleRow {
   plate: string;
   brand: string;
   model: string;
+  year?: number;
   status: string;
   mileage: number;
   avg_consumption?: number | null;
   autonomy_km?: number | null;
+  photo_url?: string | null;
 }
 
-const TAB_STATUS: Record<string, string | null> = {
-  Todos: null,
-  Ativos: "active",
-  Manutenção: "maintenance",
-  Inativos: "inactive",
+const TABS = ["TODOS", "DISPONÍVEL", "EM MANUTENÇÃO", "INATIVO"] as const;
+const TAB_MAP: Record<string, string | null> = {
+  TODOS: null,
+  DISPONÍVEL: "active",
+  "EM MANUTENÇÃO": "maintenance",
+  INATIVO: "inactive",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  active: "Ativo",
-  maintenance: "Manutenção",
-  inactive: "Inativo",
+const STATUS_STYLE: Record<string, { label: string; cls: string }> = {
+  active: { label: "DISPONÍVEL", cls: "chip-active" },
+  maintenance: { label: "EM MANUTENÇÃO", cls: "chip-warning" },
+  inactive: { label: "INATIVO", cls: "chip-pending" },
 };
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("Todos");
-  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("TODOS");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -52,146 +57,164 @@ export default function VehiclesPage() {
     load();
   }, [load]);
 
-  const stats = useMemo(() => {
-    const total = vehicles.length;
-    const active = vehicles.filter((v) => v.status === "active").length;
-    const maintenance = vehicles.filter((v) => v.status === "maintenance").length;
-    const inactive = vehicles.filter((v) => v.status === "inactive").length;
-    return { total, active, maintenance, inactive };
-  }, [vehicles]);
+  const stats = useMemo(() => ({
+    total: vehicles.length,
+    active: vehicles.filter((v) => v.status === "active").length,
+    maintenance: vehicles.filter((v) => v.status === "maintenance").length,
+    inactive: vehicles.filter((v) => v.status === "inactive").length,
+  }), [vehicles]);
 
   const filtered = vehicles.filter((v) => {
-    const status = TAB_STATUS[activeTab];
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      v.plate.toLowerCase().includes(q) ||
-      v.brand.toLowerCase().includes(q) ||
-      v.model.toLowerCase().includes(q);
-    return matchSearch && (!status || v.status === status);
+    const st = TAB_MAP[activeTab];
+    return !st || v.status === st;
   });
 
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    const form = new FormData(e.currentTarget);
+    try {
+      await vehiclesApi.create({
+        plate: String(form.get("plate")),
+        brand: String(form.get("brand")),
+        model: String(form.get("model")),
+        year: Number(form.get("year")),
+        mileage: Number(form.get("mileage")),
+        avg_consumption: Number(form.get("avg_consumption")),
+      });
+      setMessage("Veículo vinculado.");
+      e.currentTarget.reset();
+      setModalOpen(false);
+      load();
+    } catch {
+      setMessage("Erro ao cadastrar veículo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <AppShell
-      searchPlaceholder="Buscar veículos ou placas..."
-      headerAction={
-        <ActionLink href={ACTION_ROUTES.vehiclesRegister}>
-          <Icon name="add" className="text-lg" />
-          Novo Veículo
-        </ActionLink>
-      }
-    >
+    <AppShell>
       <PageHeader
-        breadcrumb="Gestão de Veículos"
+        breadcrumb="Fleet"
         title="Inventário de Frota"
+        subtitle="Gestão de cavalos mecânicos, caminhões e utilitários da operadora."
         actions={
-          <ActionLink href={ACTION_ROUTES.vehiclesRegister}>
-            <Icon name="directions_car" />
+          <ActionButton onClick={() => setModalOpen(true)}>
+            <Icon name="add" />
             Cadastrar Veículo
-          </ActionLink>
+          </ActionButton>
         }
       />
 
-      <div className="mb-4">
-        <input
-          className="input-fleet max-w-md"
-          placeholder="Filtrar listagem..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Total de Veículos", value: stats.total, icon: "local_shipping" },
-          { label: "Disponíveis", value: stats.active, icon: "check_circle" },
-          { label: "Em Manutenção", value: stats.maintenance, icon: "build" },
-          { label: "Inativos", value: stats.inactive, icon: "warning" },
+          { label: "Total Veículos", value: stats.total, color: "text-on-surface" },
+          { label: "Disponíveis", value: stats.active, color: "text-green-400" },
+          { label: "Em Manutenção", value: stats.maintenance, color: "text-primary" },
+          { label: "Inativos", value: stats.inactive, color: "text-on-surface-variant" },
         ].map((s) => (
-          <div key={s.label} className="raised-card flex h-32 flex-col justify-between p-4">
-            <span className="rounded-lg bg-primary-fixed p-2 text-primary">
-              <Icon name={s.icon} />
-            </span>
-            <div>
-              <p className="text-label-md text-on-surface-variant">{s.label}</p>
-              <h3 className="text-headline-md font-bold">{loading ? "—" : s.value}</h3>
-            </div>
+          <div key={s.label} className="raised-card p-4">
+            <p className="text-[10px] font-bold uppercase text-on-surface-variant">{s.label}</p>
+            <p className={`text-3xl font-bold ${s.color}`}>{loading ? "—" : s.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="raised-card overflow-hidden">
-        <div className="flex gap-6 border-b border-outline-variant bg-surface-container-lowest p-4">
-          {Object.keys(TAB_STATUS).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`text-label-md ${activeTab === tab ? "border-b-2 border-primary font-bold text-primary" : "text-on-surface-variant"}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        <div className="table-responsive">
-          <table className="zebra-table w-full min-w-[520px] text-left text-body-md">
-            <thead>
-              <tr className="border-b bg-surface-container/50 text-label-md text-on-surface-variant">
-                <th className="px-4 py-4 sm:px-6">Placa</th>
-                <th className="px-4 py-4 sm:px-6">Modelo</th>
-                <th className="px-4 py-4 sm:px-6">Status</th>
-                <th className="px-4 py-4 sm:px-6">Consumo médio</th>
-                <th className="px-4 py-4 text-right sm:px-6">Quilometragem</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/30">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-on-surface-variant">
-                    Carregando frota...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-on-surface-variant">
-                    Nenhum veículo cadastrado. Use &quot;Cadastrar Veículo&quot;.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((v) => (
-                  <tr key={v.id}>
-                    <td className="px-4 py-4 font-bold sm:px-6" data-label="Placa">
-                      {formatPlateDisplay(v.plate)}
-                    </td>
-                    <td className="px-4 py-4 sm:px-6" data-label="Modelo">
-                      {v.brand} {v.model}
-                    </td>
-                    <td className="px-4 py-4 sm:px-6" data-label="Status">
-                      <span
-                        className={
-                          v.status === "active"
-                            ? "chip-active"
-                            : v.status === "maintenance"
-                              ? "chip-warning"
-                              : "chip-pending"
-                        }
-                      >
-                        {STATUS_LABEL[v.status] ?? v.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 sm:px-6" data-label="Consumo">
-                      {v.avg_consumption ? `${Number(v.avg_consumption).toFixed(1)} km/L` : "—"}
-                    </td>
-                    <td className="px-4 py-4 text-right sm:px-6" data-label="Km">
-                      {Number(v.mileage).toLocaleString("pt-BR")} km
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="mb-4 flex gap-4 border-b border-outline-variant">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`pb-2 text-[10px] font-bold uppercase tracking-wider ${
+              activeTab === tab ? "border-b-2 border-primary text-primary" : "text-on-surface-variant"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {loading ? (
+          <p className="col-span-full text-on-surface-variant">Carregando frota...</p>
+        ) : filtered.length === 0 ? (
+          <p className="col-span-full text-on-surface-variant">Nenhum veículo nesta categoria.</p>
+        ) : (
+          filtered.map((v) => {
+            const st = STATUS_STYLE[v.status] ?? STATUS_STYLE.active;
+            return (
+              <article key={v.id} className="raised-card overflow-hidden">
+                <div className="flex items-start justify-between border-b border-outline-variant p-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase">{v.brand}</p>
+                    <p className="text-sm font-bold">{v.model}</p>
+                  </div>
+                  <span className={st.cls}>{st.label}</span>
+                </div>
+                <div className="flex h-32 items-center justify-center bg-surface-container-high">
+                  {v.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.photo_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="text-center text-on-surface-variant">
+                      <Icon name="local_shipping" className="text-4xl opacity-40" />
+                      <p className="mt-1 text-[10px] uppercase">Sem Foto Cadastrada</p>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1 p-3 text-xs">
+                  <p><span className="text-on-surface-variant">PLACA:</span> <strong>{formatPlateDisplay(v.plate)}</strong></p>
+                  <p><span className="text-on-surface-variant">QUILOMETRAGEM:</span> {Number(v.mileage).toLocaleString("pt-BR")} km</p>
+                  <p><span className="text-on-surface-variant">DIESEL CONSUMO:</span> {v.avg_consumption ? `${Number(v.avg_consumption).toFixed(1)} Km/L` : "—"}</p>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <FormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Novo Acoplado / Trator"
+        subtitle="Cadastro de veículo operacional"
+      >
+        <form className="space-y-3" onSubmit={handleSubmit}>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Placa do Veículo</label>
+            <input className="input-fleet" name="plate" placeholder="EX: ABC-1234" required />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Marca / Fabricante</label>
+            <input className="input-fleet" name="brand" placeholder="Ex: Mercedes-Benz" required />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Modelo Comercial</label>
+            <input className="input-fleet" name="model" placeholder="Ex: Atego 2426" required />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Ano Fabricação</label>
+              <input className="input-fleet" name="year" type="number" defaultValue="2022" required />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Odômetro (KM)</label>
+              <input className="input-fleet" name="mileage" type="number" defaultValue="100000" required />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Consumo Médio (KM/L)</label>
+            <input className="input-fleet" name="avg_consumption" type="number" step="0.1" defaultValue="4" />
+          </div>
+          {message && <p className="text-sm text-primary">{message}</p>}
+          <button type="submit" disabled={saving} className="btn-primary w-full uppercase">
+            {saving ? "Salvando..." : "Vincular Veículo"}
+          </button>
+        </form>
+      </FormModal>
     </AppShell>
   );
 }

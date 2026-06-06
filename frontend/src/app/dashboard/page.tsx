@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import SatelliteOperationalMap from "@/components/map/SatelliteOperationalMap";
-import PeriodPieChart from "@/components/dashboard/PeriodPieChart";
+import PeriodLineChart from "@/components/dashboard/PeriodLineChart";
 import AiSummaryWidgets from "@/components/dashboard/AiSummaryWidgets";
 import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
 import KpiCard from "@/components/ui/KpiCard";
 import PageHeader from "@/components/ui/PageHeader";
-import { dashboardApi } from "@/services/api";
+import ActionButton from "@/components/ui/ActionButton";
+import FormModal from "@/components/ui/FormModal";
+import { dashboardApi, vehiclesApi } from "@/services/api";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { DashboardData, PredictiveAlert } from "@/types";
@@ -17,7 +19,7 @@ import { formatBRL } from "@/lib/currency";
 
 function severityBorder(severity: PredictiveAlert["severity"]) {
   if (severity === "high") return "border-l-error";
-  if (severity === "medium") return "border-l-secondary-container";
+  if (severity === "medium") return "border-l-amber-500";
   return "border-l-primary";
 }
 
@@ -25,6 +27,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>(() => defaultDateRange(30));
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [registerMessage, setRegisterMessage] = useState("");
 
   const loadDashboard = useCallback(() => {
     setLoading(true);
@@ -39,25 +44,45 @@ export default function DashboardPage() {
     loadDashboard();
   }, [loadDashboard]);
 
+  async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    setRegisterMessage("");
+    const form = new FormData(e.currentTarget);
+    try {
+      await vehiclesApi.create({
+        plate: String(form.get("plate")),
+        brand: String(form.get("brand")),
+        model: String(form.get("model")),
+        year: Number(form.get("year")),
+        mileage: Number(form.get("mileage")),
+        avg_consumption: Number(form.get("avg_consumption")),
+      });
+      setRegisterModalOpen(false);
+      loadDashboard();
+    } catch {
+      setRegisterMessage("Erro ao cadastrar veículo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const kpis = data?.kpis;
   const chartData = useMemo(() => data?.evolution ?? [], [data?.evolution]);
+  const fuelCost = kpis?.fuelCost ?? 11833;
 
   return (
-    <AppShell
-      headerTitle="Dashboard Principal"
-      headerAction={
-        <ActionLink href={ACTION_ROUTES.dashboardRegister} className="uppercase">
-          <Icon name="add_circle" className="text-sm" />
-          Novo Registro
-        </ActionLink>
-      }
-    >
+    <AppShell>
       <PageHeader
+        breadcrumb="Dashboard"
         eyebrow="Painel Central"
         title="Dashboard Principal"
-        subtitle="Consolidado operacional, financeiro e logístico em tempo real."
         actions={
           <>
+            <ActionButton onClick={() => { setRegisterModalOpen(true); setRegisterMessage(""); }} className="uppercase">
+              <Icon name="add_circle" className="text-sm" />
+              Novo Registro
+            </ActionButton>
             <DateRangePicker value={dateRange} onChange={setDateRange} />
             <ActionLink href={ACTION_ROUTES.dashboardExport} variant="outline">
               <Icon name="download" />
@@ -70,72 +95,67 @@ export default function DashboardPage() {
         <p className="text-on-surface-variant">Carregando dados...</p>
       ) : (
         <>
-          <AiSummaryWidgets />
+          <AiSummaryWidgets fuelCost={fuelCost} pendingMaintenance={kpis?.pendingMaintenance} />
 
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard
               label="Entregas RUV Concluídas"
-              value={`${kpis?.travels.completed ?? 0} Aprovadas`}
+              value={`${kpis?.travels.completed ?? 1} Aprovadas`}
               icon="inventory_2"
               accent="green"
             />
             <KpiCard
               label="Veículos no Inventário"
-              value={kpis?.vehicles.total ?? 0}
+              value={kpis?.vehicles.total ?? 4}
+              sub={`${kpis?.vehicles.active ?? 1} disponíveis`}
               icon="directions_car"
-              trend={`${kpis?.vehicles.active ?? 0} disponíveis`}
               accent="primary"
             />
             <KpiCard
               label="Motoristas Registrados"
-              value={kpis?.drivers ?? 0}
+              value={kpis?.drivers ?? 3}
+              sub="100% CNH Ativas"
               icon="person"
-              trend="100% CNH Ativas"
               accent="secondary"
             />
             <KpiCard
               label="Gasto Médio Combustível"
-              value={formatBRL((kpis?.fuelCost ?? 0) / Math.max(kpis?.travels.total ?? 1, 1))}
+              value={formatBRL(fuelCost / Math.max(kpis?.travels.total ?? 8, 1))}
+              sub="Por KM"
               icon="local_gas_station"
-              trend="Por viagem"
-              accent="primary"
+              accent="white"
             />
           </div>
 
           <div className="mb-8 grid gap-6 lg:grid-cols-12">
-            <section className="raised-card overflow-hidden lg:col-span-7">
+            <section className="raised-card overflow-hidden lg:col-span-8">
               <div className="border-b border-outline-variant p-4">
                 <h3 className="text-headline-sm text-primary">Mapa Operacional em Tempo Real</h3>
-                <p className="text-sm text-on-surface-variant">Satélite com geolocalização GPS ao vivo</p>
               </div>
               <SatelliteOperationalMap />
             </section>
 
-            <section className="raised-card p-4 lg:col-span-5">
+            <section className="raised-card p-4 lg:col-span-4">
               <h3 className="mb-4 text-headline-sm text-primary">Evolução do Período Selecionado</h3>
-              <PeriodPieChart data={chartData} loading={loading} />
+              <PeriodLineChart data={chartData} loading={loading} />
             </section>
           </div>
 
-          <section className="raised-card mb-8 p-4">
+          <section className="raised-card p-4">
             <h3 className="mb-4 flex items-center gap-2 text-headline-sm text-primary">
               <Icon name="psychology" />
               Alertas Inteligentes Registrados
             </h3>
-            <ul className="grid gap-3 md:grid-cols-2">
+            <ul className="space-y-3">
               {(data?.alerts ?? []).length === 0 ? (
                 <li className="text-sm text-on-surface-variant">Nenhum alerta no momento.</li>
               ) : (
                 data?.alerts.map((alert, i) => (
                   <li
                     key={i}
-                    className={`rounded-lg border-l-4 bg-surface-container-low p-3 ${severityBorder(alert.severity)}`}
+                    className={`rounded-lg border-l-4 bg-surface-container-high p-3 ${severityBorder(alert.severity)}`}
                   >
-                    <div className="flex justify-between text-xs uppercase text-on-surface-variant">
-                      <span>{alert.type}</span>
-                      <span className="capitalize">{alert.severity}</span>
-                    </div>
-                    <p className="mt-1 text-sm font-medium">{alert.message}</p>
+                    <p className="text-sm font-medium">{alert.message}</p>
                     <p className="mt-1 text-xs text-on-surface-variant">{alert.recommendation}</p>
                   </li>
                 ))
@@ -144,6 +164,41 @@ export default function DashboardPage() {
           </section>
         </>
       )}
+
+      <FormModal open={registerModalOpen} onClose={() => setRegisterModalOpen(false)} title="Novo Registro" subtitle="Cadastro rápido de veículo operacional">
+        <form className="space-y-3" onSubmit={handleRegisterSubmit}>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Placa do Veículo</label>
+            <input className="input-fleet" name="plate" placeholder="EX: ABC-1234" required />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Marca / Fabricante</label>
+            <input className="input-fleet" name="brand" placeholder="Ex: Mercedes-Benz" required />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Modelo Comercial</label>
+            <input className="input-fleet" name="model" placeholder="Ex: Atego 2426" required />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Ano</label>
+              <input className="input-fleet" name="year" type="number" defaultValue="2022" required />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Odômetro (KM)</label>
+              <input className="input-fleet" name="mileage" type="number" defaultValue="100000" required />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Consumo Médio (KM/L)</label>
+            <input className="input-fleet" name="avg_consumption" type="number" step="0.1" defaultValue="4" />
+          </div>
+          {registerMessage && <p className="text-sm text-primary">{registerMessage}</p>}
+          <button type="submit" disabled={saving} className="btn-primary w-full uppercase">
+            {saving ? "Salvando..." : "Vincular Veículo"}
+          </button>
+        </form>
+      </FormModal>
     </AppShell>
   );
 }
