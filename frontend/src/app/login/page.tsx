@@ -32,9 +32,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const apiMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       if (!apiMsg && !(err as { response?: unknown })?.response) {
-        setError(
-          "Não foi possível conectar à API. No celular, use o IP do PC (ex.: http://192.168.1.10:3000), mesma Wi‑Fi, e NEXT_PUBLIC_API_URL=/api."
-        );
+        setError("Não foi possível conectar à API. Verifique se o Docker está rodando (docker compose up).");
       } else {
         setError(apiMsg || "Credenciais inválidas. Use admin@fleetai.com / admin123");
       }
@@ -44,20 +42,25 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen-safe safe-area-padding">
-      <AuthHero imageUrl={IMAGES.loginElectricCar} alt="Veículo elétrico moderno" />
+    <main className="flex min-h-screen-safe safe-area-padding bg-background">
+      <AuthHero imageUrl={IMAGES.loginElectricCar} alt="Concessionária premium" />
 
-      <section className="flex w-full items-center justify-center bg-surface p-4 md:p-8 lg:w-1/2">
-        <div className="w-full max-w-[440px]">
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Icon name="local_shipping" className="text-3xl text-primary" />
-            <span className="text-headline-sm font-bold text-primary">FleetAI</span>
+      <section className="flex w-full flex-col items-center justify-center bg-background p-4 md:p-8 lg:w-1/2">
+        <div className="mb-6 flex w-full max-w-[440px] items-center justify-between lg:max-w-[480px]">
+          <div className="flex items-center gap-2 lg:hidden">
+            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary font-black text-on-primary">F</span>
+            <span className="font-bold text-primary">FLEETAI</span>
           </div>
+          <span className="hidden rounded-full border border-primary/40 px-3 py-1 text-[10px] font-bold text-primary lg:inline">
+            ★ PREMIUM UI MODELO ATIVO
+          </span>
+        </div>
 
-          <header className="mb-8">
-            <h2 className="mb-1 text-headline-md text-on-surface">Bem-vindo de volta</h2>
+        <div className="w-full max-w-[480px] rounded-2xl border border-outline-variant bg-surface-container-low p-8 shadow-overlay">
+          <header className="mb-8 text-center">
+            <h2 className="mb-1 text-headline-md text-on-surface">Login</h2>
             <p className="text-body-md text-on-surface-variant">
-              Acesse sua conta para gerenciar sua frota.
+              Faça login com a porta de acesso ou as contas rápidas.
             </p>
           </header>
 
@@ -67,46 +70,44 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label
-                htmlFor="email"
-                className="mb-1 block text-label-md uppercase tracking-wider text-on-surface-variant"
-              >
-                E-mail ou Usuário
+              <label htmlFor="email" className="mb-1 block text-sm text-on-surface-variant">
+                Email
               </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-fleet"
-                placeholder="exemplo@fleetcontrol.com"
-                required
-              />
+              <div className="relative">
+                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-fleet pl-10"
+                  placeholder="seu@email.com.br ou admin"
+                  required
+                />
+              </div>
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="mb-1 block text-label-md uppercase tracking-wider text-on-surface-variant"
-              >
-                Senha
+              <label htmlFor="password" className="mb-1 block text-sm text-on-surface-variant">
+                Password
               </label>
               <div className="relative">
+                <Icon name="key" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-fleet pr-12"
+                  className="input-fleet pl-10 pr-12"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary"
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 >
                   <Icon name={showPassword ? "visibility_off" : "visibility"} />
@@ -120,38 +121,34 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="h-5 w-5 rounded border-outline-variant text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-outline-variant text-primary"
                 />
-                <span className="text-body-md text-on-surface-variant">Lembrar de mim</span>
+                <span className="text-sm text-on-surface-variant">Lembrar me</span>
               </label>
-              <Link
-                href="/forgot-password"
-                className="text-label-md font-bold text-primary hover:underline"
-              >
-                Esqueceu a senha?
+              <Link href="/forgot-password" className="text-sm text-on-surface hover:text-primary">
+                Forgot Password?
               </Link>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-secondary h-14 w-full rounded-xl">
-              {loading ? "Entrando..." : "Entrar"}
-              <Icon name="arrow_forward" />
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-12 w-full rounded-xl bg-tertiary-container text-sm font-bold uppercase text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? "Entrando..." : "Login"}
             </button>
           </form>
 
-          <footer className="mt-8 border-t border-outline-variant pt-6 text-center">
-            <p className="text-body-md text-on-surface-variant">
-              Novo na plataforma?{" "}
-              <Link href="/register" className="ml-1 font-bold text-primary hover:underline">
-                Solicitar acesso
-              </Link>
-            </p>
+          <footer className="mt-6 text-center">
+            <Link href="/register" className="text-sm font-semibold text-on-surface-variant hover:text-primary">
+              SIGN UP
+            </Link>
           </footer>
-
-          <div className="mt-6 flex items-center justify-center gap-2 text-outline opacity-60">
-            <Icon name="lock" className="text-base" />
-            <span className="text-label-md">Ambiente seguro e criptografado</span>
-          </div>
         </div>
+
+        <p className="mt-8 text-[10px] uppercase tracking-widest text-on-surface-variant">
+          © 2026 FLEETAI LOGISTICS • RBAC AUTH V4.2.0
+        </p>
       </section>
     </main>
   );

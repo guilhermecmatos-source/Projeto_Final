@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -35,7 +34,6 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function VehiclesPage() {
-  const searchParams = useSearchParams();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Todos");
@@ -52,7 +50,7 @@ export default function VehiclesPage() {
 
   useEffect(() => {
     load();
-  }, [load, searchParams.get("t")]);
+  }, [load]);
 
   const stats = useMemo(() => {
     const total = vehicles.length;

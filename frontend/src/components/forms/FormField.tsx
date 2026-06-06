@@ -9,6 +9,7 @@ interface FormFieldProps {
   as?: "input" | "textarea" | "select" | "checkbox";
   rows?: number;
   className?: string;
+  defaultValue?: string;
 }
 
 export default function FormField({
@@ -22,6 +23,7 @@ export default function FormField({
   as,
   rows = 4,
   className = "",
+  defaultValue,
 }: FormFieldProps) {
   const fieldAs = as ?? (options ? "select" : "input");
 
@@ -77,6 +79,7 @@ export default function FormField({
           type={type}
           className="input-fleet"
           placeholder={placeholder}
+          defaultValue={defaultValue}
           required={required}
           disabled={disabled}
         />

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -31,7 +30,6 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function TravelsPage() {
-  const searchParams = useSearchParams();
   const [travels, setTravels] = useState<TravelRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Todos");
@@ -48,7 +46,7 @@ export default function TravelsPage() {
 
   useEffect(() => {
     load();
-  }, [load, searchParams.get("t")]);
+  }, [load]);
 
   const kpis = useMemo(() => {
     const active = travels.filter((t) => t.status === "in_progress").length;

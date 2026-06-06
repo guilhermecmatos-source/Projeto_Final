@@ -48,7 +48,7 @@
   }
 
   .nav-active {
-    @apply border-r-4 border-primary bg-surface-container-high font-bold text-primary;
+    @apply rounded-lg bg-primary font-bold text-on-primary;
   }
 
   .input-fleet {
@@ -91,19 +91,19 @@
   }
 
   .chip-active {
-    @apply rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-green-800;
+    @apply rounded-full bg-green-500/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-green-400;
   }
 
   .chip-warning {
-    @apply rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-800;
+    @apply rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-400;
   }
 
   .chip-error {
-    @apply rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-red-800;
+    @apply rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-red-400;
   }
 
   .chip-pending {
-    @apply rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-orange-800;
+    @apply rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-primary;
   }
 
   .table-responsive {

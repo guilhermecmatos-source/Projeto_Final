@@ -1,14 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
-import ActionLink from "@/components/ui/ActionLink";
+import FormField from "@/components/forms/FormField";
 import DriverProfilePanel from "@/components/profiles/DriverProfilePanel";
-import { ACTION_ROUTES } from "@/lib/action-routes";
-import { driversApi } from "@/services/api";
+import { driversApi, uploadsApi, vehiclesApi } from "@/services/api";
+import OfflineIndicator from "@/components/ui/OfflineIndicator";
 
 interface DriverRow {
   id: string;
@@ -16,6 +15,9 @@ interface DriverRow {
   license_number: string;
   vehicle_plate?: string | null;
   cnh_category?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  phone?: string | null;
   score: number;
   status?: string | null;
   active: boolean;
@@ -23,10 +25,16 @@ interface DriverRow {
 }
 
 export default function DriversPage() {
-  const searchParams = useSearchParams();
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const cnhInputRef = useRef<HTMLInputElement>(null);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
+  const [vehicles, setVehicles] = useState<{ id: string; plate: string; brand?: string; model?: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -39,113 +47,220 @@ export default function DriversPage() {
 
   useEffect(() => {
     load();
-  }, [load, searchParams.get("t")]);
+    vehiclesApi
+      .list()
+      .then((res) => setVehicles(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setVehicles([]));
+  }, [load]);
 
-  const stats = useMemo(() => {
-    const total = drivers.length;
-    const active = drivers.filter((d) => d.active && d.status !== "inativo").length;
-    const avgScore =
-      drivers.length > 0
-        ? Math.round(drivers.reduce((s, d) => s + Number(d.score), 0) / drivers.length)
-        : 0;
-    return { total, active, avgScore };
-  }, [drivers]);
+  const filtered = drivers.filter(
+    (d) =>
+      d.name.toLowerCase().includes(search.toLowerCase()) ||
+      (d.cpf ?? "").includes(search) ||
+      d.license_number.includes(search)
+  );
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await driversApi.create({
+        name: String(form.get("name")).trim(),
+        license_number: String(form.get("license_number")).trim(),
+        phone: String(form.get("phone") || "").trim(),
+        cpf: String(form.get("cpf") || "").trim(),
+        rg: String(form.get("rg") || "").trim(),
+        cnh_category: String(form.get("cnh_category") || "").trim(),
+        cnh_expiry: String(form.get("cnh_expiry") || "").trim() || undefined,
+        vehicle_id: String(form.get("vehicle_id") || "").trim() || undefined,
+      });
+      const id = (res.data as { id?: string })?.id;
+      if (id) setCreatedId(id);
+      setMessage("Motorista gravado com sucesso.");
+      e.currentTarget.reset();
+      load();
+    } catch {
+      setMessage("Erro ao gravar motorista.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function uploadImage(file: File, type: "driver_profile" | "driver_cnh") {
+    if (!createdId) {
+      setMessage("Grave o motorista antes de enviar imagens.");
+      return;
+    }
+    try {
+      await uploadsApi.upload(file, type, createdId);
+      setMessage("Imagem salva com sucesso.");
+    } catch {
+      setMessage("Falha ao salvar imagem.");
+    }
+  }
 
   return (
-    <AppShell
-      searchPlaceholder="Buscar motoristas..."
-      headerAction={
-        <ActionLink href={ACTION_ROUTES.driversRegister}>
-          <Icon name="person_add" />
-          Novo Motorista
-        </ActionLink>
-      }
-    >
+    <AppShell showOfflineForPilot>
       <PageHeader
         breadcrumb="Motoristas"
         title="Gestão de Motoristas"
-        subtitle="Clique em um motorista para abrir o perfil lateral com documentos e imagens."
+        subtitle="Relação de motoristas licenciados, status de viagem e logs de ocorrência."
+        actions={
+          <span className="rounded-full border border-error/40 bg-error-container/30 px-3 py-1 text-xs font-bold text-error">
+            Offline Mode (Mirror Local)
+          </span>
+        }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        {[
-          { label: "Total", value: stats.total, icon: "groups" },
-          { label: "Ativos", value: stats.active, icon: "check_circle" },
-          { label: "Score Médio", value: stats.avgScore, icon: "star" },
-        ].map((s) => (
-          <div key={s.label} className="raised-card flex items-center gap-4 p-4">
-            <Icon name={s.icon} className="text-2xl text-primary" />
-            <div>
-              <p className="text-label-md text-on-surface-variant">{s.label}</p>
-              <p className="text-headline-md font-bold">{loading ? "—" : s.value}</p>
+      <OfflineIndicator />
+
+      <div className="grid gap-6 lg:grid-cols-12">
+        <section className="raised-card border border-primary/20 p-5 lg:col-span-5">
+          <h2 className="mb-4 text-label-md font-bold uppercase text-primary">
+            Cadastrar Novo Motorista
+          </h2>
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <p className="text-label-md uppercase text-on-surface-variant">Dados Pessoais</p>
+            <FormField label="Nome Completo" name="name" required />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField label="CPF" name="cpf" required />
+              <FormField label="RG / Órgão" name="rg" />
+            </div>
+            <FormField label="Telefone / Canal Rádio" name="phone" />
+
+            <p className="text-label-md uppercase text-on-surface-variant">Foto do Perfil / Documentos</p>
+            <input
+              ref={profileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadImage(f, "driver_profile");
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => profileInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-secondary-container bg-secondary-container/10 px-4 py-3 text-sm font-semibold text-secondary-container"
+            >
+              <Icon name="add_a_photo" />
+              Adicionar Imagem
+            </button>
+
+            <p className="text-label-md uppercase text-on-surface-variant">Segmento CNH</p>
+            <FormField label="Cédula CNH" name="license_number" required />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField
+                label="Categoria"
+                name="cnh_category"
+                options={[
+                  { value: "", label: "Selecione" },
+                  { value: "C", label: "C" },
+                  { value: "D", label: "D" },
+                  { value: "E", label: "E" },
+                ]}
+              />
+              <FormField label="Vencimento da Licença" name="cnh_expiry" type="date" />
+            </div>
+            <input
+              ref={cnhInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadImage(f, "driver_cnh");
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => cnhInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-secondary-container bg-secondary-container/10 px-4 py-3 text-sm font-semibold text-secondary-container"
+            >
+              <Icon name="badge" />
+              Adicionar Imagem CNH
+            </button>
+
+            <p className="text-label-md uppercase text-on-surface-variant">Vincular Cavalo Trator</p>
+            <FormField
+              label="Veículo"
+              name="vehicle_id"
+              options={[
+                { value: "", label: "Nenhum Veículo Vinculado" },
+                ...vehicles.map((v) => ({
+                  value: v.id,
+                  label: `${v.plate} — ${v.brand ?? ""} ${v.model ?? ""}`.trim(),
+                })),
+              ]}
+            />
+
+            {message && <p className="text-sm text-primary">{message}</p>}
+
+            <button type="submit" disabled={saving} className="btn-primary w-full uppercase">
+              {saving ? "Gravando..." : "Gravar Localmente"}
+            </button>
+          </form>
+        </section>
+
+        <section className="raised-card overflow-hidden lg:col-span-7">
+          <div className="border-b border-outline-variant p-4">
+            <h2 className="text-headline-sm">Motoristas Resguardados</h2>
+            <div className="relative mt-3">
+              <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filtrar por nome ou CPF..."
+                className="input-fleet pl-10"
+              />
             </div>
           </div>
-        ))}
-      </div>
 
-      <div className="raised-card overflow-hidden">
-        <table className="zebra-table w-full text-body-md">
-          <thead>
-            <tr className="border-b bg-surface-container-low text-left text-label-md text-on-surface-variant">
-              <th className="px-6 py-4">Nome</th>
-              <th className="px-6 py-4">CNH</th>
-              <th className="px-6 py-4">Veículo</th>
-              <th className="px-6 py-4">Categoria</th>
-              <th className="px-6 py-4">Score</th>
-              <th className="px-6 py-4">Viagens</th>
-              <th className="px-6 py-4">Status</th>
-            </tr>
-          </thead>
-          <tbody>
+          <div className="max-h-[70vh] divide-y divide-outline-variant/30 overflow-y-auto">
             {loading ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-on-surface-variant">
-                  Carregando motoristas...
-                </td>
-              </tr>
-            ) : drivers.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-on-surface-variant">
-                  Nenhum motorista cadastrado.
-                </td>
-              </tr>
+              <p className="p-8 text-center text-on-surface-variant">Carregando motoristas...</p>
+            ) : filtered.length === 0 ? (
+              <p className="p-8 text-center text-on-surface-variant">Nenhum motorista cadastrado.</p>
             ) : (
-              drivers.map((d) => (
-                <tr
+              filtered.map((d) => (
+                <button
                   key={d.id}
-                  className="cursor-pointer hover:bg-primary-container/5"
+                  type="button"
                   onClick={() => setSelectedId(d.id)}
+                  className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-primary/5"
                 >
-                  <td className="px-6 py-4 font-bold">{d.name}</td>
-                  <td className="px-6 py-4">{d.license_number}</td>
-                  <td className="px-6 py-4">{d.vehicle_plate ?? "—"}</td>
-                  <td className="px-6 py-4">{d.cnh_category ?? "—"}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-primary">{Math.round(Number(d.score))}</span>
-                      <div className="h-1 w-16 overflow-hidden rounded-full bg-surface-container-high">
-                        <div
-                          className="h-full bg-primary"
-                          style={{ width: `${Math.min(100, Number(d.score))}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">{d.trip_count ?? 0}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={
-                        d.active && d.status !== "inativo" ? "chip-active" : "chip-pending"
-                      }
-                    >
-                      {d.status ?? (d.active ? "Ativo" : "Inativo")}
-                    </span>
-                  </td>
-                </tr>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-container-high font-bold text-primary">
+                    {d.name.charAt(0)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold">{d.name}</p>
+                    <p className="text-xs text-on-surface-variant">
+                      CPF: {d.cpf ?? "—"} | RG: {d.rg ?? "—"} | Tel: {d.phone ?? "—"}
+                    </p>
+                    <p className="text-xs text-on-surface-variant">
+                      CNH {d.cnh_category ?? "—"} • {d.license_number}
+                    </p>
+                    {d.vehicle_plate && (
+                      <p className="mt-1 inline-block rounded border border-primary/40 px-2 py-0.5 text-[10px] text-primary">
+                        Acoplado: {d.vehicle_plate}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-green-400">
+                      GASTO ATUAL R$ {(Number(d.score) * 74.8).toFixed(2)}
+                    </p>
+                    <span className="chip-active mt-1">{d.status ?? "EM VIAGEM"}</span>
+                  </div>
+                </button>
               ))
             )}
-          </tbody>
-        </table>
+          </div>
+        </section>
       </div>
 
       <DriverProfilePanel driverId={selectedId} onClose={() => setSelectedId(null)} />

@@ -42,34 +42,37 @@ O projeto foi componentizado e dividido estritamente entre cliente e servidor:
 ## 🚀 Como Executar o Projeto
 
 ### Pré-requisitos
-Você vai precisar do [Git](https://git-scm.com) e do [Node.js](https://nodejs.org/en/) instalados na sua máquina.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (recomendado — funciona em qualquer máquina)
+- Ou [Node.js 20+](https://nodejs.org/) + MySQL 8 para desenvolvimento local
 
-### 📦 Clonando o Repositório
+### 🐳 Docker (recomendado)
+
 ```bash
-git clone [https://github.com/guilhermecmatos-source/Projeto_Final.git](https://github.com/guilhermecmatos-source/Projeto_Final.git)
+git clone https://github.com/guilhermecmatos-source/Projeto_Final.git
 cd Projeto_Final
+cp .env.example .env
+docker compose up --build
+```
 
-⚙️ Configurando o Back-end
+Acesse:
+- **Frontend:** http://localhost:3000
+- **API:** http://localhost:3001/health
+- **Login:** `admin@fleetai.com` / `admin123`
 
-# Entre na pasta do servidor
-cd backend
+O frontend aguarda o backend ficar saudável antes de iniciar (corrige `ECONNREFUSED`).
 
-# Instale as dependências
-npm install
+### 💻 Desenvolvimento local (sem Docker)
 
-# Inicie o servidor
-npm start
+```bash
+# Backend
+cd backend && npm install && npm run db:migrate && npm run dev
 
-💻 Configurando o Front-end
+# Frontend (outro terminal)
+cd frontend && npm install && npm run dev
+```
 
-# Abra um novo terminal na raiz do projeto e acesse a pasta do cliente
-cd front
+Configure `backend/.env` e `frontend/.env` conforme os arquivos `.env.example`.
 
-# Instale as dependências do React
-npm install
-
-# Inicie a aplicação em modo de desenvolvimento
-npm start
 ---
 🧠 Aprendizados Consolidados
 Desenvolver esta aplicação em equipe nos permitiu dominar conceitos fundamentais do mercado:

@@ -27,11 +27,16 @@ export default function Sidebar({ user, open = false, onClose, onProfileChange }
       }`}
     >
       <div className="mb-6 flex items-center justify-between px-4">
-        <div>
-          <h1 className="text-headline-md font-bold text-primary">FleetAI</h1>
-          <p className="text-label-md uppercase tracking-wider text-on-surface-variant">
-            Operational Control
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-lg font-black text-on-primary">
+            F
+          </span>
+          <div>
+            <h1 className="text-headline-sm font-bold text-primary">FleetAI</h1>
+            <p className="text-[10px] uppercase tracking-wider text-on-surface-variant">
+              Operational Control
+            </p>
+          </div>
         </div>
         <button
           type="button"

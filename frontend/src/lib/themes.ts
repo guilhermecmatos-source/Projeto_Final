@@ -14,8 +14,8 @@ export type ThemeId = (typeof THEME_OPTIONS)[number]["id"];
 const STORAGE_KEY = "fleet_theme";
 
 export function getStoredTheme(): ThemeId {
-  if (typeof window === "undefined") return "corporate-blue";
-  return (localStorage.getItem(STORAGE_KEY) as ThemeId) || "corporate-blue";
+  if (typeof window === "undefined") return "dark";
+  return (localStorage.getItem(STORAGE_KEY) as ThemeId) || "dark";
 }
 
 export function applyTheme(theme: ThemeId): void {

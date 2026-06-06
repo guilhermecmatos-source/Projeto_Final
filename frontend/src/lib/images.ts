@@ -1,7 +1,7 @@
-/** Hero backgrounds from Stitch designs */
+/** Hero backgrounds — login usa imagem Mercedes/contrato local */
 export const IMAGES = {
   loginElectricCar:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuD0FPgQq9X8sAi_tse-7K9DLE0EpDee43N_yVuzvlAH-YQyM_k02rswi0PGYnJml2Pzh8SH2Xseu8bmz4PPt6t4sHFz93GbcSi1_JZchTBZTilHEjo0erMXHKFXi8obMC7kauITtnjYhhjN7i0wvf5D-cf7AhjmjXW9xdnVYdPdX2lIm2IE89lj0E9QGT1UP-qkSZf28YxOPLLTdfl-9sjwaaCpjApfdvZ9I9H77K8kp2Z9ssYMeHxFCr6SU_0gAk3ArNWuHTKyPmY",
+    "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1600&q=80",
   loginLogistics:
     "https://lh3.googleusercontent.com/aida-public/AB6AXuCYe_Rj_sjgpZONk8Q6y7v0K7L01RYUHfwrpqROr3Xjxk_nQc7SYBoZ0rQx2HjRX5DHKNYIv-5w2QwJNA3_mEomYpPrgKLdMGGQ0U5uOkf-swP26oFsaC0rGWyq3f6xVDfQvU2U0j3BOv8_T-Ycw4KIMXB5hcmEivx0MkVOFEXp7sZtuGf0DBRLOgmTMRWXtgY3v2961K2rPUdrDsttEIBRkh6_SnZweAu6fR2ldio8dtROA3Qloi9GLSRlopPoxM1R7rkXhKBomqc",
   mapInterface:

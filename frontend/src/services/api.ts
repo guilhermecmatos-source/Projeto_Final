@@ -1,10 +1,21 @@
 import axios from "axios";
 
-/** Usa /api no browser (proxy Next → backend :3001). Evita 404 quando o front sobe na porta 3001. */
+function resolveApiBaseUrl(): string {
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== "undefined") {
+    return publicUrl || "/api";
+  }
+  if (publicUrl?.startsWith("http")) return publicUrl;
+  const backend =
+    process.env.BACKEND_URL ||
+    process.env.INTERNAL_API_URL ||
+    "http://127.0.0.1:3001";
+  return `${backend.replace(/\/$/, "")}/api`;
+}
+
+/** Browser: /api (rewrite Next → backend). SSR/Docker: BACKEND_URL direto. */
 const api = axios.create({
-  baseURL:
-    process.env.NEXT_PUBLIC_API_URL ||
-    (typeof window !== "undefined" ? "/api" : "http://127.0.0.1:3001/api"),
+  baseURL: resolveApiBaseUrl(),
   headers: { "Content-Type": "application/json" },
 });
 
