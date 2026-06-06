@@ -20,12 +20,13 @@ export class FuelService {
     mileage_at_fill: number;
     station?: string;
     filled_at?: string;
+    receipt_url?: string;
   }) {
     const suspicious = data.liters > SUSPICIOUS_LITERS;
     const rows = await query<FuelRecord>(
-      `INSERT INTO fuel_records (vehicle_id, liters, cost, mileage_at_fill, station, filled_at, suspicious)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, NOW()), $7) RETURNING *`,
-      [data.vehicle_id, data.liters, data.cost, data.mileage_at_fill, data.station || null, data.filled_at || null, suspicious]
+      `INSERT INTO fuel_records (vehicle_id, liters, cost, mileage_at_fill, station, filled_at, suspicious, receipt_url)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, NOW()), $7, $8) RETURNING *`,
+      [data.vehicle_id, data.liters, data.cost, data.mileage_at_fill, data.station || null, data.filled_at || null, suspicious, data.receipt_url || null]
     );
 
     await query(

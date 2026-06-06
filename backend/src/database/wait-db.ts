@@ -34,7 +34,7 @@ export async function waitForDatabase(
     try {
       const conn = await mysql.createConnection(base);
       await conn.query("SELECT 1");
-      await conn.query(`USE \`${dbName}\``);
+      await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
       await conn.end();
       console.log(`[db] MySQL pronto (tentativa ${attempt}/${maxRetries}).`);
       return;

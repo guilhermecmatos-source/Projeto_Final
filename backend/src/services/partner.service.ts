@@ -32,6 +32,38 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export class PartnerService {
+  async findById(id: string) {
+    const rows = await query<Partner>("SELECT * FROM partners WHERE id = $1", [id]);
+    return rows[0] || null;
+  }
+
+  async findImages(partnerId: string) {
+    return query<{ id: string; path: string; filename: string; mime_type: string; created_at: string }>(
+      `SELECT id, path, filename, mime_type, created_at FROM uploads
+       WHERE entity_type = 'partner' AND entity_id = $1 ORDER BY created_at DESC`,
+      [partnerId]
+    );
+  }
+
+  async getMessages(partnerId: string) {
+    return query<{ id: string; sender_name: string; sender_role: string; message: string; created_at: string }>(
+      `SELECT * FROM partner_messages WHERE partner_id = $1 ORDER BY created_at ASC`,
+      [partnerId]
+    );
+  }
+
+  async sendMessage(partnerId: string, data: { sender_name: string; sender_role?: string; message: string }) {
+    const partner = await this.findById(partnerId);
+    if (!partner) throw new Error("Parceiro não encontrado.");
+    if (!data.message?.trim()) throw new Error("Mensagem é obrigatória.");
+    const rows = await query(
+      `INSERT INTO partner_messages (partner_id, sender_name, sender_role, message)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [partnerId, data.sender_name.trim(), data.sender_role || "administrador", data.message.trim()]
+    );
+    return rows[0];
+  }
+
   async findAll() {
     return query<Partner>("SELECT * FROM partners ORDER BY created_at DESC");
   }

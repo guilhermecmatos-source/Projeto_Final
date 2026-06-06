@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
-import RouteTrackerMap from "@/components/map/RouteTrackerMap";
+import SatelliteOperationalMap from "@/components/map/SatelliteOperationalMap";
+import PeriodBarChart from "@/components/dashboard/PeriodBarChart";
 import AiSummaryWidgets from "@/components/dashboard/AiSummaryWidgets";
 import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
@@ -40,21 +41,7 @@ export default function DashboardPage() {
 
   const kpis = data?.kpis;
 
-  const chartBars = useMemo(() => {
-    const days =
-      Math.max(
-        1,
-        Math.ceil(
-          (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) /
-            (1000 * 60 * 60 * 24)
-        ) + 1
-      ) || 7;
-    const base = (kpis?.fuelCost ?? 0) / days;
-    return Array.from({ length: Math.min(days, 14) }, (_, i) => {
-      const factor = 0.7 + ((i * 17) % 30) / 100;
-      return Math.min(100, Math.round((base * factor) / Math.max(base, 1) * 50 + 30));
-    });
-  }, [dateRange, kpis?.fuelCost]);
+  const chartBars = useMemo(() => data?.evolution ?? [], [data?.evolution]);
 
   return (
     <AppShell
@@ -130,17 +117,8 @@ export default function DashboardPage() {
           </div>
 
           <section className="raised-card mb-8 p-4">
-            <h3 className="mb-3 text-headline-sm">Evolução no período selecionado</h3>
-            <div className="flex h-32 items-end gap-1 sm:gap-2">
-              {chartBars.map((h, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t bg-primary-container/80 transition-all duration-300"
-                    style={{ height: `${h}%` }}
-                  />
-                </div>
-              ))}
-            </div>
+            <h3 className="mb-3 text-headline-sm">Evolução do Período Selecionado</h3>
+            <PeriodBarChart data={chartBars} loading={loading} />
           </section>
 
           <div className="mb-8 grid gap-6 lg:grid-cols-12">
@@ -149,7 +127,7 @@ export default function DashboardPage() {
                 <h3 className="text-headline-sm text-on-surface">Mapa Operacional em Tempo Real</h3>
                 <p className="text-sm text-on-surface-variant">GPS ao vivo dos veículos em operação</p>
               </div>
-              <RouteTrackerMap />
+              <SatelliteOperationalMap />
             </section>
 
             <section className="raised-card p-4 lg:col-span-4">

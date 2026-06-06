@@ -61,6 +61,7 @@ services:
       start_period: 40s
     volumes:
       - ./backend/src:/app/src
+      - backend_uploads:/app/uploads
     command: sh -c "npm run db:migrate && npm run dev"
 
   frontend:
@@ -81,3 +82,4 @@ services:
 
 volumes:
   mysql_data: {}
+  backend_uploads: {}

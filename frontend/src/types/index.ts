@@ -50,4 +50,5 @@ export interface DashboardData {
     peakDays: string[];
     recommendation: string;
   };
+  evolution?: { label: string; viagens: number; combustivel: number }[];
 }

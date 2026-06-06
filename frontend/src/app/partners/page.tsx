@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
+import PartnerProfilePanel from "@/components/profiles/PartnerProfilePanel";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { partnersApi } from "@/services/api";
 
@@ -41,6 +42,7 @@ export default function PartnersPage() {
     totalPartners: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     partnersApi
@@ -65,8 +67,8 @@ export default function PartnersPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Gestão de Parceiros & Suporte"
-        subtitle="Parceiros e chamados reais do sistema."
+        title="Gestão de Parceiros & Oficinas"
+        subtitle="Clique em um parceiro para abrir perfil lateral com imagens e chat direto."
         actions={
           <>
             <ActionLink href={ACTION_ROUTES.partnersRegister}>
@@ -102,7 +104,7 @@ export default function PartnersPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="raised-card overflow-hidden lg:col-span-8">
           <div className="border-b border-outline-variant p-4">
-            <h3 className="text-headline-sm">Perfil de Parceiros</h3>
+            <h3 className="text-headline-sm">Parceiros & Oficinas</h3>
           </div>
           <table className="zebra-table w-full text-body-md">
             <thead>
@@ -128,7 +130,11 @@ export default function PartnersPage() {
                 </tr>
               ) : (
                 partners.map((p) => (
-                  <tr key={p.id}>
+                  <tr
+                    key={p.id}
+                    className="cursor-pointer hover:bg-primary-container/5"
+                    onClick={() => setSelectedId(p.id)}
+                  >
                     <td className="px-6 py-4">
                       <p className="font-bold">{p.name}</p>
                       <p className="text-xs text-on-surface-variant">{p.city}</p>
@@ -181,6 +187,8 @@ export default function PartnersPage() {
           </div>
         </div>
       </div>
+
+      <PartnerProfilePanel partnerId={selectedId} onClose={() => setSelectedId(null)} />
     </AppShell>
   );
 }

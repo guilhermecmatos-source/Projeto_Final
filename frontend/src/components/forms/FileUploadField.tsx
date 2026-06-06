@@ -24,7 +24,7 @@ interface FileUploadFieldProps {
   hint?: string;
   /** Envia ao backend quando online (multipart) */
   uploadToServer?: boolean;
-  entityType?: "driver_cnh" | "vehicle" | "maintenance" | "expense";
+  entityType?: "driver_cnh" | "driver_profile" | "vehicle" | "maintenance" | "expense" | "fuel_receipt" | "partner";
   entityId?: string;
 }
 

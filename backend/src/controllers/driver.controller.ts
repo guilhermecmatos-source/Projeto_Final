@@ -10,7 +10,8 @@ export class DriverController {
   async get(req: Request, res: Response) {
     const driver = await driverService.findById(req.params.id);
     if (!driver) return sendError(res, 404, "Motorista não encontrado");
-    return res.json(driver);
+    const images = await driverService.findImages(req.params.id);
+    return res.json({ driver, images });
   }
 
   async create(req: Request, res: Response) {

@@ -8,7 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.post(
   "/",
-  authorize("admin", "attendant", "client"),
+  authorize("administrador", "gestor", "admin", "attendant", "solicitante"),
   upload.single("file"),
   (req, res) => uploadController.uploadFile(req, res)
 );

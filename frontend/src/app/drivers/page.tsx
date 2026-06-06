@@ -6,6 +6,7 @@ import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionLink from "@/components/ui/ActionLink";
+import DriverProfilePanel from "@/components/profiles/DriverProfilePanel";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { driversApi } from "@/services/api";
 
@@ -25,6 +26,7 @@ export default function DriversPage() {
   const searchParams = useSearchParams();
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -62,7 +64,7 @@ export default function DriversPage() {
       <PageHeader
         breadcrumb="Motoristas"
         title="Gestão de Motoristas"
-        subtitle="Perfis, documentação e desempenho operacional."
+        subtitle="Clique em um motorista para abrir o perfil lateral com documentos e imagens."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -109,7 +111,11 @@ export default function DriversPage() {
               </tr>
             ) : (
               drivers.map((d) => (
-                <tr key={d.id}>
+                <tr
+                  key={d.id}
+                  className="cursor-pointer hover:bg-primary-container/5"
+                  onClick={() => setSelectedId(d.id)}
+                >
                   <td className="px-6 py-4 font-bold">{d.name}</td>
                   <td className="px-6 py-4">{d.license_number}</td>
                   <td className="px-6 py-4">{d.vehicle_plate ?? "—"}</td>
@@ -141,6 +147,8 @@ export default function DriversPage() {
           </tbody>
         </table>
       </div>
+
+      <DriverProfilePanel driverId={selectedId} onClose={() => setSelectedId(null)} />
     </AppShell>
   );
 }

@@ -17,7 +17,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/ai-security", label: "IA Suporte", icon: "psychology" },
   { href: "/intelligence", label: "Inteligência", icon: "insights" },
   { href: "/reports", label: "Relatórios", icon: "bar_chart" },
-  { href: "/partners", label: "Parceiros", icon: "handshake" },
+  { href: "/partners", label: "Parceiros & Oficinas", icon: "handshake" },
+  { href: "/adm/assinatura", label: "Contratos", icon: "gavel" },
 ];
 
 export const AUTH_ROUTES = ["/login", "/forgot-password"];

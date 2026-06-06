@@ -48,6 +48,10 @@ export interface Driver {
   cnh_category?: string | null;
   cnh_expiry?: string | null;
   status?: string | null;
+  vehicle_id?: string | null;
+  profile_image_url?: string | null;
+  cnh_image_url?: string | null;
+  cnh_pdf_url?: string | null;
   created_at: Date;
   updated_at: Date;
 }

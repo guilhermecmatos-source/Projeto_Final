@@ -277,6 +277,76 @@ async function migrate() {
       )
     `);
 
+    await ensureColumn(conn, "drivers", "profile_image_url", "profile_image_url VARCHAR(512) NULL");
+    await ensureColumn(conn, "drivers", "cnh_image_url", "cnh_image_url VARCHAR(512) NULL");
+    await ensureColumn(conn, "drivers", "cnh_pdf_url", "cnh_pdf_url VARCHAR(512) NULL");
+    await ensureColumn(conn, "vehicles", "photo_url", "photo_url VARCHAR(512) NULL");
+    await ensureColumn(conn, "fuel_records", "receipt_url", "receipt_url VARCHAR(512) NULL");
+    await ensureColumn(conn, "partners", "logo_url", "logo_url VARCHAR(512) NULL");
+    await ensureColumn(conn, "partners", "address", "address VARCHAR(255) NULL");
+    await ensureColumn(conn, "partners", "notes", "notes TEXT NULL");
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS uploads (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id CHAR(36) NULL,
+        filename VARCHAR(255) NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        path VARCHAR(512) NOT NULL,
+        size_bytes INT NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS partner_messages (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        partner_id CHAR(36) NOT NULL,
+        sender_name VARCHAR(255) NOT NULL,
+        sender_role VARCHAR(50) DEFAULT 'administrador',
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (partner_id) REFERENCES partners(id) ON DELETE CASCADE
+      )
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS contracts (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        title VARCHAR(255) NOT NULL,
+        area VARCHAR(50) NOT NULL,
+        template_key VARCHAR(80) NOT NULL,
+        client_name VARCHAR(255) NOT NULL,
+        client_email VARCHAR(255) NULL,
+        client_cpf VARCHAR(14) NULL,
+        content LONGTEXT NOT NULL,
+        honorarios DECIMAL(12,2) DEFAULT 0,
+        status VARCHAR(40) DEFAULT 'rascunho',
+        signature_step TINYINT DEFAULT 1,
+        sent_at DATETIME NULL,
+        signed_at DATETIME NULL,
+        cancelled_at DATETIME NULL,
+        notification_sent TINYINT(1) DEFAULT 0,
+        reminder_sent TINYINT(1) DEFAULT 0,
+        created_by CHAR(36) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS contract_notifications (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        contract_id CHAR(36) NOT NULL,
+        channel VARCHAR(30) DEFAULT 'sistema',
+        message TEXT NOT NULL,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+      )
+    `);
+
     await conn.commit();
     console.log(`[migrate] Schema OK em "${dbName}".`);
 

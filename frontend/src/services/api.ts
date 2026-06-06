@@ -124,8 +124,24 @@ export const reportsApi = {
 
 export const partnersApi = {
   list: () => api.get("/partners"),
+  get: (id: string) => api.get(`/partners/${id}`),
+  sendMessage: (id: string, message: string) =>
+    api.post(`/partners/${id}/messages`, { message }),
   create: (data: Record<string, unknown>) => api.post("/partners", data),
   createTicket: (data: Record<string, unknown>) => api.post("/partners/tickets", data),
+};
+
+export const contractsApi = {
+  list: () => api.get("/contracts"),
+  get: (id: string) => api.get(`/contracts/${id}`),
+  templates: (area?: string) =>
+    api.get("/contracts/templates", { params: area ? { area } : {} }),
+  preview: (data: Record<string, unknown>) => api.post("/contracts/preview", data),
+  create: (data: Record<string, unknown>) => api.post("/contracts", data),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/contracts/${id}`, data),
+  send: (id: string) => api.post(`/contracts/${id}/send`),
+  sign: (id: string) => api.post(`/contracts/${id}/sign`),
+  cancel: (id: string) => api.post(`/contracts/${id}/cancel`),
 };
 
 export const fuelApi = {

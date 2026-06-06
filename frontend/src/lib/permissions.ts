@@ -35,6 +35,7 @@ const ROUTE_PERMISSIONS: Record<string, FleetRole[]> = {
   "/intelligence": ["administrador", "gestor"],
   "/reports": ["administrador", "gestor"],
   "/partners": ["administrador", "gestor"],
+  "/adm/assinatura": ["administrador", "gestor"],
   "/users": ["administrador"],
   "/profile": ["administrador", "gestor", "motorista", "solicitante"],
   "/cockpit": ["administrador", "gestor"],

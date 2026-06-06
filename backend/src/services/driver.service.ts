@@ -26,6 +26,15 @@ export class DriverService {
     return rows[0] || null;
   }
 
+  async findImages(driverId: string) {
+    return query<{ id: string; path: string; filename: string; mime_type: string; created_at: string }>(
+      `SELECT id, path, filename, mime_type, created_at FROM uploads
+       WHERE entity_id = $1 AND entity_type IN ('driver_cnh', 'driver_profile')
+       ORDER BY created_at DESC`,
+      [driverId]
+    );
+  }
+
   validatePayload(data: {
     name?: string;
     license_number?: string;

@@ -30,8 +30,23 @@ export class UploadController {
             [entityId, publicPath]
           );
         }
+      } else if (entityType === "driver_profile") {
+        await query(
+          `UPDATE drivers SET profile_image_url = $2, updated_at = NOW() WHERE id = $1`,
+          [entityId, publicPath]
+        );
       } else if (entityType === "vehicle") {
         await query(`UPDATE vehicles SET photo_url = $2, updated_at = NOW() WHERE id = $1`, [
+          entityId,
+          publicPath,
+        ]);
+      } else if (entityType === "fuel_receipt") {
+        await query(`UPDATE fuel_records SET receipt_url = $2 WHERE id = $1`, [
+          entityId,
+          publicPath,
+        ]);
+      } else if (entityType === "partner") {
+        await query(`UPDATE partners SET logo_url = $2, updated_at = NOW() WHERE id = $1`, [
           entityId,
           publicPath,
         ]);

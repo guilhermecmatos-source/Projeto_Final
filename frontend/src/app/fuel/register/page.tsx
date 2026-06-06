@@ -4,20 +4,23 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import FormField from "@/components/forms/FormField";
-import FileUploadField from "@/components/forms/FileUploadField";
 import FormActions from "@/components/forms/FormActions";
 import Icon from "@/components/ui/Icon";
-import { fuelApi, vehiclesApi } from "@/services/api";
+import { fuelApi, uploadsApi, vehiclesApi } from "@/services/api";
 import { addToSyncQueue, isOnline } from "@/lib/offline";
 import { readJson, writeJson } from "@/lib/local-storage";
 import { useOffline } from "@/hooks/useOffline";
 
 export default function FuelRegisterPage() {
   const formRef = useRef<HTMLFormElement>(null);
+  const couponInputRef = useRef<HTMLInputElement>(null);
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const { online, syncNow } = useOffline();
 
   useEffect(() => {
@@ -26,6 +29,27 @@ export default function FuelRegisterPage() {
       .then((res) => setVehicles((res.data as { id: string; plate: string }[]) || []))
       .catch(() => setVehicles([]));
   }, []);
+
+  async function handleScanCoupon(file: File) {
+    setScanning(true);
+    setError("");
+    try {
+      const preview = URL.createObjectURL(file);
+      setReceiptPreview(preview);
+      if (isOnline()) {
+        const res = await uploadsApi.upload(file, "fuel_receipt");
+        setReceiptPath((res.data as { path: string }).path);
+        setSuccess("Cupom salvo com sucesso.");
+      } else {
+        writeJson("fleet_fuel_receipt_pending", { name: file.name, savedAt: new Date().toISOString() });
+        setSuccess("Cupom salvo localmente (offline).");
+      }
+    } catch {
+      setError("Falha ao salvar cupom. Tente novamente.");
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -39,6 +63,7 @@ export default function FuelRegisterPage() {
       mileage_at_fill: Number(form.get("mileage_at_fill")),
       station: form.get("station") || "",
       filled_at: form.get("filled_at") || new Date().toISOString(),
+      receipt_url: receiptPath,
     };
 
     const local = readJson<Record<string, unknown>[]>("fleet_fuel_local", []);
@@ -51,7 +76,11 @@ export default function FuelRegisterPage() {
 
     try {
       if (isOnline()) {
-        await fuelApi.create(payload);
+        const res = await fuelApi.create(payload);
+        const recordId = (res.data as { id?: string })?.id;
+        if (recordId && receiptPath && couponInputRef.current?.files?.[0]) {
+          await uploadsApi.upload(couponInputRef.current.files[0], "fuel_receipt", recordId);
+        }
       } else {
         addToSyncQueue({ type: "fuel", payload });
       }
@@ -75,7 +104,7 @@ export default function FuelRegisterPage() {
       </Link>
       <h1 className="mb-2 text-headline-lg">Registrar Abastecimento</h1>
       <p className="mb-6 text-body-md text-on-surface-variant">
-        Data, litros, valor, posto, combustível e comprovante com preview local.
+        Use Escanear Cupom para adicionar e salvar a imagem do comprovante.
       </p>
       {error && <p className="mb-4 text-error">{error}</p>}
       {success && <p className="mb-4 text-primary">{success}</p>}
@@ -108,13 +137,37 @@ export default function FuelRegisterPage() {
             ]}
           />
           <FormField label="Odômetro" name="mileage_at_fill" type="number" required className="md:col-span-2" />
+
           <div className="md:col-span-2">
-            <FileUploadField
-              label="Foto do comprovante"
-              storageKey="fleet_fuel_receipt_files"
-              accept="image/*,.pdf"
-              multiple={false}
+            <input
+              ref={couponInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleScanCoupon(file);
+              }}
             />
+            <button
+              type="button"
+              disabled={scanning}
+              onClick={() => couponInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary-container bg-primary-container/5 px-4 py-6 text-primary"
+            >
+              <Icon name="photo_camera" className="text-2xl" />
+              {scanning ? "Salvando cupom..." : "Escanear Cupom"}
+            </button>
+            {receiptPreview && (
+              <div className="mt-3 overflow-hidden rounded-lg border border-outline-variant">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={receiptPreview} alt="Cupom" className="max-h-48 w-full object-contain bg-surface-container-low" />
+                {receiptPath && (
+                  <p className="px-3 py-2 text-xs text-primary">✓ Imagem salva no servidor</p>
+                )}
+              </div>
+            )}
           </div>
         </section>
         <FormActions
