@@ -79,6 +79,9 @@ services:
         condition: service_healthy
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+    command: sh -c "npm install && npm run dev"
 
 volumes:
   mysql_data: {}
