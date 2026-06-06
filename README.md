@@ -61,6 +61,8 @@ Acesse:
 
 O frontend aguarda o backend ficar saudável antes de iniciar (corrige `ECONNREFUSED`).
 
+**Problema comum no Windows:** scripts `.sh` com CRLF quebram no Docker. Este projeto usa scripts Node (`backend/scripts/docker-start.js` e `frontend/scripts/wait-backend.js`) para evitar isso.
+
 ### 💻 Desenvolvimento local (sem Docker)
 
 ```bash

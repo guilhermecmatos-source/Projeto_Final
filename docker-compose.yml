@@ -62,8 +62,9 @@ services:
       start_period: 60s
     volumes:
       - ./backend/src:/app/src
+      - ./backend/scripts:/app/scripts
       - backend_uploads:/app/uploads
-    entrypoint: ["sh", "/app/docker-entrypoint.sh"]
+    command: ["node", "scripts/docker-start.js"]
 
   frontend:
     build: ./frontend
@@ -84,7 +85,8 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
-    entrypoint: ["sh", "/app/docker-entrypoint.sh"]
+      - ./frontend/scripts:/app/scripts
+    command: ["sh", "-c", "node scripts/wait-backend.js && exec npm run dev"]
 
 volumes:
   mysql_data: {}
