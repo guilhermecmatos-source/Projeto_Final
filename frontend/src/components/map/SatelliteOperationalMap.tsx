@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
+import * as L from 'leaflet';
 
 interface VehicleMarker {
   id: string;
@@ -20,9 +21,9 @@ const FLEET_VEHICLES: VehicleMarker[] = [
 
 export default function SatelliteOperationalMap() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<import("leaflet").Map | null>(null);
-  const markersRef = useRef<import("leaflet").Marker[]>([]);
-  const userMarkerRef = useRef<import("leaflet").CircleMarker | null>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  const userMarkerRef = useRef<L.CircleMarker | null>(null);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState("");
   const [vehicles, setVehicles] = useState(FLEET_VEHICLES);
@@ -91,7 +92,7 @@ export default function SatelliteOperationalMap() {
         const { latitude, longitude } = pos.coords;
         setGps({ lat: latitude, lng: longitude });
         setGpsError("");
-        if (mapInstance.current) {
+        if (mapInstance.current) {          
           import("leaflet").then(({ default: L }) => {
             if (!mapInstance.current) return;
             if (userMarkerRef.current) {
