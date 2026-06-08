@@ -1,51 +1,52 @@
-# Projeto Final - Aplicação Full Stack (React + Node.js + SQLite) 🚀
+# FleetAI — Gestão Inteligente de Frotas
 
 <p align="center">
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
-  <img src="https://img.shields.io/badge/React-20232a?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
-  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express" />
-  <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-18-20232a?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/Node.js-20-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/MySQL-8-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
 </p>
 
-## 📋 Sobre o Projeto
+## Sobre o Projeto
 
-Este é o nosso projeto final de curso, onde desenvolvemos uma aplicação **Full Stack** completa e integrada. O ecossistema une uma interface rica e dinâmica no Front-end com uma API RESTful estruturada no Back-end, utilizando persistência de dados real com banco de dados.
+Plataforma **Full Stack** de gestão de frotas com interface operacional (FleetAI), API REST e persistência em MySQL. O frontend é Next.js 14 com App Router; o backend é Node.js + Express + TypeScript.
 
----
+### Equipe
 
-## 👥 Equipe do Projeto
-
-O projeto foi planejado e desenvolvido em conjunto por:
-
-- 💻 **Guilherme Matos** — [GitHub](https://github.com/guilhermecmatos-source)
-- 👩‍💻 **Jeovana**
-- 👨‍💻 **Wanderson** — [GitHub](https://github.com/rodrigues123321)
-- 👨‍💻 **Marco Túlio** — [GitHub](https://github.com/MarcoTuliops22)
+- **Guilherme Matos** — [GitHub](https://github.com/guilhermecmatos-source)
+- **Jeovana**
+- **Wanderson** — [GitHub](https://github.com/rodrigues123321)
+- **Marco Túlio** — [GitHub](https://github.com/MarcoTuliops22)
 
 ---
 
-## 🛠️ Tecnologias e Arquitetura
+## Arquitetura
 
-O projeto foi componentizado e dividido estritamente entre cliente e servidor:
+| Camada | Pasta | Stack |
+|--------|-------|-------|
+| Frontend | `frontend/` | Next.js 14, React 18, TypeScript, Tailwind CSS, Axios |
+| Backend | `backend/` | Node.js, Express, TypeScript, MySQL |
 
-### **Front-end (`/front`)**
-- **React**: Biblioteca para construção de uma interface Single Page Application (SPA) moderna e responsiva.
+### Documentação
 
-### **Back-end & Banco de Dados (`/backend`)**
-- **Node.js & Express**: Framework minimalista para criação das rotas da API e gerenciamento das requisições HTTP.
-- **CORS**: Middleware para permitir o compartilhamento de recursos entre o front e o back com segurança.
-- **SQLite3**: Banco de dados relacional leve e integrado para persistência de dados local de forma eficiente.
+| Documento | Conteúdo |
+|-----------|----------|
+| [`specs.md`](specs.md) | Especificação frontend (requisitos, design system, estados, acessibilidade) |
+| [`doc/03-specs.md`](doc/03-specs.md) | Resumo da especificação frontend |
+| [`doc/testing.md`](doc/testing.md) | Plano de testes (unitários, componentes, E2E, a11y) |
+| [`doc/components.md`](doc/components.md) | Documentação de componentes reutilizáveis |
 
 ---
 
-## 🚀 Como Executar o Projeto
+## Pré-requisitos
 
-### Pré-requisitos
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (recomendado — funciona em qualquer máquina)
-- Ou [Node.js 20+](https://nodejs.org/) + MySQL 8 para desenvolvimento local
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (recomendado)
+- Ou Node.js 20+ e MySQL 8 para desenvolvimento local
 
-### 🐳 Docker (recomendado)
+---
+
+## Execução com Docker (recomendado)
 
 ```bash
 git clone https://github.com/guilhermecmatos-source/Projeto_Final.git
@@ -54,41 +55,99 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Acesse:
-- **Frontend:** http://localhost:3000
-- **API:** http://localhost:3001/health
-- **Login:** `admin@fleetai.com` / `admin123`
+| Serviço | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| API (health) | http://localhost:3001/health |
+| Login padrão | `admin@fleetai.com` / `admin123` |
 
-O frontend aguarda o backend ficar saudável antes de iniciar (corrige `ECONNREFUSED`).
+O frontend aguarda o backend ficar saudável antes de iniciar.
 
-**Problema comum no Windows:** scripts `.sh` com CRLF quebram no Docker. Este projeto usa scripts Node (`backend/scripts/docker-start.js` e `frontend/scripts/wait-backend.js`) para evitar isso.
+---
 
-### 💻 Desenvolvimento local (sem Docker)
+## Desenvolvimento local
 
 ```bash
 # Backend
-cd backend && npm install && npm run db:migrate && npm run dev
+cd backend
+cp .env.example .env
+npm install
+npm run db:migrate
+npm run dev
 
 # Frontend (outro terminal)
-cd frontend && npm install && npm run dev
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
 ```
 
-Configure `backend/.env` e `frontend/.env` conforme os arquivos `.env.example`.
+---
+
+## Variáveis de ambiente
+
+### Raiz (`.env.example`)
+
+Variáveis Docker/MySQL compartilhadas.
+
+### Frontend (`frontend/.env.example`)
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `NEXT_PUBLIC_API_URL` | `/api` | Base URL da API no browser (proxy Next.js) |
+| `BACKEND_URL` | `http://127.0.0.1:3001` | URL do backend para rewrites (dev local) |
+
+### Backend (`backend/.env.example`)
+
+Configuração MySQL, JWT e porta da API.
 
 ---
-🧠 Aprendizados Consolidados
-Desenvolver esta aplicação em equipe nos permitiu dominar conceitos fundamentais do mercado:
-Gerenciamento de branches e resolução de conflitos usando Git/GitHub.
-Comunicação assíncrona entre Front-end e Back-end.
-Criação de endpoints (rotas) e manipulação de requisições HTTP (GET, POST, etc.) com Express.
-Modelagem, criação e manipulação de tabelas em banco de dados relacional com SQLite.
-Gerenciamento de estado e renderização dinâmica de componentes em React.
 
-### 🚀 Comandos para subir pro GitHub:
-
-Depois de colar e salvar o arquivo, roda isso aqui no seu terminal para atualizar o repositório:
+## Comandos — Frontend
 
 ```bash
-git add README.md
-git commit -m "docs: add team members and official project overview"
-git push origin main
+cd frontend
+
+npm run dev          # Servidor de desenvolvimento (porta 3000)
+npm run build        # Build de produção
+npm run start        # Servidor de produção
+npm run lint         # ESLint (next lint)
+npm run test:unit    # Testes unitários e de componentes (Vitest)
+npm run test:unit:watch
+npm run test:e2e     # Testes E2E (Playwright — requer app rodando)
+```
+
+## Comandos — Backend
+
+```bash
+cd backend
+
+npm run dev          # API em modo desenvolvimento
+npm run build        # Compilação TypeScript
+npm run db:migrate   # Migrações do banco
+npm run db:seed      # Dados iniciais
+```
+
+---
+
+## Funcionalidades principais
+
+- Dashboard operacional com KPIs, mapa e alertas
+- Gestão de veículos, motoristas e usuários (RBAC)
+- Viagens, logística, manutenção, abastecimento e inspeção
+- IA de suporte, inteligência e relatórios
+- Interface responsiva (mobile, tablet, desktop)
+- Temas acessíveis (alto contraste, baixa visão, daltônico)
+- Estados padronizados: loading, erro com retry, empty state
+
+---
+
+## Testes
+
+Após alterações no frontend, execute:
+
+```bash
+cd frontend && npm run test:unit && npm run lint
+```
+
+Detalhes em [`doc/testing.md`](doc/testing.md).

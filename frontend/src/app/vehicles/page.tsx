@@ -6,7 +6,10 @@ import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
+import ListPageStates from "@/components/ui/ListPageStates";
+import ActionLink from "@/components/ui/ActionLink";
 import { vehiclesApi } from "@/services/api";
+import { extractApiError } from "@/lib/api-errors";
 import { formatPlateDisplay } from "@/lib/validators";
 
 interface VehicleRow {
@@ -39,6 +42,7 @@ const STATUS_STYLE: Record<string, { label: string; cls: string }> = {
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("TODOS");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,10 +50,14 @@ export default function VehiclesPage() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setFetchError(null);
     vehiclesApi
       .list()
       .then((res) => setVehicles(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setVehicles([]))
+      .catch((err) => {
+        setVehicles([]);
+        setFetchError(extractApiError(err, "Não foi possível carregar o inventário de veículos."));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -137,13 +145,25 @@ export default function VehiclesPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {loading ? (
-          <p className="col-span-full text-on-surface-variant">Carregando frota...</p>
-        ) : filtered.length === 0 ? (
-          <p className="col-span-full text-on-surface-variant">Nenhum veículo nesta categoria.</p>
-        ) : (
-          filtered.map((v) => {
+      <ListPageStates
+        loading={loading}
+        error={fetchError}
+        isEmpty={filtered.length === 0}
+        onRetry={load}
+        loadingMessage="Carregando frota..."
+        emptyTitle="Nenhum veículo nesta categoria"
+        emptyDescription="Cadastre um veículo ou altere o filtro de status."
+        emptyIcon="directions_car"
+        emptyAction={
+          <ActionLink href="/vehicles/register">
+            <Icon name="add" />
+            Cadastrar Veículo
+          </ActionLink>
+        }
+        className="col-span-full"
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((v) => {
             const st = STATUS_STYLE[v.status] ?? STATUS_STYLE.active;
             return (
               <article key={v.id} className="raised-card overflow-hidden">
@@ -172,9 +192,9 @@ export default function VehiclesPage() {
                 </div>
               </article>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      </ListPageStates>
 
       <FormModal
         open={modalOpen}

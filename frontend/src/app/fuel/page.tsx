@@ -7,7 +7,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
 import FormField from "@/components/forms/FormField";
+import ListPageStates from "@/components/ui/ListPageStates";
 import { fuelApi, uploadsApi, vehiclesApi, driversApi } from "@/services/api";
+import { extractApiError } from "@/lib/api-errors";
 import { formatBRL } from "@/lib/currency";
 import { formatPlateDisplay } from "@/lib/validators";
 
@@ -28,6 +30,7 @@ export default function FuelPage() {
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [drivers, setDrivers] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -35,7 +38,16 @@ export default function FuelPage() {
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
 
   const load = () => {
-    fuelApi.list().then((res) => setRecords(Array.isArray(res.data) ? res.data : [])).catch(() => setRecords([])).finally(() => setLoading(false));
+    setLoading(true);
+    setFetchError(null);
+    fuelApi
+      .list()
+      .then((res) => setRecords(Array.isArray(res.data) ? res.data : []))
+      .catch((err) => {
+        setRecords([]);
+        setFetchError(extractApiError(err, "Não foi possível carregar os abastecimentos."));
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -118,13 +130,24 @@ export default function FuelPage() {
         <div className="border-b border-outline-variant p-4">
           <h2 className="text-headline-sm">Abastecimentos Lançados</h2>
         </div>
-        <div className="max-h-[70vh] divide-y divide-outline-variant/30 overflow-y-auto">
-          {loading ? (
-            <p className="p-8 text-center text-on-surface-variant">Carregando...</p>
-          ) : records.length === 0 ? (
-            <p className="p-8 text-center text-on-surface-variant">Nenhum abastecimento registrado.</p>
-          ) : (
-            records.map((r) => (
+        <ListPageStates
+          loading={loading}
+          error={fetchError}
+          isEmpty={records.length === 0}
+          onRetry={load}
+          loadingMessage="Carregando abastecimentos..."
+          emptyTitle="Nenhum abastecimento registrado"
+          emptyDescription="Registre o primeiro lançamento de combustível."
+          emptyIcon="local_gas_station"
+          emptyAction={
+            <ActionButton onClick={() => setModalOpen(true)}>
+              <Icon name="local_gas_station" />
+              Registrar Abastecimento
+            </ActionButton>
+          }
+        >
+          <div className="max-h-[70vh] divide-y divide-outline-variant/30 overflow-y-auto">
+            {records.map((r) => (
               <div key={r.id} className={`p-4 ${r.suspicious ? "border-l-4 border-error bg-error-container/10" : ""}`}>
                 <p className="font-bold uppercase">{formatPlateDisplay(r.vehicle_plate)}</p>
                 <p className="text-sm text-on-surface-variant">
@@ -140,9 +163,9 @@ export default function FuelPage() {
                   </p>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </ListPageStates>
       </section>
 
       <FormModal open={modalOpen} onClose={() => setModalOpen(false)} title="Novo Abastecimento Auditado" subtitle="Registro com cupom fiscal" wide>

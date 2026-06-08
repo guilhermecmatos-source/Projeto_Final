@@ -6,7 +6,9 @@ import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
+import ListPageStates from "@/components/ui/ListPageStates";
 import { usersApi } from "@/services/api";
+import { extractApiError } from "@/lib/api-errors";
 import { User } from "@/types";
 import { validateCpf, validateEmail } from "@/lib/validators";
 
@@ -25,6 +27,7 @@ function roleBadge(role: string) {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState("");
@@ -41,10 +44,14 @@ export default function UsersPage() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setFetchError(null);
     usersApi
       .list()
       .then((res) => setUsers(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setUsers([]))
+      .catch((err) => {
+        setUsers([]);
+        setFetchError(extractApiError(err, "Não foi possível carregar os usuários."));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -104,38 +111,57 @@ export default function UsersPage() {
             />
           </div>
         </div>
-        <table className="zebra-table w-full text-sm">
-          <thead>
-            <tr className="border-b bg-surface-container-high text-left text-[10px] font-bold uppercase text-on-surface-variant">
-              <th className="px-4 py-3">Operador</th>
-              <th className="px-4 py-3">Cargo / Lotação</th>
-              <th className="px-4 py-3">CPF / RG</th>
-              <th className="px-4 py-3">Privilégio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center">Carregando...</td></tr>
-            ) : filtered.map((u) => (
-              <tr key={u.id}>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-xs font-bold text-primary">
-                      {u.name.charAt(0)}
-                    </span>
-                    <div>
-                      <p className="font-bold">{u.name}</p>
-                      <p className="text-xs text-on-surface-variant">{u.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-xs">{u.cargo ?? "—"} {u.unidade ? `| ${u.unidade}` : ""}</td>
-                <td className="px-4 py-3 text-xs">{u.cpf ?? "—"} / {u.rg ?? "—"}</td>
-                <td className="px-4 py-3"><span className={roleBadge(u.role)}>{u.role}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ListPageStates
+          loading={loading}
+          error={fetchError}
+          isEmpty={filtered.length === 0}
+          onRetry={load}
+          loadingMessage="Carregando usuários..."
+          emptyTitle={search ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado"}
+          emptyDescription={search ? "Tente outro termo de busca." : "Adicione o primeiro perfil corporativo."}
+          emptyIcon="manage_accounts"
+          emptyAction={
+            !search ? (
+              <ActionButton onClick={() => setModalOpen(true)}>
+                <Icon name="person_add" />
+                Novo Usuário
+              </ActionButton>
+            ) : undefined
+          }
+        >
+          <div className="table-responsive">
+            <table className="zebra-table w-full text-sm">
+              <thead>
+                <tr className="border-b bg-surface-container-high text-left text-[10px] font-bold uppercase text-on-surface-variant">
+                  <th className="px-4 py-3">Operador</th>
+                  <th className="px-4 py-3">Cargo / Lotação</th>
+                  <th className="px-4 py-3">CPF / RG</th>
+                  <th className="px-4 py-3">Privilégio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u.id}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-xs font-bold text-primary">
+                          {u.name.charAt(0)}
+                        </span>
+                        <div>
+                          <p className="font-bold">{u.name}</p>
+                          <p className="text-xs text-on-surface-variant">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs">{u.cargo ?? "—"} {u.unidade ? `| ${u.unidade}` : ""}</td>
+                    <td className="px-4 py-3 text-xs">{u.cpf ?? "—"} / {u.rg ?? "—"}</td>
+                    <td className="px-4 py-3"><span className={roleBadge(u.role)}>{u.role}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ListPageStates>
       </section>
 
       <FormModal

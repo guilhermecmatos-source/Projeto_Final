@@ -8,7 +8,9 @@ import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
 import FormField from "@/components/forms/FormField";
 import DriverProfilePanel from "@/components/profiles/DriverProfilePanel";
+import ListPageStates from "@/components/ui/ListPageStates";
 import { driversApi, uploadsApi, vehiclesApi } from "@/services/api";
+import { extractApiError } from "@/lib/api-errors";
 import OfflineIndicator from "@/components/ui/OfflineIndicator";
 
 interface DriverRow {
@@ -32,6 +34,7 @@ export default function DriversPage() {
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [vehicles, setVehicles] = useState<{ id: string; plate: string; brand?: string; model?: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,10 +44,14 @@ export default function DriversPage() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setFetchError(null);
     driversApi
       .list()
       .then((res) => setDrivers(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setDrivers([]))
+      .catch((err) => {
+        setDrivers([]);
+        setFetchError(extractApiError(err, "Não foi possível carregar os motoristas."));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -131,13 +138,26 @@ export default function DriversPage() {
             />
           </div>
         </div>
-        <div className="divide-y divide-outline-variant/30">
-          {loading ? (
-            <p className="p-8 text-center text-on-surface-variant">Carregando motoristas...</p>
-          ) : filtered.length === 0 ? (
-            <p className="p-8 text-center text-on-surface-variant">Nenhum motorista cadastrado.</p>
-          ) : (
-            filtered.map((d) => (
+        <ListPageStates
+          loading={loading}
+          error={fetchError}
+          isEmpty={filtered.length === 0}
+          onRetry={load}
+          loadingMessage="Carregando motoristas..."
+          emptyTitle={search ? "Nenhum motorista encontrado" : "Nenhum motorista cadastrado"}
+          emptyDescription={search ? "Tente outro termo de busca." : "Cadastre o primeiro motorista licenciado."}
+          emptyIcon="person"
+          emptyAction={
+            !search ? (
+              <ActionButton onClick={() => { setModalOpen(true); setCreatedId(null); setMessage(""); }}>
+                <Icon name="person_add" />
+                Novo Motorista
+              </ActionButton>
+            ) : undefined
+          }
+        >
+          <div className="divide-y divide-outline-variant/30">
+            {filtered.map((d) => (
               <button
                 key={d.id}
                 type="button"
@@ -164,9 +184,9 @@ export default function DriversPage() {
                   <span className="chip-active mt-1">{d.status ?? "EM VIAGEM"}</span>
                 </div>
               </button>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </ListPageStates>
       </section>
 
       <FormModal

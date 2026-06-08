@@ -30,6 +30,8 @@ export default function FormModal({ open, title, subtitle, onClose, children, wi
 
   if (!open) return null;
 
+  const titleId = "form-modal-title";
+
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center sm:p-6">
       <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onClose} />
@@ -39,10 +41,11 @@ export default function FormModal({ open, title, subtitle, onClose, children, wi
         }`}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
       >
         <header className="flex items-start justify-between border-b border-outline-variant px-5 py-4">
           <div>
-            <h2 className="text-headline-sm font-bold text-primary">{title}</h2>
+            <h2 id={titleId} className="text-headline-sm font-bold text-primary">{title}</h2>
             {subtitle && <p className="mt-1 text-xs text-on-surface-variant">{subtitle}</p>}
           </div>
           <button

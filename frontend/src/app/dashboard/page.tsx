@@ -11,9 +11,12 @@ import KpiCard from "@/components/ui/KpiCard";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
+import LoadingState from "@/components/ui/LoadingState";
+import ErrorState from "@/components/ui/ErrorState";
 import { dashboardApi, vehiclesApi } from "@/services/api";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
+import { extractApiError } from "@/lib/api-errors";
 import { DashboardData, PredictiveAlert } from "@/types";
 import { formatBRL } from "@/lib/currency";
 
@@ -26,6 +29,7 @@ function severityBorder(severity: PredictiveAlert["severity"]) {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>(() => defaultDateRange(30));
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,10 +37,14 @@ export default function DashboardPage() {
 
   const loadDashboard = useCallback(() => {
     setLoading(true);
+    setFetchError(null);
     dashboardApi
       .get({ dateFrom: dateRange.start, dateTo: dateRange.end })
       .then((res) => setData(res.data))
-      .catch(() => setData(null))
+      .catch((err) => {
+        setData(null);
+        setFetchError(extractApiError(err, "Não foi possível carregar o dashboard."));
+      })
       .finally(() => setLoading(false));
   }, [dateRange.start, dateRange.end]);
 
@@ -92,7 +100,9 @@ export default function DashboardPage() {
       />
 
       {loading ? (
-        <p className="text-on-surface-variant">Carregando dados...</p>
+        <LoadingState message="Carregando dados do dashboard..." />
+      ) : fetchError ? (
+        <ErrorState message={fetchError} onRetry={loadDashboard} />
       ) : (
         <>
           <AiSummaryWidgets fuelCost={fuelCost} pendingMaintenance={kpis?.pendingMaintenance} />

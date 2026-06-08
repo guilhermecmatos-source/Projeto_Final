@@ -1,11 +1,15 @@
 "use client";
 
 import { ReactNode, useState } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopHeader from "./TopHeader";
 import MobileBottomNav from "./MobileBottomNav";
 import OfflineIndicator from "@/components/ui/OfflineIndicator";
+import LoadingState from "@/components/ui/LoadingState";
+import AccessDenied from "@/components/ui/AccessDenied";
 import { useAuth } from "@/hooks/useAuth";
+import { canAccessRoute } from "@/lib/permissions";
 import Icon from "@/components/ui/Icon";
 
 interface AppShellProps {
@@ -24,15 +28,18 @@ export default function AppShell({
   showOfflineForPilot = false,
 }: AppShellProps) {
   const { user, ready } = useAuth();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center safe-area-padding">
-        <p className="text-on-surface-variant">Carregando...</p>
+        <LoadingState message="Carregando sessão..." />
       </div>
     );
   }
+
+  const accessDenied = user && !canAccessRoute(user, pathname);
 
   const isPilotContext =
     showOfflineForPilot ||
@@ -72,9 +79,9 @@ export default function AppShell({
             }
           />
         </div>
-        <div className="main-content flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
+        <div id="main-content" className="main-content flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
           {isPilotContext && <OfflineIndicator />}
-          {children}
+          {accessDenied ? <AccessDenied /> : children}
         </div>
       </div>
 

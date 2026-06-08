@@ -13,7 +13,7 @@ export default function PageHeader({ title, subtitle, breadcrumb, eyebrow, actio
   return (
     <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        <nav className="mb-2 flex items-center gap-1 text-[10px] uppercase tracking-widest text-on-surface-variant">
+        <nav aria-label="Trilha de navegação" className="mb-2 flex items-center gap-1 text-[10px] uppercase tracking-widest text-on-surface-variant">
           <span>Sede Central</span>
           <Icon name="chevron_right" className="text-sm" />
           <span>Unidade Operacional</span>
