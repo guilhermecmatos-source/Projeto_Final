@@ -33,7 +33,7 @@ export default function FormModal({ open, title, subtitle, onClose, children, wi
   const titleId = "form-modal-title";
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center sm:p-6">
       <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onClose} />
       <div
         className={`relative z-10 w-full animate-slide-in rounded-xl border border-primary/30 bg-surface-container-low shadow-overlay ${

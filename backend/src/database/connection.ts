@@ -60,7 +60,7 @@ async function fetchAfterWrite<T>(
   const op = baseSql.trim().split(/\s+/)[0].toUpperCase();
 
   if (op === "INSERT") {
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT ${returningClause === "*" ? "*" : returningClause} FROM \`${table}\` ORDER BY created_at DESC LIMIT 1`
     );
     return rows as T[];
@@ -70,7 +70,7 @@ async function fetchAfterWrite<T>(
     if (returningClause.toLowerCase() === "id" && op === "DELETE") {
       return [{ id: params[0] }] as T[];
     }
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT ${returningClause === "*" ? "*" : returningClause} FROM \`${table}\` WHERE id = ? LIMIT 1`,
       [params[0] as string | number]
     );
@@ -108,14 +108,14 @@ export async function query<T = unknown>(
   const returningMatch = sql.match(RETURNING_RE);
 
   if (!returningMatch) {
-    const [rows] = await pool.execute(sql, mappedParams as (string | number | boolean | null)[]);
+    const [rows] = await pool.query(sql, mappedParams as (string | number | boolean | null)[]);
     return rows as T[];
   }
 
   const returningClause = returningMatch[1].trim();
   const baseSql = sql.replace(RETURNING_RE, "").trim();
 
-  await pool.execute(baseSql, mappedParams as (string | number | boolean | null)[]);
+  await pool.query(baseSql, mappedParams as (string | number | boolean | null)[]);
   return fetchAfterWrite<T>(baseSql, params, returningClause);
 }
 

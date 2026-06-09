@@ -35,12 +35,12 @@ export default function SideProfilePanel({
     <>
       <button
         type="button"
-        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
         aria-label="Fechar painel"
         onClick={onClose}
       />
       <aside
-        className="fixed right-0 top-0 z-[70] flex h-full w-full max-w-md flex-col border-l border-outline-variant bg-surface-container-lowest shadow-overlay animate-slide-in"
+        className="fixed right-0 top-0 z-[9999] flex h-full w-full max-w-md flex-col border-l border-outline-variant bg-surface-container-lowest shadow-overlay animate-slide-in"
         role="dialog"
         aria-modal="true"
         aria-label={title}
