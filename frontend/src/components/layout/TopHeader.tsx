@@ -4,7 +4,8 @@ import Link from "next/link";
 import Icon from "@/components/ui/Icon";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/services/api";
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
+import { getStoredTheme, applyTheme, ThemeId } from "@/lib/themes";
 
 interface TopHeaderProps {
   title?: string;
@@ -19,6 +20,17 @@ export default function TopHeader({
 }: TopHeaderProps) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [theme, setTheme] = useState<ThemeId>("dark");
+
+  useEffect(() => {
+    setTheme(getStoredTheme());
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    applyTheme(next);
+  };
 
   const handleLogout = async () => {
     try {
@@ -73,7 +85,7 @@ export default function TopHeader({
           )}
           <Link
             href="/notifications"
-            className="touch-target relative hidden rounded-full p-2 transition hover:bg-surface-container-high sm:block"
+            className="touch-target relative rounded-full p-2 transition hover:bg-surface-container-high"
             aria-label="Notificações"
           >
             <Icon name="notifications" className="text-on-surface-variant" />
@@ -86,6 +98,14 @@ export default function TopHeader({
           >
             <Icon name="account_circle" className="text-on-surface-variant" />
           </Link>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="touch-target rounded-full p-2 transition hover:bg-surface-container-high"
+            aria-label="Alternar Tema"
+          >
+            <Icon name={theme === "light" ? "dark_mode" : "light_mode"} className="text-on-surface-variant" />
+          </button>
           <button
             type="button"
             onClick={() => void handleLogout()}

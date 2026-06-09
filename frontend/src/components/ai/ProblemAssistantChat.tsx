@@ -64,7 +64,7 @@ export default function ProblemAssistantChat() {
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-outline-variant p-3">
-        {["Óleo baixo", "Freio rangendo", "Luz no painel"].map((q) => (
+        {["Óleo baixo", "Freio rangendo", "Luz no painel", "Suspensão", "Ar condicionado", "Embreagem dura", "Farol queimado", "Correia cantando"].map((q) => (
           <button
             key={q}
             type="button"

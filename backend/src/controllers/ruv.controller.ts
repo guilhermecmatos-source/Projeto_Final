@@ -3,16 +3,37 @@ import { ruvService } from "../services/ruv.service";
 import { auditService } from "../services/audit.service";
 import { sendError } from "../utils/errors";
 
+function mapRuvToFrontend(ruv: any) {
+  if (!ruv) return ruv;
+  let status = ruv.status;
+  if (status === "pendente") status = "pending";
+  else if (status === "aprovado") status = "approved";
+  else if (status === "rejeitado") status = "rejected";
+
+  return {
+    ...ruv,
+    service: ruv.purpose,
+    status: status,
+  };
+}
+
 export class RuvController {
   async list(req: Request, res: Response) {
     const status = req.query.status as string | undefined;
-    return res.json(await ruvService.findAll(status));
+    let dbStatus: string | undefined = undefined;
+    if (status === "pending") dbStatus = "pendente";
+    else if (status === "approved") dbStatus = "aprovado";
+    else if (status === "rejected") dbStatus = "rejeitado";
+    else dbStatus = status;
+
+    const items = await ruvService.findAll(dbStatus);
+    return res.json(items.map(mapRuvToFrontend));
   }
 
   async get(req: Request, res: Response) {
     const item = await ruvService.findById(req.params.id);
     if (!item) return sendError(res, 404, "Solicitação não encontrada");
-    return res.json(item);
+    return res.json(mapRuvToFrontend(item));
   }
 
   async create(req: Request, res: Response) {
@@ -21,7 +42,7 @@ export class RuvController {
         requester_id: req.user!.userId,
         origin: req.body.origin,
         destination: req.body.destination,
-        purpose: req.body.purpose,
+        purpose: req.body.purpose || req.body.service,
         passengers: req.body.passengers,
       });
       await auditService.log({
@@ -31,7 +52,7 @@ export class RuvController {
         userId: req.user?.userId,
         userEmail: req.user?.email,
       });
-      return res.status(201).json(item);
+      return res.status(201).json(mapRuvToFrontend(item));
     } catch (e) {
       return sendError(res, 400, e instanceof Error ? e.message : "Erro ao criar solicitação");
     }
@@ -52,7 +73,7 @@ export class RuvController {
       userEmail: req.user?.email,
       details: "aprovado",
     });
-    return res.json(item);
+    return res.json(mapRuvToFrontend(item));
   }
 
   async reject(req: Request, res: Response) {
@@ -71,7 +92,7 @@ export class RuvController {
         userEmail: req.user?.email,
         details: "rejeitado",
       });
-      return res.json(item);
+      return res.json(mapRuvToFrontend(item));
     } catch (e) {
       return sendError(res, 400, e instanceof Error ? e.message : "Erro");
     }

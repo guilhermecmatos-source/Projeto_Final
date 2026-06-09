@@ -52,7 +52,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-screen w-[min(100vw-3rem,16rem)] max-w-[85vw] flex-col border-r border-outline-variant bg-[#0d1117] py-5 transition-transform duration-200 lg:w-64 lg:max-w-none lg:translate-x-0 ${
+      className={`fixed left-0 top-0 z-50 flex h-screen w-[min(100vw-3rem,16rem)] max-w-[85vw] flex-col border-r border-outline-variant bg-surface-container-lowest py-5 transition-transform duration-200 lg:w-64 lg:max-w-none lg:translate-x-0 ${
         open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
     >
@@ -117,7 +117,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
               localStorage.setItem("user", JSON.stringify(updatedUser));
               window.location.reload();
             }}
-            className="w-full rounded bg-[#0d1117] border border-outline-variant p-1.5 text-[10px] text-slate-100 uppercase font-bold focus:outline-none cursor-pointer"
+            className="w-full rounded bg-surface border border-outline-variant p-1.5 text-[10px] text-on-surface uppercase font-bold focus:outline-none cursor-pointer"
           >
             <option value="administrador">Administrador</option>
             <option value="gestor">Gestor</option>

@@ -105,11 +105,13 @@ export const travelsApi = {
 };
 
 export const usersApi = {
-  list: () => api.get("/users"),
+  list: (params?: { status?: string }) => api.get("/users", { params }),
   get: (id: string) => api.get(`/users/${id}`),
   create: (data: Record<string, unknown>) => api.post("/users", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/users/${id}`, data),
   remove: (id: string) => api.delete(`/users/${id}`),
+  approve: (id: string) => api.patch(`/users/${id}/approve`),
+  reject: (id: string) => api.patch(`/users/${id}/reject`),
 };
 
 export const ruvApi = {
@@ -120,6 +122,13 @@ export const ruvApi = {
     api.patch(`/ruv/${id}/approve`, { justification }),
   reject: (id: string, justification: string) =>
     api.patch(`/ruv/${id}/reject`, { justification }),
+};
+
+export const chatApi = {
+  listMessages: (otherUserId: string) => api.get(`/chat/messages/${otherUserId}`),
+  sendMessage: (receiverId: string, message: string) =>
+    api.post("/chat/messages", { receiverId, message }),
+  listPartners: () => api.get("/chat/partners"),
 };
 
 export const intelligenceApi = {

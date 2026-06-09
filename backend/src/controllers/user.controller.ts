@@ -4,8 +4,9 @@ import { auditService } from "../services/audit.service";
 import { sendError } from "../utils/errors";
 
 export class UserController {
-  async list(_req: Request, res: Response) {
-    return res.json(await userService.findAll());
+  async list(req: Request, res: Response) {
+    const status = req.query.status as string | undefined;
+    return res.json(await userService.findAll(status));
   }
 
   async get(req: Request, res: Response) {
@@ -56,6 +57,34 @@ export class UserController {
       action: "delete",
       userId: req.user?.userId,
       userEmail: req.user?.email,
+    });
+    return res.status(204).send();
+  }
+
+  async approve(req: Request, res: Response) {
+    const user = await userService.approve(req.params.id);
+    if (!user) return sendError(res, 404, "Usuário não encontrado");
+    await auditService.log({
+      entityType: "user",
+      entityId: req.params.id,
+      action: "update",
+      userId: req.user?.userId,
+      userEmail: req.user?.email,
+      details: "status=approved",
+    });
+    return res.json(user);
+  }
+
+  async reject(req: Request, res: Response) {
+    const success = await userService.reject(req.params.id);
+    if (!success) return sendError(res, 404, "Usuário não encontrado");
+    await auditService.log({
+      entityType: "user",
+      entityId: req.params.id,
+      action: "delete",
+      userId: req.user?.userId,
+      userEmail: req.user?.email,
+      details: "status=rejected",
     });
     return res.status(204).send();
   }

@@ -15,6 +15,7 @@ export interface UserPublic {
   name: string;
   email: string;
   role: FleetUserRole;
+  status: string;
   cpf?: string | null;
   rg?: string | null;
   cargo?: string | null;
@@ -22,12 +23,13 @@ export interface UserPublic {
   created_at: Date;
 }
 
-function toPublic(u: User & { cpf?: string; rg?: string; cargo?: string; unidade?: string }): UserPublic {
+function toPublic(u: User & { status?: string; cpf?: string; rg?: string; cargo?: string; unidade?: string }): UserPublic {
   return {
     id: u.id,
     name: u.name,
     email: u.email,
     role: normalizeRole(u.role),
+    status: u.status ?? "approved",
     cpf: u.cpf ?? null,
     rg: u.rg ?? null,
     cargo: u.cargo ?? null,
@@ -37,16 +39,24 @@ function toPublic(u: User & { cpf?: string; rg?: string; cargo?: string; unidade
 }
 
 export class UserService {
-  async findAll() {
-    const rows = await query<User & { cpf?: string; rg?: string; cargo?: string; unidade?: string }>(
-      "SELECT id, name, email, role, cpf, rg, cargo, unidade, created_at FROM users ORDER BY created_at DESC"
+  async findAll(status?: string) {
+    let sql = "SELECT id, name, email, role, status, cpf, rg, cargo, unidade, created_at FROM users";
+    const params: string[] = [];
+    if (status) {
+      sql += " WHERE status = ?";
+      params.push(status);
+    }
+    sql += " ORDER BY created_at DESC";
+    const rows = await query<User & { status?: string; cpf?: string; rg?: string; cargo?: string; unidade?: string }>(
+      sql,
+      params.length ? params : undefined
     );
     return rows.map(toPublic);
   }
 
   async findById(id: string) {
-    const rows = await query<User & { cpf?: string; rg?: string; cargo?: string; unidade?: string }>(
-      "SELECT id, name, email, role, cpf, rg, cargo, unidade, created_at FROM users WHERE id = $1",
+    const rows = await query<User & { status?: string; cpf?: string; rg?: string; cargo?: string; unidade?: string }>(
+      "SELECT id, name, email, role, status, cpf, rg, cargo, unidade, created_at FROM users WHERE id = $1",
       [id]
     );
     return rows[0] ? toPublic(rows[0]) : null;
@@ -178,6 +188,16 @@ export class UserService {
   async delete(id: string) {
     const rows = await query("DELETE FROM users WHERE id = $1 RETURNING id", [id]);
     return rows.length > 0;
+  }
+
+  async approve(id: string) {
+    await query("UPDATE users SET status = 'approved' WHERE id = $1", [id]);
+    return this.findById(id);
+  }
+
+  async reject(id: string) {
+    await query("DELETE FROM users WHERE id = $1", [id]);
+    return true;
   }
 }
 

@@ -18,7 +18,7 @@ interface RouteTrackerMapProps {
   showRouteChart?: boolean;
 }
 
-const SP_CENTER = { lat: -23.5505, lng: -46.6333 };
+const TO_CENTER = { lat: -10.184, lng: -48.333 };
 
 function latLngToPercent(lat: number, lng: number, center: { lat: number; lng: number }) {
   const scale = 4200;
@@ -31,12 +31,12 @@ function latLngToPercent(lat: number, lng: number, center: { lat: number; lng: n
 }
 
 const DEMO_VEHICLES = [
-  { id: "1", plate: "ABC-1234", lat: -23.55, lng: -46.63, speed: 62, heading: "SP → Curitiba" },
-  { id: "2", plate: "DEF-5678", lat: -23.48, lng: -46.52, speed: 48, heading: "Campinas → Santos" },
+  { id: "1", plate: "ABC-1234", lat: -10.184, lng: -48.333, speed: 62, heading: "Palmas → Gurupi" },
+  { id: "2", plate: "DEF-5678", lat: -10.212, lng: -48.360, speed: 48, heading: "Araguaína → Palmas" },
 ];
 
 export default function RouteTrackerMap({
-  center = SP_CENTER,
+  center = TO_CENTER,
   heightClass = "min-h-[280px] md:min-h-[360px]",
   useDeviceGps = true,
   showRouteChart = true,

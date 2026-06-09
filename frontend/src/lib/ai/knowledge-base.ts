@@ -55,6 +55,41 @@ export const VEHICLE_KNOWLEDGE: KnowledgeEntry[] = [
       "Anote o código com scanner OBD-II. Luz vermelha: pare. Amarela: agende diagnóstico em até 48h.",
     urgency: "medium",
   },
+  {
+    keywords: ["suspensao", "suspensão", "amortecedor", "batida", "pulo"],
+    problem: "Problema na Suspensão / Amortecedores",
+    solution:
+      "Verifique se há vazamento de óleo nos amortecedores, desgaste nas buchas ou coxins. Ruídos de pancada seca ao passar em buracos indicam a necessidade de substituição imediata dos componentes de suspensão para evitar perda de controle do veículo.",
+    urgency: "medium",
+  },
+  {
+    keywords: ["ar condicionado", "ar-condicionado", "frio", "ventilador", "ventilação", "gelando"],
+    problem: "Falha no Ar Condicionado",
+    solution:
+      "Se o ar não está gelando, verifique o filtro de cabine (pode estar obstruído) ou se há vazamento do gás refrigerante. Se a ventilação não liga, pode ser fusível queimado ou defeito no motor soprador.",
+    urgency: "low",
+  },
+  {
+    keywords: ["embreagem", "embreagem dura", "marcha", "cambio", "câmbio", "pedal embreagem"],
+    problem: "Desgaste no Sistema de Embreagem",
+    solution:
+      "Pedal muito duro, trepidação ao arrancar ou dificuldade para engatar marchas são sinais claros de desgaste do disco e platô de embreagem. Agende a substituição do kit completo de embreagem para evitar ficar parado na via.",
+    urgency: "high",
+  },
+  {
+    keywords: ["farol", "farol queimado", "lanterna", "pisca", "luzes", "iluminação", "faróis"],
+    problem: "Falha de Iluminação / Farol Queimado",
+    solution:
+      "Verifique as lâmpadas do farol, lanternas e setas. Substitua lâmpadas queimadas imediatamente. Se nenhuma acender, verifique o fusível correspondente ou o relé de acionamento.",
+    urgency: "medium",
+  },
+  {
+    keywords: ["correia", "correia dentada", "chiado", "barulho agudo", "correias", "alternador"],
+    problem: "Desgaste ou Ruído na Correia",
+    solution:
+      "Ruídos agudos (chiados) ao ligar o carro ou esterçar indicam correia de acessórios frouxa ou gasta. Verifique também a correia dentada, cuja ruptura causa danos graves ao motor. Substitua conforme quilometragem especificada.",
+    urgency: "high",
+  },
 ];
 
 export function findKnowledgeMatch(input: string): KnowledgeEntry | null {
@@ -80,6 +115,6 @@ export function getAssistantReply(userMessage: string): string {
   }
   return (
     "Descreva sintomas com mais detalhes (barulhos, luzes do painel, vazamentos). " +
-    "Posso ajudar com: óleo, freios, pneus, bateria, aquecimento e consumo de combustível."
+    "Posso ajudar com: óleo, freios, pneus, bateria, aquecimento, consumo, suspensão, ar condicionado, embreagem, faróis e correias."
   );
 }

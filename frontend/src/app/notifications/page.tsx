@@ -5,7 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import FormModal from "@/components/ui/FormModal";
-import { ruvApi } from "@/services/api";
+import { ruvApi, usersApi } from "@/services/api";
 
 interface NotificationItem {
   id: string;
@@ -26,6 +26,14 @@ interface PendingRuv {
   service: string;
 }
 
+interface PendingUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
 const TABS = [
   { id: "all", label: "Histórico Completo" },
   { id: "sistema", label: "Sistema (Sensores)" },
@@ -36,10 +44,12 @@ const TABS = [
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [pendingRuvs, setPendingRuvs] = useState<PendingRuv[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("all");
   
   // Decision modal state (HUD trigger action)
   const [selectedRuv, setSelectedRuv] = useState<PendingRuv | null>(null);
+  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
   const [justification, setJustification] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -111,7 +121,61 @@ export default function NotificationsPage() {
         setPendingRuvs((prev) => [...mapped, ...prev.filter(p => !mapped.some((m: any) => m.id === p.id))]);
       }
     }).catch(() => {});
+
+    // Try to fetch pending users if administrator
+    try {
+      const userStr = localStorage.getItem("user");
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      if (currentUser?.role === "administrador" || currentUser?.role === "admin") {
+        usersApi.list({ status: "pending" }).then((res) => {
+          if (Array.isArray(res.data)) {
+            setPendingUsers(res.data);
+          }
+        }).catch(() => {});
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
+
+  const handleUserDecision = async (approve: boolean) => {
+    if (!selectedUser) return;
+    setProcessing(true);
+    setActionSuccess("");
+    try {
+      if (approve) {
+        await usersApi.approve(selectedUser.id);
+        setActionSuccess(`Usuário ${selectedUser.name} aprovado com sucesso!`);
+      } else {
+        await usersApi.reject(selectedUser.id);
+        setActionSuccess(`Cadastro do usuário ${selectedUser.name} recusado.`);
+      }
+      setPendingUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+
+      const timestamp = new Date().toLocaleTimeString("pt-BR");
+      setNotifications((prev) => [
+        {
+          id: Date.now().toString(),
+          timestamp,
+          category: "sistema",
+          title: `Cadastro ${approve ? "Aprovado" : "Recusado"}`,
+          message: `O cadastro do usuário ${selectedUser.name} (${selectedUser.email}) foi ${approve ? "aprovado" : "rejeitado"}.`,
+          status: "unread",
+          severity: approve ? "info" : "warning",
+        },
+        ...prev,
+      ]);
+
+      setTimeout(() => {
+        setSelectedUser(null);
+        setActionSuccess("");
+      }, 1000);
+    } catch {
+      setActionSuccess("Erro ao registrar decisão.");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleSimulateEvent = (type: "thermal" | "fatigue" | "antt" | "ruv") => {
     const timestamp = new Date().toLocaleTimeString("pt-BR");
@@ -238,44 +302,84 @@ export default function NotificationsPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Main Notifications Log Feed */}
         <div className="space-y-6 lg:col-span-8">
-          {/* RUV Pending HUD Trigger Panel */}
-          {pendingRuvs.length > 0 && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-slate-100">
-              <div className="mb-3 flex items-center justify-between">
+          {/* RUV & User Pending HUD Trigger Panel */}
+          {(pendingRuvs.length > 0 || pendingUsers.length > 0) && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-slate-100 space-y-4">
+              <div className="flex items-center justify-between border-b border-outline-variant/30 pb-2">
                 <span className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
                   <Icon name="gavel" className="animate-bounce" />
-                  HUD de Aprovações Pendentes ({pendingRuvs.length})
+                  HUD de Aprovações Pendentes ({pendingRuvs.length + pendingUsers.length})
                 </span>
                 <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 rounded px-2 py-0.5 font-bold uppercase">
                   Ação Exigida
                 </span>
               </div>
-              <div className="space-y-3">
-                {pendingRuvs.slice(0, 3).map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-lg bg-[#0b132b]/80 border border-white/5 p-3 text-xs"
-                  >
-                    <div>
-                      <p className="font-semibold text-slate-200">
-                        RUV #{r.auth_number} • {r.requester_name}
-                      </p>
-                      <p className="text-slate-400 mt-0.5">
-                        {r.destination} | {r.service}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRuv(r)}
-                        className="btn-primary w-full sm:w-auto px-4 py-2 font-bold text-[10px] uppercase tracking-wider"
+
+              {pendingRuvs.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                    <Icon name="description" className="text-xs" />
+                    Solicitações de Veículo (RUVs)
+                  </p>
+                  <div className="space-y-2">
+                    {pendingRuvs.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-lg bg-[#0b132b]/80 border border-white/5 p-3 text-xs"
                       >
-                        Avaliar
-                      </button>
-                    </div>
+                        <div>
+                          <p className="font-semibold text-slate-200">
+                            RUV #{r.auth_number} • {r.requester_name}
+                          </p>
+                          <p className="text-slate-400 mt-0.5">
+                            {r.destination} | {r.service}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRuv(r)}
+                          className="btn-primary w-full sm:w-auto px-4 py-2 font-bold text-[10px] uppercase tracking-wider"
+                        >
+                          Avaliar RUV
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {pendingUsers.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1">
+                    <Icon name="person_add" className="text-xs" />
+                    Novos Cadastros Pendentes
+                  </p>
+                  <div className="space-y-2">
+                    {pendingUsers.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-lg bg-[#0b132b]/80 border border-white/5 p-3 text-xs"
+                      >
+                        <div>
+                          <p className="font-semibold text-slate-200">
+                            Cadastro: {u.name}
+                          </p>
+                          <p className="text-slate-400 mt-0.5">
+                            {u.email} | Cargo: {u.role}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUser(u)}
+                          className="btn-primary w-full sm:w-auto px-4 py-2 font-bold text-[10px] uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          Avaliar Cadastro
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -447,6 +551,50 @@ export default function NotificationsPage() {
                   className="btn-primary py-2.5 rounded-lg text-xs font-bold uppercase"
                 >
                   Aprovar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </FormModal>
+
+      <FormModal
+        open={!!selectedUser}
+        onClose={() => {
+          setSelectedUser(null);
+          setActionSuccess("");
+        }}
+        title={`Aprovação de Cadastro`}
+        subtitle={`REVISÃO DO USUÁRIO: ${selectedUser?.name}`}
+      >
+        {selectedUser && (
+          <div className="space-y-4 text-slate-100">
+            <div className="rounded-lg bg-surface-container-high p-4 space-y-2 text-xs">
+              <p><strong>Nome Completo:</strong> {selectedUser.name}</p>
+              <p><strong>E-mail:</strong> {selectedUser.email}</p>
+              <p><strong>Cargo Solicitado:</strong> {selectedUser.role}</p>
+              <p><strong>Cadastrado em:</strong> {new Date(selectedUser.created_at).toLocaleDateString("pt-BR")}</p>
+            </div>
+
+            <div className="space-y-3">
+              {actionSuccess && <p className="text-sm font-semibold text-green-400">{actionSuccess}</p>}
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={processing || !!actionSuccess}
+                  onClick={() => handleUserDecision(false)}
+                  className="btn-outline border-error text-error py-2.5 rounded-lg text-xs font-bold uppercase hover:bg-error/10 transition"
+                >
+                  Recusar Registro
+                </button>
+                <button
+                  type="button"
+                  disabled={processing || !!actionSuccess}
+                  onClick={() => handleUserDecision(true)}
+                  className="btn-primary py-2.5 rounded-lg text-xs font-bold uppercase"
+                >
+                  Aprovar Cadastro
                 </button>
               </div>
             </div>

@@ -14,9 +14,9 @@ interface VehicleMarker {
 }
 
 const FLEET_VEHICLES: VehicleMarker[] = [
-  { id: "1", plate: "ABC-1234", lat: -23.5505, lng: -46.6333, speed: 62, heading: "SP → Curitiba" },
-  { id: "2", plate: "DEF-5678", lat: -22.9068, lng: -47.063, speed: 48, heading: "Campinas → Santos" },
-  { id: "3", plate: "GHI-9012", lat: -23.42, lng: -46.82, speed: 71, heading: "Hub Cajamar" },
+  { id: "1", plate: "ABC-1234", lat: -10.184, lng: -48.333, speed: 62, heading: "Palmas → Gurupi" },
+  { id: "2", plate: "DEF-5678", lat: -10.212, lng: -48.360, speed: 48, heading: "Araguaína → Palmas" },
+  { id: "3", plate: "GHI-9012", lat: -10.170, lng: -48.310, speed: 71, heading: "Hub Palmas" },
 ];
 
 export default function SatelliteOperationalMap() {
@@ -24,6 +24,7 @@ export default function SatelliteOperationalMap() {
   const mapInstance = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const userMarkerRef = useRef<L.CircleMarker | null>(null);
+  const hasCentered = useRef(false);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState("");
   const [vehicles, setVehicles] = useState(FLEET_VEHICLES);
@@ -40,7 +41,7 @@ export default function SatelliteOperationalMap() {
       if (cancelled || !mapRef.current) return;
 
       const map = L.map(mapRef.current, {
-        center: [-23.5505, -46.6333],
+        center: [-10.184, -48.333],
         zoom: 11,
         zoomControl: false,
       });
@@ -95,6 +96,10 @@ export default function SatelliteOperationalMap() {
         if (mapInstance.current) {          
           import("leaflet").then(({ default: L }) => {
             if (!mapInstance.current) return;
+            if (!hasCentered.current) {
+              mapInstance.current.setView([latitude, longitude], 12);
+              hasCentered.current = true;
+            }
             if (userMarkerRef.current) {
               userMarkerRef.current.setLatLng([latitude, longitude]);
             } else {

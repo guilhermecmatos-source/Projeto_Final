@@ -24,8 +24,14 @@ export function extractApiError(err: unknown, fallback = "Ocorreu um erro inespe
 
   const status = error.response.status;
   if (status && status >= 500) {
-    return error.response.data?.error || SERVER_MSG;
+    const serverErr = error.response.data?.error || SERVER_MSG;
+    return status ? `${serverErr} (HTTP ${status})` : serverErr;
   }
 
-  return error.response.data?.error || fallback;
+  const apiErr = error.response.data?.error;
+  if (apiErr) {
+    return status ? `${apiErr} (HTTP ${status})` : apiErr;
+  }
+
+  return status ? `${fallback} (HTTP ${status})` : fallback;
 }

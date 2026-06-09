@@ -75,6 +75,7 @@ export default function RuvModalForm({ onSuccess, onCancel }: RuvModalFormProps)
     const resolvedDriver = resolveEntityId(driverId || String(raw.driver_id || ""), driverOptions);
     const data = {
       ...raw,
+      purpose: raw.service,
       auth_number: authNumber,
       vehicle_id: resolvedVehicle || vehicleId,
       driver_id: resolvedDriver || driverId,
@@ -82,13 +83,19 @@ export default function RuvModalForm({ onSuccess, onCancel }: RuvModalFormProps)
       destination: raw.destination,
     };
     try {
-      saveRuvDraft(data);
-      addToSyncQueue({ type: "ruv", payload: data });
       await ruvApi.create(data);
       onSuccess?.();
-    } catch {
-      setMessage("RUV salva localmente. Sincronização pendente.");
-      onSuccess?.();
+    } catch (err: any) {
+      if (err.response) {
+        const { extractApiError } = await import("@/lib/api-errors");
+        const errMsg = extractApiError(err, "Erro ao salvar RUV.");
+        setMessage(errMsg);
+      } else {
+        saveRuvDraft(data);
+        addToSyncQueue({ type: "ruv", payload: data });
+        setMessage("RUV salva localmente. Sincronização pendente.");
+        setTimeout(() => onSuccess?.(), 2000);
+      }
     } finally {
       setLoading(false);
     }

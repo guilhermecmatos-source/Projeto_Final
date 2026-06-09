@@ -86,6 +86,7 @@ async function migrate() {
     await ensureColumn(conn, "users", "rg", "rg VARCHAR(20) NULL");
     await ensureColumn(conn, "users", "cargo", "cargo VARCHAR(100) NULL");
     await ensureColumn(conn, "users", "unidade", "unidade VARCHAR(100) NULL");
+    await ensureColumn(conn, "users", "status", "status VARCHAR(50) DEFAULT 'approved'");
     await ensureColumn(
       conn,
       "users",
@@ -296,6 +297,18 @@ async function migrate() {
         path VARCHAR(512) NOT NULL,
         size_bytes INT NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        sender_id CHAR(36) NOT NULL,
+        receiver_id CHAR(36) NOT NULL,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 

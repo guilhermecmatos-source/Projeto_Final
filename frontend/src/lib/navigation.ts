@@ -18,6 +18,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/reports", label: "Relatórios Estratégicos", icon: "bar_chart" },
   { href: "/partners", label: "Parceiros & Oficinas", icon: "handshake" },
   { href: "/admin-solicitacoes", label: "Aprovações RUV", icon: "rule" },
+  { href: "/chat", label: "Chat de Suporte", icon: "chat" },
+  { href: "/notifications", label: "Notificações", icon: "notifications" },
 ];
 
 export const AUTH_ROUTES = ["/login", "/forgot-password"];

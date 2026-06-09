@@ -17,6 +17,10 @@ export class AuthService {
     }
 
     const user = users[0];
+    if (user.status === "pending") {
+      throw new Error("Sua conta está aguardando aprovação do administrador.");
+    }
+
     const hash = String(user.password_hash ?? "");
     const valid = await bcrypt.compare(password, hash);
     if (!valid) {
@@ -48,13 +52,14 @@ export class AuthService {
 
     const hash = await bcrypt.hash(password, 10);
     const normalizedEmail = email.trim().toLowerCase();
+    const status = "pending";
     await query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4)`,
-      [name, normalizedEmail, hash, role]
+      `INSERT INTO users (name, email, password_hash, role, status)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [name, normalizedEmail, hash, role, status]
     );
     const rows = await query<User>(
-      "SELECT id, name, email, role FROM users WHERE email = $1",
+      "SELECT id, name, email, role, status FROM users WHERE email = $1",
       [normalizedEmail]
     );
     return rows[0];

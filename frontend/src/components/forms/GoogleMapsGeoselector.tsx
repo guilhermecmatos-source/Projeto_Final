@@ -46,8 +46,8 @@ export default function GoogleMapsGeoselector({
       const Leaflet = (await import("leaflet")).default;
       if (cancelled || !mapRef.current) return;
 
-      const defaultLat = -23.5505;
-      const defaultLng = -46.6333;
+      const defaultLat = -10.184;
+      const defaultLng = -48.333;
 
       const map = Leaflet.map(mapRef.current, {
         center: [defaultLat, defaultLng],
@@ -60,6 +60,25 @@ export default function GoogleMapsGeoselector({
       }).addTo(map);
 
       Leaflet.control.zoom({ position: "bottomright" }).addTo(map);
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (cancelled) return;
+            const { latitude, longitude } = pos.coords;
+            map.setView([latitude, longitude], 14);
+            setCoords({ lat: latitude, lng: longitude });
+            setSelectedAddress(`Minha Localização: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+            if (markerInstance.current) {
+              markerInstance.current.setLatLng([latitude, longitude]);
+            } else {
+              markerInstance.current = Leaflet.marker([latitude, longitude]).addTo(map);
+            }
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
 
       // Map Click Event
       map.on("click", (e: L.LeafletMouseEvent) => {
