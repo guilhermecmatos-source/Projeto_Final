@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import Icon from "@/components/ui/Icon";
 
 export interface DateRange {
@@ -28,34 +29,70 @@ export function defaultDateRange(days = 30): DateRange {
 }
 
 export default function DateRangePicker({ value, onChange, className = "" }: DateRangePickerProps) {
+  const startInputRef = useRef<HTMLInputElement>(null);
+  const endInputRef = useRef<HTMLInputElement>(null);
+
+  const openStartPicker = () => {
+    try {
+      startInputRef.current?.showPicker();
+    } catch {
+      startInputRef.current?.focus();
+    }
+  };
+
+  const openEndPicker = () => {
+    try {
+      endInputRef.current?.showPicker();
+    } catch {
+      endInputRef.current?.focus();
+    }
+  };
+
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2">
-        <Icon name="calendar_today" className="text-sm text-primary" />
+        <button
+          type="button"
+          onClick={openStartPicker}
+          className="flex items-center gap-1 focus:outline-none"
+          title="Selecionar data inicial"
+        >
+          <Icon name="calendar_today" className="text-sm text-primary" />
+        </button>
         <label className="sr-only" htmlFor="date-range-start">
           Data inicial
         </label>
         <input
+          ref={startInputRef}
           id="date-range-start"
           type="date"
-          className="border-0 bg-transparent text-label-md outline-none"
+          className="border-0 bg-transparent text-label-md text-black outline-none cursor-pointer"
           value={value.start}
           max={value.end}
           onChange={(e) => onChange({ ...value, start: e.target.value })}
         />
-        <span className="text-on-surface-variant">até</span>
+        <span className="text-black/70">até</span>
         <label className="sr-only" htmlFor="date-range-end">
           Data final
         </label>
         <input
+          ref={endInputRef}
           id="date-range-end"
           type="date"
-          className="border-0 bg-transparent text-label-md outline-none"
+          className="border-0 bg-transparent text-label-md text-black outline-none cursor-pointer"
           value={value.end}
           min={value.start}
           max={todayISO()}
           onChange={(e) => onChange({ ...value, end: e.target.value })}
         />
+        <button
+          type="button"
+          onClick={openEndPicker}
+          className="flex items-center gap-1 focus:outline-none"
+          title="Selecionar data final"
+        >
+          <Icon name="date_range" className="text-sm text-primary" />
+        </button>
       </div>
     </div>
   );

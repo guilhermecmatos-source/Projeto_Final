@@ -39,6 +39,7 @@ const ROUTE_PERMISSIONS: Record<string, FleetRole[]> = {
   "/users": ["administrador"],
   "/profile": ["administrador", "gestor", "motorista", "solicitante"],
   "/cockpit": ["administrador", "gestor"],
+  "/admin-solicitacoes": ["administrador"],
 };
 
 export function canAccessRoute(user: User | null, href: string): boolean {

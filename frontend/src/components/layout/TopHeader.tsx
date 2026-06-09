@@ -72,7 +72,7 @@ export default function TopHeader({
             </button>
           )}
           <Link
-            href="/dashboard"
+            href="/notifications"
             className="touch-target relative hidden rounded-full p-2 transition hover:bg-surface-container-high sm:block"
             aria-label="Notificações"
           >

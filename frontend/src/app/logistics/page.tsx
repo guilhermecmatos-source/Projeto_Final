@@ -12,6 +12,7 @@ import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
 import { travelsApi, vehiclesApi } from "@/services/api";
 import { formatPlateDisplay } from "@/lib/validators";
 import { addToSyncQueue, saveLogisticsDraft } from "@/lib/offline";
+import GoogleMapsGeoselector from "@/components/forms/GoogleMapsGeoselector";
 
 interface Vehicle {
   id: string;
@@ -66,6 +67,20 @@ export default function LogisticsPage() {
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [kmRodado, setKmRodado] = useState<number | "">("");
+
+  // Map picker states
+  const [mapSelectorOpen, setMapSelectorOpen] = useState(false);
+  const [mapTarget, setMapTarget] = useState<"departure_location" | "arrival_location" | null>(null);
+  const [departureLocation, setDepartureLocation] = useState("");
+  const [arrivalLocation, setArrivalLocation] = useState("");
+
+  const handleMapSelect = (address: string) => {
+    if (mapTarget === "departure_location") {
+      setDepartureLocation(address);
+    } else if (mapTarget === "arrival_location") {
+      setArrivalLocation(address);
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -228,8 +243,60 @@ export default function LogisticsPage() {
       <FormModal open={movementModalOpen} onClose={() => setMovementModalOpen(false)} title="Movimentação do Veículo" subtitle="Saída, chegada, hodômetro e fechamento de RUV" xl>
         <form ref={movementFormRef} onSubmit={handleMovementSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Local de saída" name="departure_location" required />
-            <FormField label="Local de chegada" name="arrival_location" required />
+            <div>
+              <label htmlFor="departure_location" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
+                Local de saída
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="departure_location"
+                  name="departure_location"
+                  type="text"
+                  required
+                  className="input-fleet flex-1"
+                  value={departureLocation}
+                  onChange={(e) => setDepartureLocation(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapTarget("departure_location");
+                    setMapSelectorOpen(true);
+                  }}
+                  className="btn-outline flex items-center justify-center gap-1 border border-outline-variant bg-surface-container-high px-3 py-2 text-xs font-semibold text-primary hover:bg-white/5 transition rounded-lg"
+                >
+                  <Icon name="map" />
+                  Maps
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="arrival_location" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
+                Local de chegada
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="arrival_location"
+                  name="arrival_location"
+                  type="text"
+                  required
+                  className="input-fleet flex-1"
+                  value={arrivalLocation}
+                  onChange={(e) => setArrivalLocation(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapTarget("arrival_location");
+                    setMapSelectorOpen(true);
+                  }}
+                  className="btn-outline flex items-center justify-center gap-1 border border-outline-variant bg-surface-container-high px-3 py-2 text-xs font-semibold text-primary hover:bg-white/5 transition rounded-lg"
+                >
+                  <Icon name="map" />
+                  Maps
+                </button>
+              </div>
+            </div>
             <FormField label="Data/Hora saída" name="departure_datetime" type="datetime-local" required />
             <FormField label="Data/Hora chegada" name="arrival_datetime" type="datetime-local" required />
           </div>
@@ -263,6 +330,13 @@ export default function LogisticsPage() {
           />
         </form>
       </FormModal>
+
+      <GoogleMapsGeoselector
+        open={mapSelectorOpen}
+        onClose={() => setMapSelectorOpen(false)}
+        onSelect={handleMapSelect}
+        title={mapTarget === "departure_location" ? "Selecione o Local de Saída" : "Selecione o Local de Chegada"}
+      />
     </AppShell>
   );
 }

@@ -7,9 +7,11 @@ import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
 import FormField from "@/components/forms/FormField";
-import { maintenanceApi, vehiclesApi } from "@/services/api";
+import { maintenanceApi, vehiclesApi, uploadsApi } from "@/services/api";
 import { formatBRL } from "@/lib/currency";
 import { formatPlateDisplay } from "@/lib/validators";
+import CurrencyField from "@/components/forms/CurrencyField";
+import MediaUpload from "@/components/forms/MediaUpload";
 
 interface MaintenanceRow {
   id: string;
@@ -35,6 +37,10 @@ export default function MaintenancePage() {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [criticalAlert, setCriticalAlert] = useState<string | null>(null);
+  
+  // Media upload state
+  const [defectFile, setDefectFile] = useState<File | null>(null);
+  const [defectDataUrl, setDefectDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([maintenanceApi.list(), maintenanceApi.alerts(), vehiclesApi.list()])
@@ -53,16 +59,24 @@ export default function MaintenancePage() {
     setSaving(true);
     const form = new FormData(e.currentTarget);
     try {
-      await maintenanceApi.create({
+      const res = await maintenanceApi.create({
         vehicle_id: form.get("vehicle_id"),
         type: form.get("type"),
         description: form.get("description"),
         cost: Number(form.get("cost")),
         scheduled_at: form.get("scheduled_at") || new Date().toISOString(),
       });
+      const recordId = (res.data as { id?: string })?.id;
+      if (recordId && defectFile) {
+        await uploadsApi.upload(defectFile, "maintenance_defect", recordId);
+      }
       setModalOpen(false);
+      setDefectFile(null);
+      setDefectDataUrl(null);
       const listRes = await maintenanceApi.list();
       setHistory(Array.isArray(listRes.data) ? listRes.data : []);
+    } catch (err) {
+      console.error(err);
     } finally {
       setSaving(false);
     }
@@ -120,7 +134,7 @@ export default function MaintenancePage() {
 
       <FormModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setDefectFile(null); setDefectDataUrl(null); }}
         title="Adicional de Ordem de Manutenção"
         subtitle="Registro de intervenção veicular"
         wide
@@ -128,8 +142,16 @@ export default function MaintenancePage() {
         <form className="space-y-3" onSubmit={handleSubmit}>
           <FormField label="Selecionar Veículo Acometido" name="vehicle_id" required options={[{ value: "", label: "Escolha o veículo..." }, ...vehicles.map((v) => ({ value: v.id, label: v.plate }))]} />
           <FormField label="Tipo de Intervenção" name="type" options={[{ value: "corrective", label: "Corretiva Urgente" }, { value: "preventive", label: "Preventiva" }, { value: "predictive", label: "Preditiva" }]} />
-          <FormField label="Custo Estimado (R$)" name="cost" type="number" defaultValue="1500" />
+          <CurrencyField label="Custo Estimado" name="cost" defaultValue={1500} required />
           <FormField label="Descrição Detalhada do Problema" name="description" as="textarea" rows={4} placeholder="Ex: Trepidação acentuada acima de 80km/h." />
+          <MediaUpload
+            label="Anexar Imagem do Defeito (Opcional)"
+            value={defectFile}
+            onChange={(file, dataUrl) => {
+              setDefectFile(file);
+              setDefectDataUrl(dataUrl);
+            }}
+          />
           <button type="submit" disabled={saving} className="btn-primary w-full uppercase">{saving ? "Gravando..." : "Gravar Ordem"}</button>
         </form>
       </FormModal>

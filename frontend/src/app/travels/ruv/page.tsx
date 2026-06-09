@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import FormField from "@/components/forms/FormField";
 import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
@@ -18,6 +19,7 @@ import {
 } from "@/lib/offline";
 import { useOffline } from "@/hooks/useOffline";
 import { driversApi, vehiclesApi } from "@/services/api";
+import GoogleMapsGeoselector from "@/components/forms/GoogleMapsGeoselector";
 
 const VEHICLE_TYPES = [
   "Passageiro",
@@ -40,7 +42,7 @@ function formToObject(form: FormData): Record<string, unknown> {
   return obj;
 }
 
-export default function RuvPage() {
+function RuvPageContent() {
   const formRef = useRef<HTMLFormElement>(null);
   const [authNumber, setAuthNumber] = useState("007194");
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
@@ -53,6 +55,11 @@ export default function RuvPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ error: "", success: "" });
   const { online, syncing, syncNow } = useOffline();
+  const searchParams = useSearchParams();
+  const paramVehicleId = searchParams.get("vehicleId");
+
+  const [destination, setDestination] = useState("");
+  const [mapSelectorOpen, setMapSelectorOpen] = useState(false);
 
   const vehicleOptions: ComboboxOption[] = vehicles.map((v) => ({
     value: v.id,
@@ -68,6 +75,7 @@ export default function RuvPage() {
     setAuthNumber(generateAuthNumber());
     const draft = getRuvDraft();
     if (draft?.savedAt) setLastSaved(draft.savedAt as string);
+    if (draft?.destination) setDestination(draft.destination as string);
 
     Promise.all([vehiclesApi.list(), driversApi.list()])
       .then(([vRes, dRes]) => {
@@ -85,6 +93,16 @@ export default function RuvPage() {
         ]);
       });
   }, []);
+
+  useEffect(() => {
+    if (vehicles.length > 0 && paramVehicleId) {
+      const v = vehicles.find((x) => x.id === paramVehicleId);
+      if (v) {
+        setVehicleId(v.id);
+        setSelectedPlate(v.plate);
+      }
+    }
+  }, [vehicles, paramVehicleId]);
 
   function handleVehicleChange(id: string) {
     setVehicleId(id);
@@ -190,7 +208,30 @@ export default function RuvPage() {
           <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-headline-sm">Dados da requisição</h2>
             <FormField label="Nome do(s) passageiro(s)" name="passengers" required className="md:col-span-2" />
-            <FormField label="Destino" name="destination" required />
+            <div>
+              <label htmlFor="destination" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
+                Destino
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="destination"
+                  name="destination"
+                  type="text"
+                  required
+                  className="input-fleet flex-1"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setMapSelectorOpen(true)}
+                  className="btn-outline flex items-center justify-center gap-1 border border-outline-variant bg-surface-container-high px-3 py-2 text-xs font-semibold text-primary hover:bg-white/5 transition rounded-lg"
+                >
+                  <Icon name="map" />
+                  Maps
+                </button>
+              </div>
+            </div>
             <FormField label="Serviço a executar" name="service" required />
             <FormField label="Nome do requisitante (por extenso)" name="requester_name" required className="md:col-span-2" />
             <FormField label="Autorização" name="authorization_ref" required />
@@ -199,10 +240,12 @@ export default function RuvPage() {
           <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-headline-sm">Autorização da Unidade / Transporte</h2>
             <SearchableCombobox
+              key={`vehicle-${vehicleId}`}
               label="Veículo"
               name="vehicle_id"
               required
               options={vehicleOptions}
+              defaultValue={vehicleId}
               placeholder="Digite placa ou selecione..."
               allowCustom
               onValueChange={handleVehicleChange}
@@ -264,6 +307,24 @@ export default function RuvPage() {
         </form>
       </div>
 
+      <GoogleMapsGeoselector
+        open={mapSelectorOpen}
+        onClose={() => setMapSelectorOpen(false)}
+        onSelect={(address) => setDestination(address)}
+        title="Selecione o Destino no Mapa"
+      />
     </AppShell>
+  );
+}
+
+export default function RuvPage() {
+  return (
+    <Suspense fallback={
+      <AppShell headerTitle="RUV — Requisição de Utilização de Veículo">
+        <p className="text-slate-300">Carregando formulário RUV...</p>
+      </AppShell>
+    }>
+      <RuvPageContent />
+    </Suspense>
   );
 }

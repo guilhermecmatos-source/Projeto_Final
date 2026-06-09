@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
@@ -19,6 +20,24 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const navItems = filterNavByRole(NAV_ITEMS, user);
+
+  const [syncQueueLength, setSyncQueueLength] = useState(0);
+
+  useEffect(() => {
+    const getQueueSize = () => {
+      if (typeof window !== "undefined") {
+        try {
+          const q = JSON.parse(localStorage.getItem("fleet_sync_queue") || "[]");
+          setSyncQueueLength(Array.isArray(q) ? q.length : 0);
+        } catch {
+          setSyncQueueLength(0);
+        }
+      }
+    };
+    getQueueSize();
+    const interval = setInterval(getQueueSize, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleLogout() {
     try {
@@ -76,6 +95,37 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
       </nav>
 
       <div className="mt-auto border-t border-outline-variant px-4 pt-4">
+        {syncQueueLength > 0 && (
+          <div className="mb-3 flex items-center justify-between rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-[10px] text-amber-500 font-bold uppercase">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Sync Pendente
+            </span>
+            <span>{syncQueueLength} itens</span>
+          </div>
+        )}
+
+        <div className="mb-3 space-y-1">
+          <label className="text-[9px] uppercase tracking-wider text-on-surface-variant font-bold">
+            Simulador RBAC
+          </label>
+          <select
+            value={user?.role ?? "administrador"}
+            onChange={(e) => {
+              const newRole = e.target.value;
+              const updatedUser = { ...user, role: newRole };
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+              window.location.reload();
+            }}
+            className="w-full rounded bg-[#0d1117] border border-outline-variant p-1.5 text-[10px] text-slate-100 uppercase font-bold focus:outline-none cursor-pointer"
+          >
+            <option value="administrador">Administrador</option>
+            <option value="gestor">Gestor</option>
+            <option value="motorista">Motorista</option>
+            <option value="solicitante">Solicitante</option>
+          </select>
+        </div>
+
         <div className="mb-3 flex items-center gap-3 rounded-lg bg-surface-container-high p-2">
           <img
             src={IMAGES.userAvatar}

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -11,7 +11,7 @@ import DriverProfilePanel from "@/components/profiles/DriverProfilePanel";
 import ListPageStates from "@/components/ui/ListPageStates";
 import { driversApi, uploadsApi, vehiclesApi } from "@/services/api";
 import { extractApiError } from "@/lib/api-errors";
-import OfflineIndicator from "@/components/ui/OfflineIndicator";
+import MediaUpload from "@/components/forms/MediaUpload";
 
 interface DriverRow {
   id: string;
@@ -29,8 +29,6 @@ interface DriverRow {
 }
 
 export default function DriversPage() {
-  const profileInputRef = useRef<HTMLInputElement>(null);
-  const cnhInputRef = useRef<HTMLInputElement>(null);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [vehicles, setVehicles] = useState<{ id: string; plate: string; brand?: string; model?: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +37,9 @@ export default function DriversPage() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [createdId, setCreatedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [cnhFile, setCnhFile] = useState<File | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -72,6 +71,12 @@ export default function DriversPage() {
     setSaving(true);
     setMessage("");
     const form = new FormData(e.currentTarget);
+    const cnhCat = String(form.get("cnh_category") || "").trim();
+    if (!cnhCat || !["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"].includes(cnhCat)) {
+      setMessage("Selecione uma categoria de CNH válida (A, B, C, D ou E).");
+      setSaving(false);
+      return;
+    }
     try {
       const res = await driversApi.create({
         name: String(form.get("name")).trim(),
@@ -79,13 +84,22 @@ export default function DriversPage() {
         phone: String(form.get("phone") || "").trim(),
         cpf: String(form.get("cpf") || "").trim(),
         rg: String(form.get("rg") || "").trim(),
-        cnh_category: String(form.get("cnh_category") || "").trim(),
+        cnh_category: cnhCat,
         cnh_expiry: String(form.get("cnh_expiry") || "").trim() || undefined,
         vehicle_id: String(form.get("vehicle_id") || "").trim() || undefined,
       });
       const id = (res.data as { id?: string })?.id;
-      if (id) setCreatedId(id);
+      if (id) {
+        if (profileFile) {
+          await uploadsApi.upload(profileFile, "driver_profile", id);
+        }
+        if (cnhFile) {
+          await uploadsApi.upload(cnhFile, "driver_cnh", id);
+        }
+      }
       setMessage("Motorista gravado com sucesso.");
+      setProfileFile(null);
+      setCnhFile(null);
       setModalOpen(false);
       load();
     } catch {
@@ -93,15 +107,6 @@ export default function DriversPage() {
     } finally {
       setSaving(false);
     }
-  }
-
-  async function uploadImage(file: File, type: "driver_profile" | "driver_cnh") {
-    if (!createdId) {
-      setMessage("Grave o motorista antes de enviar imagens.");
-      return;
-    }
-    await uploadsApi.upload(file, type, createdId);
-    setMessage("Imagem salva com sucesso.");
   }
 
   return (
@@ -115,15 +120,13 @@ export default function DriversPage() {
             <span className="rounded-full border border-error/40 bg-error-container/30 px-3 py-1 text-xs font-bold text-error">
               Offline Mode (Mirror Local)
             </span>
-            <ActionButton onClick={() => { setModalOpen(true); setCreatedId(null); setMessage(""); }}>
+            <ActionButton onClick={() => { setModalOpen(true); setProfileFile(null); setCnhFile(null); setMessage(""); }}>
               <Icon name="person_add" />
               Novo Motorista
             </ActionButton>
           </>
         }
       />
-
-      <OfflineIndicator />
 
       <section className="raised-card overflow-hidden">
         <div className="border-b border-outline-variant p-4">
@@ -149,7 +152,7 @@ export default function DriversPage() {
           emptyIcon="person"
           emptyAction={
             !search ? (
-              <ActionButton onClick={() => { setModalOpen(true); setCreatedId(null); setMessage(""); }}>
+              <ActionButton onClick={() => { setModalOpen(true); setProfileFile(null); setCnhFile(null); setMessage(""); }}>
                 <Icon name="person_add" />
                 Novo Motorista
               </ActionButton>
@@ -204,21 +207,39 @@ export default function DriversPage() {
             <FormField label="RG / Órgão" name="rg" />
           </div>
           <FormField label="Telefone / Canal Rádio" name="phone" />
-          <input ref={profileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "driver_profile"); }} />
-          <button type="button" onClick={() => profileInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-secondary-container bg-secondary-container/10 py-3 text-sm font-semibold text-secondary-container">
-            <Icon name="add_a_photo" /> Adicionar Imagem
-          </button>
+          <MediaUpload
+            label="Adicionar Imagem de Perfil"
+            value={profileFile}
+            onChange={(file) => setProfileFile(file)}
+          />
 
           <p className="fleet-section-title">Segmento CNH</p>
           <FormField label="Cédula CNH" name="license_number" required />
           <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Categoria" name="cnh_category" options={[{ value: "", label: "Selecione" }, { value: "C", label: "C" }, { value: "D", label: "D" }, { value: "E", label: "E" }]} />
+            <FormField
+              label="Categoria"
+              name="cnh_category"
+              required
+              options={[
+                { value: "", label: "Selecione" },
+                { value: "A", label: "A" },
+                { value: "B", label: "B" },
+                { value: "C", label: "C" },
+                { value: "D", label: "D" },
+                { value: "E", label: "E" },
+                { value: "AB", label: "AB" },
+                { value: "AC", label: "AC" },
+                { value: "AD", label: "AD" },
+                { value: "AE", label: "AE" }
+              ]}
+            />
             <FormField label="Vencimento da Licença" name="cnh_expiry" type="date" />
           </div>
-          <input ref={cnhInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "driver_cnh"); }} />
-          <button type="button" onClick={() => cnhInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-secondary-container bg-secondary-container/10 py-3 text-sm font-semibold text-secondary-container">
-            <Icon name="badge" /> Adicionar Imagem CNH
-          </button>
+          <MediaUpload
+            label="Adicionar Imagem CNH"
+            value={cnhFile}
+            onChange={(file) => setCnhFile(file)}
+          />
 
           <p className="fleet-section-title">Vincular Cavalo Trator</p>
           <FormField

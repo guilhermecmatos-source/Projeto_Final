@@ -170,7 +170,7 @@ export default function VehiclesPage() {
                 <div className="flex items-start justify-between border-b border-outline-variant p-3">
                   <div>
                     <p className="text-xs font-bold uppercase">{v.brand}</p>
-                    <p className="text-sm font-bold">{v.model}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{v.model}</p>
                   </div>
                   <span className={st.cls}>{st.label}</span>
                 </div>
@@ -186,10 +186,21 @@ export default function VehiclesPage() {
                   )}
                 </div>
                 <div className="space-y-1 p-3 text-xs">
-                  <p><span className="text-on-surface-variant">PLACA:</span> <strong>{formatPlateDisplay(v.plate)}</strong></p>
+                  <p><span className="text-on-surface-variant">PLACA:</span> <strong className="text-slate-900 dark:text-slate-100">{formatPlateDisplay(v.plate)}</strong></p>
                   <p><span className="text-on-surface-variant">QUILOMETRAGEM:</span> {Number(v.mileage).toLocaleString("pt-BR")} km</p>
                   <p><span className="text-on-surface-variant">DIESEL CONSUMO:</span> {v.avg_consumption ? `${Number(v.avg_consumption).toFixed(1)} Km/L` : "—"}</p>
                 </div>
+                {v.status === "active" && (
+                  <div className="border-t border-outline-variant p-3">
+                    <a
+                      href={`/travels/ruv?vehicleId=${v.id}`}
+                      className="btn-primary flex items-center justify-center gap-1 text-center py-2 text-[10px] font-bold uppercase tracking-wider w-full"
+                    >
+                      <Icon name="assignment" />
+                      Requisitar
+                    </a>
+                  </div>
+                )}
               </article>
             );
           })}

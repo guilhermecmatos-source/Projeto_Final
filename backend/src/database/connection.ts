@@ -84,18 +84,38 @@ export async function query<T = unknown>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  let sql = toMysql(text);
+  let sql = text;
+  let mappedParams: unknown[] = [];
+
+  if (params && params.length > 0) {
+    const placeholders: number[] = [];
+    const regex = /\$(\d+)/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      placeholders.push(parseInt(match[1], 10));
+    }
+
+    if (placeholders.length > 0) {
+      mappedParams = placeholders.map((idx) => params[idx - 1]);
+      sql = text.replace(/\$(\d+)/g, "?");
+    } else {
+      mappedParams = params;
+    }
+  } else {
+    mappedParams = params || [];
+  }
+
   const returningMatch = sql.match(RETURNING_RE);
 
   if (!returningMatch) {
-    const [rows] = await pool.execute(sql, params as (string | number | boolean | null)[]);
+    const [rows] = await pool.execute(sql, mappedParams as (string | number | boolean | null)[]);
     return rows as T[];
   }
 
   const returningClause = returningMatch[1].trim();
   const baseSql = sql.replace(RETURNING_RE, "").trim();
 
-  await pool.execute(baseSql, params as (string | number | boolean | null)[]);
+  await pool.execute(baseSql, mappedParams as (string | number | boolean | null)[]);
   return fetchAfterWrite<T>(baseSql, params, returningClause);
 }
 

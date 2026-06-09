@@ -123,9 +123,10 @@ export default function PredictiveMaintenancePanel({ compact = false }: { compac
             <li
               key={`${a.vehicleId}-${a.planId}`}
               className={`rounded-lg border-l-4 p-3 ${statusStyle(a.status)}`}
+              style={a.status === "critical" ? { color: "#000000" } : undefined}
             >
               <div className="flex justify-between gap-2">
-                <span className="text-xs font-bold uppercase">{a.plate}</span>
+                <span className="text-xs font-bold uppercase" style={a.status === "critical" ? { color: "#000000" } : undefined}>{a.plate}</span>
                 <span
                   className={
                     a.status === "critical"
@@ -134,12 +135,13 @@ export default function PredictiveMaintenancePanel({ compact = false }: { compac
                         ? "chip-warning"
                         : "chip-active"
                   }
+                  style={a.status === "critical" ? { color: "#000000", borderColor: "#000000" } : undefined}
                 >
                   {statusLabel(a.status)}
                 </span>
               </div>
-              <p className="mt-1 text-sm font-semibold">{a.planName}</p>
-              <p className="text-xs text-on-surface-variant">{a.description}</p>
+              <p className="mt-1 text-sm font-semibold" style={a.status === "critical" ? { color: "#000000" } : undefined}>{a.planName}</p>
+              <p className="text-xs" style={a.status === "critical" ? { color: "#000000" } : { color: "var(--color-on-surface-variant, #6b7280)" }}>{a.description}</p>
             </li>
           ))}
         </ul>

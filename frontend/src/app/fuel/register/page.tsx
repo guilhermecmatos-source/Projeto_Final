@@ -10,17 +10,17 @@ import { fuelApi, uploadsApi, vehiclesApi } from "@/services/api";
 import { addToSyncQueue, isOnline } from "@/lib/offline";
 import { readJson, writeJson } from "@/lib/local-storage";
 import { useOffline } from "@/hooks/useOffline";
+import CurrencyField from "@/components/forms/CurrencyField";
+import MediaUpload from "@/components/forms/MediaUpload";
 
 export default function FuelRegisterPage() {
   const formRef = useRef<HTMLFormElement>(null);
-  const couponInputRef = useRef<HTMLInputElement>(null);
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-  const [receiptPath, setReceiptPath] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptDataUrl, setReceiptDataUrl] = useState<string | null>(null);
   const { online, syncNow } = useOffline();
 
   useEffect(() => {
@@ -29,27 +29,6 @@ export default function FuelRegisterPage() {
       .then((res) => setVehicles((res.data as { id: string; plate: string }[]) || []))
       .catch(() => setVehicles([]));
   }, []);
-
-  async function handleScanCoupon(file: File) {
-    setScanning(true);
-    setError("");
-    try {
-      const preview = URL.createObjectURL(file);
-      setReceiptPreview(preview);
-      if (isOnline()) {
-        const res = await uploadsApi.upload(file, "fuel_receipt");
-        setReceiptPath((res.data as { path: string }).path);
-        setSuccess("Cupom salvo com sucesso.");
-      } else {
-        writeJson("fleet_fuel_receipt_pending", { name: file.name, savedAt: new Date().toISOString() });
-        setSuccess("Cupom salvo localmente (offline).");
-      }
-    } catch {
-      setError("Falha ao salvar cupom. Tente novamente.");
-    } finally {
-      setScanning(false);
-    }
-  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,7 +42,7 @@ export default function FuelRegisterPage() {
       mileage_at_fill: Number(form.get("mileage_at_fill")),
       station: form.get("station") || "",
       filled_at: form.get("filled_at") || new Date().toISOString(),
-      receipt_url: receiptPath,
+      receipt_url: receiptDataUrl || undefined,
     };
 
     const local = readJson<Record<string, unknown>[]>("fleet_fuel_local", []);
@@ -78,8 +57,8 @@ export default function FuelRegisterPage() {
       if (isOnline()) {
         const res = await fuelApi.create(payload);
         const recordId = (res.data as { id?: string })?.id;
-        if (recordId && receiptPath && couponInputRef.current?.files?.[0]) {
-          await uploadsApi.upload(couponInputRef.current.files[0], "fuel_receipt", recordId);
+        if (recordId && receiptFile) {
+          await uploadsApi.upload(receiptFile, "fuel_receipt", recordId);
         }
       } else {
         addToSyncQueue({ type: "fuel", payload });
@@ -123,7 +102,7 @@ export default function FuelRegisterPage() {
           />
           <FormField label="Data" name="filled_at" type="datetime-local" required />
           <FormField label="Litros" name="liters" type="number" required />
-          <FormField label="Valor (R$)" name="cost" type="number" required />
+          <CurrencyField label="Valor Pago" name="cost" defaultValue={100} required />
           <FormField label="Posto" name="station" required />
           <FormField
             label="Tipo de combustível"
@@ -139,35 +118,14 @@ export default function FuelRegisterPage() {
           <FormField label="Odômetro" name="mileage_at_fill" type="number" required className="md:col-span-2" />
 
           <div className="md:col-span-2">
-            <input
-              ref={couponInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleScanCoupon(file);
+            <MediaUpload
+              label="Digitalizar Cupom Fiscal (Foto/Arquivo)"
+              value={receiptFile}
+              onChange={(file, dataUrl) => {
+                setReceiptFile(file);
+                setReceiptDataUrl(dataUrl);
               }}
             />
-            <button
-              type="button"
-              disabled={scanning}
-              onClick={() => couponInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary-container bg-primary-container/5 px-4 py-6 text-primary"
-            >
-              <Icon name="photo_camera" className="text-2xl" />
-              {scanning ? "Salvando cupom..." : "Escanear Cupom"}
-            </button>
-            {receiptPreview && (
-              <div className="mt-3 overflow-hidden rounded-lg border border-outline-variant">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={receiptPreview} alt="Cupom" className="max-h-48 w-full object-contain bg-surface-container-low" />
-                {receiptPath && (
-                  <p className="px-3 py-2 text-xs text-primary">✓ Imagem salva no servidor</p>
-                )}
-              </div>
-            )}
           </div>
         </section>
         <FormActions

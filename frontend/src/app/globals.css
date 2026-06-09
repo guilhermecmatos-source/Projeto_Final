@@ -246,6 +246,10 @@ html[data-theme="corporate-yellow"] .text-primary {
   color: #b8860b;
 }
 
+input[type="date"] {
+  color: #000000 !important;
+}
+
 @media print {
   aside,
   header,

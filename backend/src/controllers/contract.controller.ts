@@ -34,7 +34,7 @@ export class ContractController {
       }
       const contract = await contractService.create({
         ...req.body,
-        created_by: req.user?.id,
+        created_by: req.user?.userId,
       });
       return res.status(201).json(contract);
     } catch (e) {

@@ -7,6 +7,7 @@ import PeriodLineChart from "@/components/dashboard/PeriodLineChart";
 import AiSummaryWidgets from "@/components/dashboard/AiSummaryWidgets";
 import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
+import TelemetrySensorsLog from "@/components/ui/TelemetrySensorsLog";
 import KpiCard from "@/components/ui/KpiCard";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
@@ -172,6 +173,10 @@ export default function DashboardPage() {
               )}
             </ul>
           </section>
+
+          <div className="mt-6">
+            <TelemetrySensorsLog />
+          </div>
         </>
       )}
 

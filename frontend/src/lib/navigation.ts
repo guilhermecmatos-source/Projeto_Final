@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/intelligence", label: "Fleet Intelligence", icon: "insights" },
   { href: "/reports", label: "Relatórios Estratégicos", icon: "bar_chart" },
   { href: "/partners", label: "Parceiros & Oficinas", icon: "handshake" },
+  { href: "/admin-solicitacoes", label: "Aprovações RUV", icon: "rule" },
 ];
 
 export const AUTH_ROUTES = ["/login", "/forgot-password"];

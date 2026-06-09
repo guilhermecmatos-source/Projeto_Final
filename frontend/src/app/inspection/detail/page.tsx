@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
-import ActionLink from "@/components/ui/ActionLink";
-import { ACTION_ROUTES } from "@/lib/action-routes";
+import ActionButton from "@/components/ui/ActionButton";
+import FormModal from "@/components/ui/FormModal";
 
 const SECTIONS = [
   {
@@ -43,8 +43,91 @@ function InspectionDetailContent() {
   const reportId = searchParams.get("id") || "INS-2026-041";
   const [expanded, setExpanded] = useState<string | null>("Exterior");
 
+  // Email modal states
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState(`Relatório de Inspeção ${reportId}`);
+  const [emailBody, setEmailBody] = useState(
+    `Olá,\n\nSegue em anexo o relatório de inspeção detalhado para o veículo ABC-1234 (Toyota Hilux).\nScore Final: 92/100 (Aprovado).\n\nAtenciosamente,\nEquipe RUV Intelligence Hub`
+  );
+  const [sendSuccess, setSendSuccess] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   function toggle(title: string) {
     setExpanded((prev) => (prev === title ? null : title));
+  }
+
+  function downloadMockPDF() {
+    const content = `%PDF-1.4
+%
+1 0 obj
+<< /Title (Relatorio de Inspecao ${reportId}) /Author (FleetAI) >>
+endobj
+2 0 obj
+<< /Type /Catalog /Pages 3 0 R >>
+endobj
+3 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 3 0 R /MediaBox [0 0 595 842] /Contents 5 0 R /Resources << >> >>
+endobj
+5 0 obj
+<< /Length 100 >>
+stream
+BT
+/F1 12 Tf
+70 700 Td
+(Relatorio de Inspecao: ${reportId}) Tj
+/F1 10 Tf
+0 -20 Td
+(Veiculo: ABC-1234 - Toyota Hilux) Tj
+0 -20 Td
+(Score Final: 92/100) Tj
+0 -20 Td
+(Status: Aprovado) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000078 00000 n 
+0000000127 00000 n 
+0000000187 00000 n 
+0000000293 00000 n 
+trailer
+<< /Size 6 /Root 2 0 R /Info 1 0 R >>
+startxref
+443
+%%EOF`;
+    const blob = new Blob([content], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `relatorio-inspeção-${reportId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleSendEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSendingEmail(true);
+    setSendSuccess("");
+    
+    // Simulate SMTP network call
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    
+    setSendSuccess(`E-mail enviado com sucesso para ${emailTo}! Cópia (CC) encaminhada para o remetente.`);
+    setSendingEmail(false);
+    setTimeout(() => {
+      setEmailModalOpen(false);
+      setSendSuccess("");
+      setEmailTo("");
+    }, 1500);
   }
 
   return (
@@ -122,19 +205,88 @@ function InspectionDetailContent() {
           próxima viagem intermunicipal.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <ActionLink href={ACTION_ROUTES.reportsExport}>
+          <ActionButton onClick={downloadMockPDF} variant="primary">
             <Icon name="download" />
             Exportar PDF
-          </ActionLink>
-          <ActionLink
-            href={ACTION_ROUTES.partnersSupport}
-            variant="outline"
-            className="!rounded-lg !px-6 !py-2"
-          >
+          </ActionButton>
+          <ActionButton onClick={() => setEmailModalOpen(true)} variant="outline">
+            <Icon name="email" />
             Enviar por E-mail
-          </ActionLink>
+          </ActionButton>
         </div>
       </section>
+
+      {/* Modal de Envio de E-mail */}
+      <FormModal
+        open={emailModalOpen}
+        onClose={() => {
+          setEmailModalOpen(false);
+          setSendSuccess("");
+        }}
+        title="Enviar Relatório por E-mail"
+        subtitle={`Encaminhar o Relatório ${reportId} em PDF`}
+      >
+        <form className="space-y-4 text-slate-100" onSubmit={handleSendEmail}>
+          <div>
+            <label htmlFor="email_to" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
+              Destinatário (E-mail)
+            </label>
+            <input
+              id="email_to"
+              name="to"
+              type="email"
+              className="input-fleet"
+              value={emailTo}
+              onChange={(e) => setEmailTo(e.target.value)}
+              required
+              placeholder="exemplo@empresa.com.br"
+            />
+          </div>
+          <div>
+            <label htmlFor="email_subject" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
+              Assunto
+            </label>
+            <input
+              id="email_subject"
+              name="subject"
+              type="text"
+              className="input-fleet"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="email_body" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
+              Mensagem
+            </label>
+            <textarea
+              id="email_body"
+              name="body"
+              className="input-fleet min-h-[120px] resize-y py-3"
+              rows={5}
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 p-3 text-xs text-primary">
+            <Icon name="mail" />
+            <span>Uma cópia (CC) será enviada automaticamente para o seu e-mail cadastrado.</span>
+          </div>
+
+          {sendSuccess && <p className="text-sm font-semibold text-green-400">{sendSuccess}</p>}
+          
+          <button
+            type="submit"
+            disabled={sendingEmail || !!sendSuccess}
+            className="btn-primary w-full uppercase"
+          >
+            {sendingEmail ? "Enviando..." : "Enviar E-mail"}
+          </button>
+        </form>
+      </FormModal>
     </AppShell>
   );
 }
