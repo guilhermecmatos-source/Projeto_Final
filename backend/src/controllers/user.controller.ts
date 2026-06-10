@@ -5,14 +5,24 @@ import { sendError } from "../utils/errors";
 
 export class UserController {
   async list(req: Request, res: Response) {
-    const status = req.query.status as string | undefined;
-    return res.json(await userService.findAll(status));
+    try {
+      const status = req.query.status as string | undefined;
+      return res.json(await userService.findAll(status));
+    } catch (err) {
+      console.error("[user.list]", err);
+      return sendError(res, 500, "Erro ao listar usuários");
+    }
   }
 
   async get(req: Request, res: Response) {
-    const user = await userService.findById(req.params.id);
-    if (!user) return sendError(res, 404, "Usuário não encontrado");
-    return res.json(user);
+    try {
+      const user = await userService.findById(req.params.id);
+      if (!user) return sendError(res, 404, "Usuário não encontrado");
+      return res.json(user);
+    } catch (err) {
+      console.error("[user.get]", err);
+      return sendError(res, 500, "Erro ao obter usuário");
+    }
   }
 
   async create(req: Request, res: Response) {
@@ -49,44 +59,59 @@ export class UserController {
   }
 
   async delete(req: Request, res: Response) {
-    const deleted = await userService.delete(req.params.id);
-    if (!deleted) return sendError(res, 404, "Usuário não encontrado");
-    await auditService.log({
-      entityType: "user",
-      entityId: req.params.id,
-      action: "delete",
-      userId: req.user?.userId,
-      userEmail: req.user?.email,
-    });
-    return res.status(204).send();
+    try {
+      const deleted = await userService.delete(req.params.id);
+      if (!deleted) return sendError(res, 404, "Usuário não encontrado");
+      await auditService.log({
+        entityType: "user",
+        entityId: req.params.id,
+        action: "delete",
+        userId: req.user?.userId,
+        userEmail: req.user?.email,
+      });
+      return res.status(204).send();
+    } catch (err) {
+      console.error("[user.delete]", err);
+      return sendError(res, 500, "Erro ao excluir usuário");
+    }
   }
 
   async approve(req: Request, res: Response) {
-    const user = await userService.approve(req.params.id);
-    if (!user) return sendError(res, 404, "Usuário não encontrado");
-    await auditService.log({
-      entityType: "user",
-      entityId: req.params.id,
-      action: "update",
-      userId: req.user?.userId,
-      userEmail: req.user?.email,
-      details: "status=approved",
-    });
-    return res.json(user);
+    try {
+      const user = await userService.approve(req.params.id);
+      if (!user) return sendError(res, 404, "Usuário não encontrado");
+      await auditService.log({
+        entityType: "user",
+        entityId: req.params.id,
+        action: "update",
+        userId: req.user?.userId,
+        userEmail: req.user?.email,
+        details: "status=approved",
+      });
+      return res.json(user);
+    } catch (err) {
+      console.error("[user.approve]", err);
+      return sendError(res, 500, "Erro ao aprovar usuário");
+    }
   }
 
   async reject(req: Request, res: Response) {
-    const success = await userService.reject(req.params.id);
-    if (!success) return sendError(res, 404, "Usuário não encontrado");
-    await auditService.log({
-      entityType: "user",
-      entityId: req.params.id,
-      action: "delete",
-      userId: req.user?.userId,
-      userEmail: req.user?.email,
-      details: "status=rejected",
-    });
-    return res.status(204).send();
+    try {
+      const success = await userService.reject(req.params.id);
+      if (!success) return sendError(res, 404, "Usuário não encontrado");
+      await auditService.log({
+        entityType: "user",
+        entityId: req.params.id,
+        action: "delete",
+        userId: req.user?.userId,
+        userEmail: req.user?.email,
+        details: "status=rejected",
+      });
+      return res.status(204).send();
+    } catch (err) {
+      console.error("[user.reject]", err);
+      return sendError(res, 500, "Erro ao rejeitar usuário");
+    }
   }
 }
 

@@ -4,26 +4,46 @@ import { sendError } from "../utils/errors";
 
 export class ContractController {
   async list(_req: Request, res: Response) {
-    return res.json(await contractService.findAll());
+    try {
+      return res.json(await contractService.findAll());
+    } catch (err) {
+      console.error("[contract.list]", err);
+      return sendError(res, 500, "Erro ao listar contratos");
+    }
   }
 
   async get(req: Request, res: Response) {
-    const contract = await contractService.findById(req.params.id);
-    if (!contract) return sendError(res, 404, "Contrato não encontrado");
-    return res.json(contract);
+    try {
+      const contract = await contractService.findById(req.params.id);
+      if (!contract) return sendError(res, 404, "Contrato não encontrado");
+      return res.json(contract);
+    } catch (err) {
+      console.error("[contract.get]", err);
+      return sendError(res, 500, "Erro ao obter contrato");
+    }
   }
 
   async templates(req: Request, res: Response) {
-    const area = req.query.area as string | undefined;
-    return res.json(contractService.getTemplates(area));
+    try {
+      const area = req.query.area as string | undefined;
+      return res.json(contractService.getTemplates(area));
+    } catch (err) {
+      console.error("[contract.templates]", err);
+      return sendError(res, 500, "Erro ao obter templates de contrato");
+    }
   }
 
   async preview(req: Request, res: Response) {
-    const { template_key, client_name } = req.body;
-    if (!template_key || !client_name) {
-      return sendError(res, 400, "template_key e client_name são obrigatórios");
+    try {
+      const { template_key, client_name } = req.body;
+      if (!template_key || !client_name) {
+        return sendError(res, 400, "template_key e client_name são obrigatórios");
+      }
+      return res.json(contractService.preview(req.body));
+    } catch (err) {
+      console.error("[contract.preview]", err);
+      return sendError(res, 500, "Erro ao gerar prévia de contrato");
     }
-    return res.json(contractService.preview(req.body));
   }
 
   async create(req: Request, res: Response) {
@@ -43,27 +63,47 @@ export class ContractController {
   }
 
   async update(req: Request, res: Response) {
-    const contract = await contractService.update(req.params.id, req.body);
-    if (!contract) return sendError(res, 404, "Contrato não encontrado");
-    return res.json(contract);
+    try {
+      const contract = await contractService.update(req.params.id, req.body);
+      if (!contract) return sendError(res, 404, "Contrato não encontrado");
+      return res.json(contract);
+    } catch (err) {
+      console.error("[contract.update]", err);
+      return sendError(res, 500, "Erro ao atualizar contrato");
+    }
   }
 
   async send(req: Request, res: Response) {
-    const contract = await contractService.send(req.params.id);
-    if (!contract) return sendError(res, 404, "Contrato não encontrado");
-    return res.json(contract);
+    try {
+      const contract = await contractService.send(req.params.id);
+      if (!contract) return sendError(res, 404, "Contrato não encontrado");
+      return res.json(contract);
+    } catch (err) {
+      console.error("[contract.send]", err);
+      return sendError(res, 500, "Erro ao enviar contrato");
+    }
   }
 
   async sign(req: Request, res: Response) {
-    const contract = await contractService.sign(req.params.id);
-    if (!contract) return sendError(res, 404, "Contrato não encontrado");
-    return res.json(contract);
+    try {
+      const contract = await contractService.sign(req.params.id);
+      if (!contract) return sendError(res, 404, "Contrato não encontrado");
+      return res.json(contract);
+    } catch (err) {
+      console.error("[contract.sign]", err);
+      return sendError(res, 500, "Erro ao assinar contrato");
+    }
   }
 
   async cancel(req: Request, res: Response) {
-    const contract = await contractService.cancel(req.params.id);
-    if (!contract) return sendError(res, 404, "Contrato não encontrado");
-    return res.json(contract);
+    try {
+      const contract = await contractService.cancel(req.params.id);
+      if (!contract) return sendError(res, 404, "Contrato não encontrado");
+      return res.json(contract);
+    } catch (err) {
+      console.error("[contract.cancel]", err);
+      return sendError(res, 500, "Erro ao cancelar contrato");
+    }
   }
 }
 
