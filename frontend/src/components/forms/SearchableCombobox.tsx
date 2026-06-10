@@ -113,7 +113,9 @@ export default function SearchableCombobox({
             <li key={opt.value}>
               <button
                 type="button"
-                className="w-full px-4 py-2 text-left text-sm hover:bg-primary-container/10"
+                className={`w-full px-4 py-2 text-left text-sm hover:bg-primary-container/10 ${
+                  opt.value === value ? "bg-black text-white font-semibold" : "text-slate-900"
+                }`}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   selectOption(opt);

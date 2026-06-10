@@ -1,12 +1,6 @@
 export const THEME_OPTIONS = [
-  { id: "corporate-blue", label: "Azul Corporativo" },
-  { id: "corporate-white", label: "Branco Corporativo" },
-  { id: "corporate-yellow", label: "Amarelo Corporativo" },
   { id: "light", label: "Modo Claro" },
   { id: "dark", label: "Modo Escuro" },
-  { id: "high-contrast", label: "Alto Contraste" },
-  { id: "colorblind", label: "Daltonismo" },
-  { id: "low-vision", label: "Baixa Visão" },
 ] as const;
 
 export type ThemeId = (typeof THEME_OPTIONS)[number]["id"];

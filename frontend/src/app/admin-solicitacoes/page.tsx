@@ -20,6 +20,8 @@ interface RuvRequest {
   created_at: string;
   passengers?: string;
   justification?: string;
+  descricao?: string;
+  quantidade?: number;
 }
 
 const TABS = ["PENDENTES", "APROVADOS", "REJEITADOS"] as const;
@@ -188,7 +190,8 @@ export default function AdminSolicitacoesPage() {
               <p><strong>Requisitante:</strong> {selectedRuv.requester_name}</p>
               <p><strong>Destino Previsto:</strong> {selectedRuv.destination}</p>
               <p><strong>Serviço:</strong> {selectedRuv.service}</p>
-              {selectedRuv.passengers && <p><strong>Passageiros:</strong> {selectedRuv.passengers}</p>}
+              {selectedRuv.descricao && <p><strong>Descrição do(s) passageiro(s):</strong> {selectedRuv.descricao}</p>}
+              {selectedRuv.quantidade && <p><strong>Quantidade de passageiro(s):</strong> {selectedRuv.quantidade}</p>}
               {selectedRuv.vehicle_type && <p><strong>Tipo Requisitado:</strong> {selectedRuv.vehicle_type}</p>}
               {selectedRuv.justification && (
                 <div className="mt-2 border-t border-outline-variant/30 pt-2 text-amber-400">

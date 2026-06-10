@@ -36,6 +36,25 @@ export default function InspectionPage() {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [inspChecklist, setInspChecklist] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [inspectionsList, setInspectionsList] = useState<any[]>([]);
+
+  function loadInspections() {
+    const local = readJson<any[]>("fleet_inspections_local", []);
+    const mappedLocal = local.map((record, index) => {
+      const trueCount = Object.values(record.checklist || {}).filter(Boolean).length;
+      const score = Math.round((trueCount / INSP_ITEMS.length) * 100);
+      const dateObj = new Date(record.savedAt || Date.now());
+      const formattedDate = dateObj.toLocaleDateString("pt-BR");
+      return {
+        id: `INS-LOC-${100 + index}`,
+        vehicle: String(record.plate || "—").toUpperCase(),
+        date: formattedDate,
+        score,
+        status: score >= 70 ? "Aprovado" : "Pendente",
+      };
+    });
+    setInspectionsList([...mappedLocal.reverse(), ...INSPECTIONS]);
+  }
 
   useEffect(() => {
     const saved = getQuickChecklist();
@@ -44,6 +63,7 @@ export default function InspectionPage() {
       initial[item] = saved[item] ?? false;
     });
     setChecklist(initial);
+    loadInspections();
   }, []);
 
   useEffect(() => {
@@ -103,6 +123,7 @@ export default function InspectionPage() {
     writeJson("fleet_inspections_local", records);
     setNewModalOpen(false);
     setSaving(false);
+    loadInspections();
   }
 
   const doneCount = CHECKLIST_ITEMS.filter((i) => checklist[i]).length;
@@ -160,7 +181,7 @@ export default function InspectionPage() {
                 </tr>
               </thead>
               <tbody>
-                {INSPECTIONS.map((i) => (
+                {inspectionsList.map((i) => (
                   <tr key={i.id}>
                     <td className="px-6 py-4 font-medium" data-label="ID">{i.id}</td>
                     <td className="px-6 py-4" data-label="Veículo">{i.vehicle}</td>

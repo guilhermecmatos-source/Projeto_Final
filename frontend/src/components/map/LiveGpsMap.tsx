@@ -61,11 +61,13 @@ export default function LiveGpsMap() {
             key={v.id}
             type="button"
             title={`${v.plate} — ${v.speed} km/h`}
-            className="group absolute z-10 -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110"
+            className="group absolute z-10 -translate-x-1/2 -translate-y-1/2 transition-[left,top] duration-[4000ms] ease-linear hover:scale-110"
             style={{ left: `${v.lng}%`, top: `${v.lat}%` }}
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-container shadow-lg ring-2 ring-white md:h-10 md:w-10">
-              <Icon name="local_shipping" className="text-sm text-on-secondary-container md:text-base" />
+              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current text-on-secondary-container md:h-6 md:w-6" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-5h14v5zm-1.5-1.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+              </svg>
             </span>
             <span className="pointer-events-none absolute left-1/2 top-full mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-[10px] text-white group-hover:block md:text-xs">
               {v.plate} • {v.speed} km/h

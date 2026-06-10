@@ -54,9 +54,11 @@ export default function SatelliteOperationalMap() {
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
       const truckIcon = L.divIcon({
-        className: "",
-        html: `<div style="background:#ff9f00;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">
-          <span style="color:#000;font-size:14px">🚛</span>
+        className: "transition-[left,top,transform] duration-[4000ms] ease-linear",
+        html: `<div style="background:#007194;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-5h14v5zm-1.5-1.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+          </svg>
         </div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],

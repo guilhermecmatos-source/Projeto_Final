@@ -9,6 +9,7 @@ import { filterNavByRole } from "@/lib/permissions";
 import { IMAGES } from "@/lib/images";
 import { User } from "@/types";
 import { authApi } from "@/services/api";
+import { getStoredTheme, applyTheme, ThemeId } from "@/lib/themes";
 
 interface SidebarProps {
   user: User | null;
@@ -22,6 +23,17 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
   const navItems = filterNavByRole(NAV_ITEMS, user);
 
   const [syncQueueLength, setSyncQueueLength] = useState(0);
+  const [currentTheme, setCurrentTheme] = useState<ThemeId>("dark");
+
+  useEffect(() => {
+    setCurrentTheme(getStoredTheme());
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    setCurrentTheme(nextTheme);
+    applyTheme(nextTheme);
+  };
 
   useEffect(() => {
     const getQueueSize = () => {
@@ -139,6 +151,17 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
             </p>
           </div>
         </div>
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-high py-2 text-xs font-bold uppercase text-on-surface-variant hover:border-primary hover:text-primary transition"
+          >
+            <Icon name={currentTheme === "dark" ? "light_mode" : "dark_mode"} className="text-sm" />
+            {currentTheme === "dark" ? "Modo Claro (Dia)" : "Modo Escuro (Noite)"}
+          </button>
+        </div>
+
         <div className="flex gap-2">
           <Link
             href="/profile"

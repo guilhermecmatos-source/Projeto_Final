@@ -81,7 +81,8 @@ export default function VehiclesPage() {
     e.preventDefault();
     setSaving(true);
     setMessage("");
-    const form = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     try {
       await vehiclesApi.create({
         plate: String(form.get("plate")),
@@ -92,7 +93,7 @@ export default function VehiclesPage() {
         avg_consumption: Number(form.get("avg_consumption")),
       });
       setMessage("Veículo vinculado.");
-      e.currentTarget.reset();
+      formEl.reset();
       setModalOpen(false);
       load();
     } catch {

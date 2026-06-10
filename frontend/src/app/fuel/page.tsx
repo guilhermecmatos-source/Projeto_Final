@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useCallback } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -39,6 +39,87 @@ export default function FuelPage() {
   const [selectedRecord, setSelectedRecord] = useState<FuelRow | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptDataUrl, setReceiptDataUrl] = useState<string | null>(null);
+
+  // Card & NFC States
+  const [cardBalance, setCardBalance] = useState(1000);
+  const [nfcModalOpen, setNfcModalOpen] = useState(false);
+  const [nfcWalletType, setNfcWalletType] = useState<"Google Wallet" | "Apple Pay" | null>(null);
+  const [nfcStep, setNfcStep] = useState<"connecting" | "processing" | "success">("connecting");
+
+  // Pix refund modal states
+  const [pixRefundModalOpen, setPixRefundModalOpen] = useState(false);
+  const [pixRefundConfirming, setPixRefundConfirming] = useState(false);
+  const [pixRefundSuccess, setPixRefundSuccess] = useState(false);
+
+  // Statement & Receipt states
+  const [selectedTx, setSelectedTx] = useState<any>(null);
+  const [thermalReceiptOpen, setThermalReceiptOpen] = useState(false);
+
+  const [transactions, setTransactions] = useState([
+    {
+      id: "tx-1",
+      title: "Carga PIX: Central Gestor",
+      type: "credit",
+      amount: 1000.00,
+      date: "2026-06-09 19:01:55",
+      status: "Sucesso",
+      method: "Compensado",
+      authCode: "PIX982736152",
+      details: "Injeção de fundos autorizada pelo gestor de frota.",
+      plate: "BRA-2E19",
+      driver: "Jeovana Lopesvalente"
+    },
+    {
+      id: "tx-2",
+      title: "Abastecimento: Posto Petrobras Deca",
+      type: "debit",
+      amount: 450.00,
+      date: "2026-06-09 21:15:00",
+      status: "Sucesso",
+      method: "NFC Proximidade",
+      authCode: "AUT871239",
+      details: "Diesel S10 | Litros: 75L | Preço/L: R$ 6,00",
+      plate: "BRA-2E19",
+      driver: "Jeovana Lopesvalente"
+    },
+    {
+      id: "tx-3",
+      title: "Abastecimento: Shell Marginal",
+      type: "debit",
+      amount: 280.00,
+      date: "2026-06-10 08:30:00",
+      status: "Sucesso",
+      method: "NFC Proximidade",
+      authCode: "AUT991283",
+      details: "Diesel S10 | Litros: 46.6L | Preço/L: R$ 6,00",
+      plate: "BRA-2E19",
+      driver: "Jeovana Lopesvalente"
+    }
+  ]);
+
+  const handleGoogleWalletClick = () => {
+    setNfcWalletType("Google Wallet");
+    setNfcStep("connecting");
+    setNfcModalOpen(true);
+    setTimeout(() => {
+      setNfcStep("processing");
+      setTimeout(() => {
+        setNfcStep("success");
+      }, 2000);
+    }, 1500);
+  };
+
+  const handleApplePayClick = () => {
+    setNfcWalletType("Apple Pay");
+    setNfcStep("connecting");
+    setNfcModalOpen(true);
+    setTimeout(() => {
+      setNfcStep("processing");
+      setTimeout(() => {
+        setNfcStep("success");
+      }, 2000);
+    }, 1500);
+  };
 
   // Pix refund form states
   const [pixKeyType, setPixKeyType] = useState("CPF/CNPJ");
@@ -149,17 +230,12 @@ export default function FuelPage() {
     }
   }
 
-  const handleRefund = (e: FormEvent) => {
+  const handleRefundSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!pixKey.trim() || !pixName.trim()) return;
-    setRefunding(true);
-    setRefundMessage("");
-    setTimeout(() => {
-      setRefunding(false);
-      setRefundMessage("Solicitação de estorno enviada com sucesso para processamento BaaS!");
-      setPixKey("");
-      setPixName("");
-    }, 1500);
+    if (!pixKey.trim() || !pixName.trim() || cardBalance <= 0) return;
+    setPixRefundSuccess(false);
+    setPixRefundConfirming(false);
+    setPixRefundModalOpen(true);
   };
 
   return (
@@ -217,7 +293,7 @@ export default function FuelPage() {
                   <div>
                     <span className="inline-block rounded bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-[#FCA311] font-mono">BRA-2E19</span>
                     <p className="text-[10px] text-slate-300 mt-1.5">Scania R 450</p>
-                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 1.000,00</p>
+                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: {formatBRL(cardBalance)}</p>
                   </div>
                   <div className="text-right">
                     <span className="chip-active text-[9px]">Ativo</span>
@@ -296,11 +372,11 @@ export default function FuelPage() {
                 <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="nfc" className="text-sm text-primary" /> CARTEIRA DIGITAL & APROXIMAÇÃO NFC</p>
                 <p className="text-[10px] text-slate-400 mt-1">Adicione o cartão à carteira para pagamentos por aproximação em maquininhas de postos sem precisar de cartão físico.</p>
                 <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition">
-                    <Icon name="google" className="text-sm" /> GOOGLE WALLET
+                  <button onClick={handleGoogleWalletClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
+                    <Icon name="google" className="text-sm text-primary" /> GOOGLE WALLET
                   </button>
-                  <button type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition">
-                    <Icon name="phone_iphone" className="text-sm" /> APPLE PAY
+                  <button onClick={handleApplePayClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
+                    <Icon name="phone_iphone" className="text-sm text-primary" /> APPLE PAY
                   </button>
                 </div>
               </div>
@@ -314,15 +390,15 @@ export default function FuelPage() {
                 <div className="space-y-3 text-xs mb-6">
                   <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
                     <span className="text-slate-400">Total Depositado:</span>
-                    <span className="font-bold text-slate-200">R$ 1.000,00</span>
+                    <span className="font-bold text-slate-200">R$ 1.730,00</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
                     <span className="text-slate-400">Total Utilizado:</span>
-                    <span className="font-bold text-red-400">R$ 0,00</span>
+                    <span className="font-bold text-red-400">R$ 730,00</span>
                   </div>
                   <div className="rounded-lg bg-[#0F172A] p-3 border border-outline-variant/30 mt-3 text-center">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">SALDO DISPONÍVEL NO CARTÃO</span>
-                    <span className="text-2xl font-mono font-bold text-[#FCA311]">R$ 1.000,00</span>
+                    <span className="text-2xl font-mono font-bold text-[#FCA311]">{formatBRL(cardBalance)}</span>
                   </div>
                 </div>
               </div>
@@ -332,7 +408,7 @@ export default function FuelPage() {
                 <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="reply" className="text-sm text-primary -rotate-90" /> DEVOLUÇÃO DE SALDO (ESTORNO PIX)</p>
                 <p className="text-[10px] text-slate-400 mt-1">Resgatar o valor restante do cartão direto para uma conta.</p>
                 
-                <form onSubmit={handleRefund} className="space-y-3.5 mt-3">
+                <form onSubmit={handleRefundSubmit} className="space-y-3.5 mt-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">TIPO DE CHAVE</label>
@@ -375,10 +451,10 @@ export default function FuelPage() {
 
                   <button 
                     type="submit" 
-                    disabled={refunding || !pixKey || !pixName}
-                    className="w-full rounded bg-green-500/20 hover:bg-green-500/35 border border-green-500/30 text-green-400 font-bold uppercase text-xs py-2.5 transition active:scale-[0.99]"
+                    disabled={cardBalance <= 0 || !pixKey || !pixName}
+                    className="w-full rounded bg-green-500/20 hover:bg-green-500/35 border border-green-500/30 text-green-400 font-bold uppercase text-xs py-2.5 transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {refunding ? "Solicitando..." : "SOLICITAR REEMBOLSO DE R$ 1.000,00"}
+                    SOLICITAR REEMBOLSO DE {formatBRL(cardBalance)}
                   </button>
                 </form>
               </div>
@@ -441,15 +517,33 @@ export default function FuelPage() {
                   </button>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="rounded border border-outline-variant/30 bg-[#0F172A]/60 p-3 flex justify-between items-center">
-                    <div>
-                      <p className="text-xs font-bold text-white">Carga PIX: Central Gestor <span className="text-[8px] text-blue-400 uppercase font-mono ml-2">Meio Detalhes</span></p>
-                      <p className="text-[9px] text-slate-400 mt-1">Status: Sucesso | Unidade Com.: BaaS | Método: Compensado</p>
-                      <p className="text-[8px] text-slate-400 font-mono">ID Extrato: Ex dep-178942916931 | Horário: 2026-06-09 19:01:55</p>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {transactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      onClick={() => {
+                        setSelectedTx(tx);
+                        setThermalReceiptOpen(true);
+                      }}
+                      className="rounded border border-outline-variant/30 bg-[#0F172A]/60 p-3 flex justify-between items-center cursor-pointer hover:bg-white/5 hover:border-primary/50 transition active:scale-[0.99]"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-white">
+                          {tx.title}
+                          <span className="text-[8px] text-blue-400 uppercase font-mono ml-2">Ver Comprovante</span>
+                        </p>
+                        <p className="text-[9px] text-slate-400 mt-1">
+                          Status: {tx.status} | Unidade: BaaS | Método: {tx.method}
+                        </p>
+                        <p className="text-[8px] text-slate-400 font-mono">
+                          ID: {tx.authCode} | Horário: {tx.date}
+                        </p>
+                      </div>
+                      <span className={`text-sm font-mono font-bold ${tx.type === "credit" ? "text-blue-400" : "text-[#FCA311]"}`}>
+                        {tx.type === "credit" ? "+" : "-"} {formatBRL(tx.amount)}
+                      </span>
                     </div>
-                    <span className="text-sm font-mono font-bold text-[#3b82f6]">+ R$ 500,00</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -674,6 +768,285 @@ export default function FuelPage() {
             </div>
           </div>
         )}
+      </FormModal>
+
+      {/* THERMAL TRANSACTION RECEIPT MODAL */}
+      <FormModal
+        open={thermalReceiptOpen}
+        onClose={() => setThermalReceiptOpen(false)}
+        title="Comprovante de Transação"
+        subtitle="Visualização do cupom térmico impresso"
+      >
+        {selectedTx && (
+          <div className="flex flex-col items-center p-2">
+            {/* The Receipt container */}
+            <div className="w-full max-w-sm bg-[#faf8f5] text-slate-800 p-6 rounded-md shadow-inner border border-amber-900/10 font-mono text-xs relative overflow-hidden select-text">
+              {/* Paper cut edge simulation */}
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-b from-black/5 to-transparent" />
+              
+              <div className="text-center space-y-1 mb-4">
+                <p className="font-bold text-sm tracking-widest text-slate-900">FLEET AI LOGISTICS</p>
+                <p className="text-[10px] text-slate-600">MULTIPOSTE COMERCIAL BAAS S.A.</p>
+                <p className="text-[10px] text-slate-600">CNPJ: 45.981.392/0001-83</p>
+                <p className="text-[10px] text-slate-600">AV. PAULISTA, 1000 - SAO PAULO/SP</p>
+                <p className="text-[10px] text-slate-500 border-b border-dashed border-slate-400/50 pb-2">----------------------------------------</p>
+              </div>
+
+              <div className="space-y-1.5 text-slate-800">
+                <div className="flex justify-between font-bold">
+                  <span>TRANSACAO:</span>
+                  <span>{selectedTx.title.toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>METODO:</span>
+                  <span>{selectedTx.method.toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between font-mono">
+                  <span>ID COMPROVANTE:</span>
+                  <span>{selectedTx.authCode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>DATA E HORA:</span>
+                  <span>{selectedTx.date}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>PLACA DO VEICULO:</span>
+                  <span>{selectedTx.plate || "BRA-2E19"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>MOTORISTA:</span>
+                  <span>{selectedTx.driver || "Jeovana Lopesvalente"}</span>
+                </div>
+                <p className="text-slate-500 border-b border-dashed border-slate-400/50 py-1">----------------------------------------</p>
+                
+                {selectedTx.type === "debit" ? (
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-mono text-slate-800">
+                      <span>COMBUSTIVEL:</span>
+                      <span>DIESEL S10</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-slate-800">
+                      <span>VALOR DO LITRO:</span>
+                      <span>R$ 6,00</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-slate-800">
+                      <span>QUANTIDADE:</span>
+                      <span>{(selectedTx.amount / 6).toFixed(1)} L</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-mono text-slate-800">
+                      <span>TIPO DE OPERACAO:</span>
+                      <span>ENTRADA / RECARGA</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-slate-800">
+                      <span>ORIGEM:</span>
+                      <span>BANCO DO BRASIL - PIX</span>
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-slate-500 border-b border-dashed border-slate-400/50 py-1">----------------------------------------</p>
+                <div className="flex justify-between text-sm font-bold text-slate-900 border-b border-dashed border-slate-400/50 pb-2">
+                  <span>VALOR TOTAL:</span>
+                  <span>{formatBRL(selectedTx.amount)}</span>
+                </div>
+              </div>
+
+              <div className="text-center mt-6 space-y-2">
+                <div className="inline-block bg-white p-2 border border-slate-300">
+                  <div className="flex items-center gap-0.5 h-10 w-48 bg-slate-900 border-x border-slate-900" style={{
+                    backgroundImage: "repeating-linear-gradient(90deg, #000 0px, #000 2px, #fff 2px, #fff 5px, #000 5px, #000 8px)"
+                  }} />
+                </div>
+                <p className="text-[9px] uppercase tracking-wider text-slate-500">HOMOLOGADO POR AUTORIDADE OPERACIONAL</p>
+                <p className="text-[8px] font-mono text-slate-400">PROTOCOLO BAAS: {selectedTx.authCode}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 w-full mt-4">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="btn-outline flex-1 py-2 text-xs font-bold border border-slate-600 text-slate-300 flex items-center justify-center gap-1.5 hover:bg-white/5 transition"
+              >
+                <Icon name="print" className="text-sm" /> IMPRIMIR VIA
+              </button>
+              <button
+                type="button"
+                onClick={() => setThermalReceiptOpen(false)}
+                className="btn-primary flex-1 py-2 text-xs font-bold uppercase text-black bg-[#FCA311] hover:bg-[#FCA311]/90"
+              >
+                FECHAR
+              </button>
+            </div>
+          </div>
+        )}
+      </FormModal>
+
+      {/* NFC WALLET PROVISIONING MODAL */}
+      <FormModal
+        open={nfcModalOpen}
+        onClose={() => setNfcModalOpen(false)}
+        title={nfcWalletType === "Google Wallet" ? "Google Wallet" : "Apple Pay"}
+        subtitle="In-App Provisioning — Carteira de Proximidade"
+      >
+        <div className="flex flex-col items-center justify-center p-6 text-center space-y-6">
+          {nfcStep === "connecting" ? (
+            <>
+              <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-blue-500/10 text-blue-400">
+                <Icon name="nfc" className="text-4xl animate-pulse" />
+                <span className="absolute inset-0 rounded-full border border-blue-400/30 animate-ping" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-100">Estabelecendo Conexão Segura</h4>
+                <p className="text-xs text-slate-400">Iniciando protocolo de emparelhamento com o barramento do cartão pré-pago...</p>
+              </div>
+            </>
+          ) : nfcStep === "processing" ? (
+            <>
+              <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-amber-500/10 text-amber-400">
+                <Icon name="sync" className="text-4xl animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-100">Criptografando Tokens de Pagamento</h4>
+                <p className="text-xs text-slate-400">Fazendo upload das credenciais com tokenização BaaS de ponta a ponta...</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 text-green-400 border border-green-500/30">
+                <Icon name="check_circle" className="text-5xl animate-bounce" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-100">Cartão Adicionado com Sucesso!</h4>
+                <p className="text-xs text-slate-400">O Cartão Frota (•••• 5485) já está pronto para uso por aproximação no seu smartphone.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNfcModalOpen(false)}
+                className="btn-primary w-full py-2 font-bold uppercase text-xs text-black bg-[#FCA311] hover:bg-[#FCA311]/90"
+              >
+                Concluir
+              </button>
+            </>
+          )}
+        </div>
+      </FormModal>
+
+      {/* CENTRAL BANK PIX REFUND CONFIRMATION MODAL */}
+      <FormModal
+        open={pixRefundModalOpen}
+        onClose={() => setPixRefundModalOpen(false)}
+        title="Confirmação de Devolução Pix"
+        subtitle="Banco Central - Sistema DIKT Homologado"
+      >
+        <div className="space-y-4">
+          {!pixRefundSuccess ? (
+            <>
+              <div className="rounded-lg bg-green-500/5 border border-green-500/20 p-4 flex items-center gap-3">
+                <Icon name="security" className="text-3xl text-green-400" />
+                <div className="text-xs text-left">
+                  <p className="font-bold text-slate-100">Transação Monitorada pelo Banco Central</p>
+                  <p className="text-slate-400">Verificação automática de chaves no Diretório de Identificadores (DIKT).</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-[#0F172A] border border-outline-variant/30 p-4 space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-slate-400">Origem:</span>
+                  <span className="font-bold text-slate-100">Cartão Frota (•••• 5485)</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-slate-400">Tipo de Chave:</span>
+                  <span className="font-bold text-slate-100">{pixKeyType}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-slate-400">Chave Destino:</span>
+                  <span className="font-bold text-slate-100 font-mono">{pixKey}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-slate-400">Favorecido:</span>
+                  <span className="font-bold text-slate-100">{pixName}</span>
+                </div>
+                <div className="flex justify-between py-1 pt-2 font-bold text-sm">
+                  <span className="text-slate-300">Valor do Estorno:</span>
+                  <span className="text-[#FCA311]">{formatBRL(cardBalance)}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPixRefundModalOpen(false)}
+                  disabled={pixRefundConfirming}
+                  className="btn-secondary flex-1 py-2 text-xs font-bold uppercase"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={pixRefundConfirming}
+                  onClick={() => {
+                    setPixRefundConfirming(true);
+                    setTimeout(() => {
+                      setPixRefundConfirming(false);
+                      setPixRefundSuccess(true);
+                      setTransactions(prev => [
+                        {
+                          id: `tx-${Date.now()}`,
+                          title: "Estorno Pix: Devolução Central",
+                          type: "debit",
+                          amount: cardBalance,
+                          date: new Date().toISOString().replace("T", " ").substring(0, 19),
+                          status: "Sucesso",
+                          method: "Pix Devolution",
+                          authCode: `PIX${Math.floor(Math.random()*900000000 + 100000000)}`,
+                          details: `Reembolso de saldo residual. Chave Pix: ${pixKey}`,
+                          plate: "BRA-2E19",
+                          driver: "Jeovana Lopesvalente"
+                        },
+                        ...prev
+                      ]);
+                      setCardBalance(0);
+                      setPixKey("");
+                      setPixName("");
+                    }, 2000);
+                  }}
+                  className="btn-primary flex-1 py-2 text-xs font-bold uppercase bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-1.5"
+                >
+                  {pixRefundConfirming ? (
+                    <>
+                      <Icon name="sync" className="text-sm animate-spin text-white" /> Processando...
+                    </>
+                  ) : (
+                    "Confirmar Estorno"
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
+                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 text-green-400 border border-green-500/30">
+                  <Icon name="check_circle" className="text-4xl animate-bounce" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-100 text-sm">Estorno Concluído</h4>
+                  <p className="text-xs text-slate-400">O saldo residual do cartão foi liquidado e transferido para a conta de destino indicada via Pix.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPixRefundModalOpen(false)}
+                  className="btn-primary w-full py-2 font-bold uppercase text-xs text-black bg-[#FCA311] hover:bg-[#FCA311]/90"
+                >
+                  Fechar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </FormModal>
     </AppShell>
   );

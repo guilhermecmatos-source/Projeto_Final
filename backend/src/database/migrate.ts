@@ -254,6 +254,8 @@ async function migrate() {
         purpose TEXT NOT NULL,
         status VARCHAR(30) DEFAULT 'pendente',
         passengers INT DEFAULT 1,
+        descricao TEXT NULL,
+        quantidade INT DEFAULT 1,
         justification TEXT NULL,
         approved_by CHAR(36) NULL,
         rejected_by CHAR(36) NULL,
@@ -286,6 +288,8 @@ async function migrate() {
     await ensureColumn(conn, "partners", "logo_url", "logo_url VARCHAR(512) NULL");
     await ensureColumn(conn, "partners", "address", "address VARCHAR(255) NULL");
     await ensureColumn(conn, "partners", "notes", "notes TEXT NULL");
+    await ensureColumn(conn, "ruv_requests", "descricao", "descricao TEXT NULL");
+    await ensureColumn(conn, "ruv_requests", "quantidade", "quantidade INT DEFAULT 1");
 
     await conn.query(`
       CREATE TABLE IF NOT EXISTS uploads (

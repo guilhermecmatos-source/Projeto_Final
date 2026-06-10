@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import FormShell from "@/components/forms/FormShell";
 import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
 import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
+import Icon from "@/components/ui/Icon";
 import { driversApi, geocodingApi, travelsApi, vehiclesApi } from "@/services/api";
 import { resolveEntityId } from "@/lib/form-resolve";
 
@@ -107,12 +108,21 @@ export default function TravelRegisterPage() {
     }
   }, [vehicleId, selectedVehicle?.autonomy_km]);
 
-  const estimatedFuel = useMemo(() => {
+  const [estimatedFuel, setEstimatedFuel] = useState("");
+
+  const calculateFuel = useCallback(() => {
     const km = Number(distanceKm || 0);
     const avg = Number(selectedVehicle?.avg_consumption || 10);
-    if (km <= 0) return "";
-    return String(Math.round((km / avg) * 10) / 10);
+    if (km > 0) {
+      setEstimatedFuel(String(Math.round((km / avg) * 10) / 10));
+    } else {
+      setEstimatedFuel("");
+    }
   }, [distanceKm, selectedVehicle?.avg_consumption]);
+
+  useEffect(() => {
+    calculateFuel();
+  }, [distanceKm, vehicleId, calculateFuel]);
 
   return (
     <FormShell
@@ -192,16 +202,25 @@ export default function TravelRegisterPage() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-label-md text-on-surface-variant">
-            Consumo estimado (L)
+          <label className="mb-1 block text-label-md text-on-surface-variant flex items-center justify-between">
+            <span>Consumo estimado (L)</span>
+            <button
+              type="button"
+              onClick={calculateFuel}
+              className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold"
+            >
+              <Icon name="calculate" className="text-xs" />
+              Estimar
+            </button>
           </label>
           <input
-            className="input-fleet"
+            className="input-fleet cursor-pointer"
             name="fuel_consumption"
             type="number"
-            readOnly
             value={estimatedFuel}
-            placeholder="0"
+            onChange={(e) => setEstimatedFuel(e.target.value)}
+            placeholder="Clique para estimar ou digite"
+            onClick={calculateFuel}
           />
         </div>
         {autonomyHint && (

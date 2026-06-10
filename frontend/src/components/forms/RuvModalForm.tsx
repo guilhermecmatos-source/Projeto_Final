@@ -75,6 +75,9 @@ export default function RuvModalForm({ onSuccess, onCancel }: RuvModalFormProps)
     const resolvedDriver = resolveEntityId(driverId || String(raw.driver_id || ""), driverOptions);
     const data = {
       ...raw,
+      passengers: Number(raw.quantidade || 1),
+      quantidade: Number(raw.quantidade || 1),
+      descricao: raw.descricao || "",
       purpose: raw.service,
       auth_number: authNumber,
       vehicle_id: resolvedVehicle || vehicleId,
@@ -128,7 +131,8 @@ export default function RuvModalForm({ onSuccess, onCancel }: RuvModalFormProps)
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Nome do(s) passageiro(s)" name="passengers" required className="sm:col-span-2" />
+        <FormField label="Descrição do(s) passageiro(s)" name="descricao" required className="sm:col-span-2" />
+        <FormField label="Quantidade de passageiro(s)" name="quantidade" type="number" defaultValue="1" required className="sm:col-span-2" />
         <FormField label="Origem" name="origin" defaultValue="Base Operacional" />
         <FormField label="Destino" name="destination" required />
         <FormField label="Serviço a executar" name="service" required />

@@ -147,6 +147,8 @@ function RuvPageContent() {
     const resolvedDriver = resolveEntityId(driverId || String(raw.driver_id || ""), driverOptions);
     const data = {
       ...raw,
+      passengers: Number(raw.quantidade || 1),
+      quantidade: Number(raw.quantidade || 1),
       auth_number: authNumber,
       vehicle_id: resolvedVehicle || vehicleId,
       driver_id: resolvedDriver || driverId,
@@ -207,7 +209,8 @@ function RuvPageContent() {
 
           <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-headline-sm">Dados da requisição</h2>
-            <FormField label="Nome do(s) passageiro(s)" name="passengers" required className="md:col-span-2" />
+            <FormField label="Nome do(s) passageiro(s) por extenso" name="descricao" required className="md:col-span-2" />
+            <FormField label="Quantidade de passageiros" name="quantidade" type="number" required min={1} defaultValue="1" className="md:col-span-2" />
             <div>
               <label htmlFor="destination" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
                 Destino

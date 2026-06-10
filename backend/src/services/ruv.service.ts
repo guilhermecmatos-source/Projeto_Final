@@ -11,6 +11,8 @@ export interface RuvRequest {
   purpose: string;
   status: RuvStatus;
   passengers: number;
+  descricao?: string | null;
+  quantidade?: number;
   justification?: string | null;
   approved_by?: string | null;
   rejected_by?: string | null;
@@ -49,19 +51,23 @@ export class RuvService {
     destination: string;
     purpose: string;
     passengers?: number;
+    descricao?: string;
+    quantidade?: number;
   }) {
     if (!data.origin?.trim() || !data.destination?.trim() || !data.purpose?.trim()) {
       throw new Error("Origem, destino e finalidade são obrigatórios.");
     }
     const rows = await query<RuvRequest>(
-      `INSERT INTO ruv_requests (requester_id, origin, destination, purpose, passengers, status)
-       VALUES ($1, $2, $3, $4, $5, 'pendente') RETURNING *`,
+      `INSERT INTO ruv_requests (requester_id, origin, destination, purpose, passengers, status, descricao, quantidade)
+       VALUES ($1, $2, $3, $4, $5, 'pendente', $6, $7) RETURNING *`,
       [
         data.requester_id,
         data.origin.trim(),
         data.destination.trim(),
         data.purpose.trim(),
         data.passengers ?? 1,
+        data.descricao || "",
+        data.quantidade ?? 1,
       ]
     );
     return rows[0];

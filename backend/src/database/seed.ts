@@ -190,9 +190,9 @@ export async function runSeed(conn: mysql.Connection): Promise<void> {
     );
     if (solicitante.length) {
       await conn.query(
-        `INSERT INTO ruv_requests (requester_id, origin, destination, purpose, status, passengers) VALUES
-         (?, 'Brasília, DF', 'Goiânia, GO', 'Reunião institucional', 'pendente', 2),
-         (?, 'São Paulo, SP', 'Ribeirão Preto, SP', 'Entrega de documentos', 'aprovado', 1)`,
+        `INSERT INTO ruv_requests (requester_id, origin, destination, purpose, status, passengers, descricao, quantidade) VALUES
+         (?, 'Brasília, DF', 'Goiânia, GO', 'Reunião institucional', 'pendente', 2, 'Carlos Silva, Ana Souza', 2),
+         (?, 'São Paulo, SP', 'Ribeirão Preto, SP', 'Entrega de documentos', 'aprovado', 1, 'Marcos Oliveira', 1)`,
         [solicitante[0].id, solicitante[0].id]
       );
       console.log("[seed] Solicitações RUV de exemplo criadas.");

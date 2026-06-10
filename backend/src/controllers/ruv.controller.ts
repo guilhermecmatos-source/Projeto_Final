@@ -19,21 +19,31 @@ function mapRuvToFrontend(ruv: any) {
 
 export class RuvController {
   async list(req: Request, res: Response) {
-    const status = req.query.status as string | undefined;
-    let dbStatus: string | undefined = undefined;
-    if (status === "pending") dbStatus = "pendente";
-    else if (status === "approved") dbStatus = "aprovado";
-    else if (status === "rejected") dbStatus = "rejeitado";
-    else dbStatus = status;
+    try {
+      const status = req.query.status as string | undefined;
+      let dbStatus: string | undefined = undefined;
+      if (status === "pending") dbStatus = "pendente";
+      else if (status === "approved") dbStatus = "aprovado";
+      else if (status === "rejected") dbStatus = "rejeitado";
+      else dbStatus = status;
 
-    const items = await ruvService.findAll(dbStatus);
-    return res.json(items.map(mapRuvToFrontend));
+      const items = await ruvService.findAll(dbStatus);
+      return res.json(items.map(mapRuvToFrontend));
+    } catch (err) {
+      console.error("[ruvController.list]", err);
+      return sendError(res, 500, "Erro ao carregar solicitações RUV");
+    }
   }
 
   async get(req: Request, res: Response) {
-    const item = await ruvService.findById(req.params.id);
-    if (!item) return sendError(res, 404, "Solicitação não encontrada");
-    return res.json(mapRuvToFrontend(item));
+    try {
+      const item = await ruvService.findById(req.params.id);
+      if (!item) return sendError(res, 404, "Solicitação não encontrada");
+      return res.json(mapRuvToFrontend(item));
+    } catch (err) {
+      console.error("[ruvController.get]", err);
+      return sendError(res, 500, "Erro ao carregar solicitação RUV");
+    }
   }
 
   async create(req: Request, res: Response) {
@@ -44,6 +54,8 @@ export class RuvController {
         destination: req.body.destination,
         purpose: req.body.purpose || req.body.service,
         passengers: req.body.passengers,
+        descricao: req.body.descricao,
+        quantidade: req.body.quantidade ? Number(req.body.quantidade) : undefined,
       });
       await auditService.log({
         entityType: "ruv_request",
@@ -59,21 +71,26 @@ export class RuvController {
   }
 
   async approve(req: Request, res: Response) {
-    const item = await ruvService.approve(
-      req.params.id,
-      req.user!.userId,
-      req.body.justification
-    );
-    if (!item) return sendError(res, 404, "Solicitação não encontrada");
-    await auditService.log({
-      entityType: "ruv_request",
-      entityId: item.id,
-      action: "update",
-      userId: req.user?.userId,
-      userEmail: req.user?.email,
-      details: "aprovado",
-    });
-    return res.json(mapRuvToFrontend(item));
+    try {
+      const item = await ruvService.approve(
+        req.params.id,
+        req.user!.userId,
+        req.body.justification
+      );
+      if (!item) return sendError(res, 404, "Solicitação não encontrada");
+      await auditService.log({
+        entityType: "ruv_request",
+        entityId: item.id,
+        action: "update",
+        userId: req.user?.userId,
+        userEmail: req.user?.email,
+        details: "aprovado",
+      });
+      return res.json(mapRuvToFrontend(item));
+    } catch (err) {
+      console.error("[ruvController.approve]", err);
+      return sendError(res, 500, "Erro ao aprovar solicitação RUV");
+    }
   }
 
   async reject(req: Request, res: Response) {
@@ -94,7 +111,7 @@ export class RuvController {
       });
       return res.json(mapRuvToFrontend(item));
     } catch (e) {
-      return sendError(res, 400, e instanceof Error ? e.message : "Erro");
+      return sendError(res, 400, e instanceof Error ? e.message : "Erro ao rejeitar solicitação");
     }
   }
 }

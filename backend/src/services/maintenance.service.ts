@@ -1,6 +1,7 @@
 import { query } from "../database/connection";
 import { Maintenance, MaintenanceType } from "../models/types";
 import { predictiveService } from "../ai/predictive.service";
+import { toMysqlDatetime } from "../utils/validators";
 
 export class MaintenanceService {
   async findAll() {
@@ -18,10 +19,11 @@ export class MaintenanceService {
     cost?: number;
     scheduled_at: string;
   }) {
+    const formattedDate = toMysqlDatetime(data.scheduled_at);
     const rows = await query<Maintenance>(
       `INSERT INTO maintenances (vehicle_id, type, description, cost, scheduled_at)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [data.vehicle_id, data.type, data.description, data.cost || 0, data.scheduled_at]
+      [data.vehicle_id, data.type, data.description, data.cost || 0, formattedDate]
     );
 
     if (data.type === "preventive") {

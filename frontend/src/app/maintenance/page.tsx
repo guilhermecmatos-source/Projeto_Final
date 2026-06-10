@@ -152,7 +152,7 @@ export default function MaintenancePage() {
               setDefectDataUrl(dataUrl);
             }}
           />
-          <button type="submit" disabled={saving} className="btn-primary w-full uppercase">{saving ? "Gravando..." : "Gravar Ordem"}</button>
+          <button type="submit" disabled={saving} className="btn-primary w-full uppercase">{saving ? "Gravando..." : "Adicionar Ordem"}</button>
         </form>
       </FormModal>
     </AppShell>
