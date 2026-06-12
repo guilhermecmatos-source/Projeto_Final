@@ -371,11 +371,11 @@ export default function FuelPage() {
               <div className="mt-6 border-t border-outline-variant/20 pt-4">
                 <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="nfc" className="text-sm text-primary" /> CARTEIRA DIGITAL & APROXIMAÇÃO NFC</p>
                 <p className="text-[10px] text-slate-400 mt-1">Adicione o cartão à carteira para pagamentos por aproximação em maquininhas de postos sem precisar de cartão físico.</p>
-                <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-2">
                   <button onClick={handleGoogleWalletClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
                     <Icon name="google" className="text-sm text-primary" /> GOOGLE WALLET
                   </button>
-                  <button onClick={handleApplePayClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
+                  <button onClick={handleApplePayClick} type="button" className="hidden sm:flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
                     <Icon name="phone_iphone" className="text-sm text-primary" /> APPLE PAY
                   </button>
                 </div>
