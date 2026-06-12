@@ -297,6 +297,10 @@ input[type="time"] {
   color: var(--on-surface) !important;
 }
 
+.date-range-picker-input {
+  color: #000 !important;
+}
+
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
   filter: var(--calendar-filter, none);
