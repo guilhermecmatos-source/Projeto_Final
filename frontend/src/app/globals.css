@@ -281,15 +281,102 @@ html[data-theme="high-contrast"] .raised-card {
 html[data-theme="colorblind"] {
   --primary-hue: 220;
 }
+
 html[data-theme="low-vision"] body {
-  font-size: 18px;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  line-height: 1.7;
 }
 html[data-theme="low-vision"] .text-headline-md,
 html[data-theme="low-vision"] .text-headline-lg {
-  font-size: 1.75rem;
+  font-size: 2rem;
+  line-height: 2.5rem;
 }
-html[data-theme="corporate-yellow"] .text-primary {
-  color: #b8860b;
+html[data-theme="low-vision"] .text-sm {
+  font-size: 1rem;
+}
+html[data-theme="low-vision"] .text-xs {
+  font-size: 0.875rem;
+}
+html[data-theme="low-vision"] .raised-card {
+  border-width: 2px;
+}
+html[data-theme="low-vision"] .input-fleet {
+  height: 3.5rem;
+  font-size: 1.1rem;
+}
+html[data-theme="low-vision"] .btn-primary,
+html[data-theme="low-vision"] .btn-secondary {
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+}
+
+html[data-theme="corporate-blue"] {
+  color-scheme: dark;
+  --background: #040d1c;
+  --on-surface: #e8f0fe;
+  --on-surface-variant: #8baed8;
+  --surface: #040d1c;
+  --surface-low: #071428;
+  --surface-lowest: #040d1c;
+  --surface-high: #0d2040;
+  --surface-highest: #142b52;
+  --outline: #1e3a6e;
+  --outline-variant: #0f2444;
+  --primary-fixed: #0a1f42;
+  --secondary-fixed: #0d2a5e;
+  --on-primary: #ffffff;
+  --calendar-filter: invert(1);
+}
+
+html[data-theme="corporate-blue"] .text-primary {
+  color: #4da6ff;
+}
+html[data-theme="corporate-blue"] .bg-primary {
+  background-color: #1a5fbd;
+}
+html[data-theme="corporate-blue"] .bg-primary-container {
+  background-color: #1a5fbd;
+}
+html[data-theme="corporate-blue"] .border-primary {
+  border-color: #4da6ff;
+}
+html[data-theme="corporate-blue"] .btn-primary {
+  background-color: #1a5fbd;
+  color: #ffffff;
+}
+html[data-theme="corporate-blue"] .btn-primary:hover {
+  background-color: #2470d8;
+}
+html[data-theme="corporate-blue"] .nav-active {
+  background-color: #1a5fbd;
+  color: #ffffff;
+}
+html[data-theme="corporate-blue"] .chip-active {
+  background-color: rgba(77, 166, 255, 0.15);
+  color: #4da6ff;
+}
+
+html[data-theme="corporate-white"] {
+  color-scheme: light;
+  --background: #f0f4ff;
+  --on-surface: #0a1628;
+  --on-surface-variant: #2a4a7a;
+  --surface: #ffffff;
+  --surface-low: #e8eeff;
+  --surface-lowest: #ffffff;
+  --surface-high: #d0daff;
+  --surface-highest: #b8caff;
+  --outline: #4a6fa5;
+  --outline-variant: #c0ceee;
+  --primary-fixed: #dce6ff;
+  --secondary-fixed: #c8d8ff;
+  --on-primary: #ffffff;
+  --calendar-filter: none;
+}
+
+html[data-theme="corporate-yellow"] {
+  color-scheme: dark;
 }
 
 input[type="date"],

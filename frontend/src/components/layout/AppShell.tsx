@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopHeader from "./TopHeader";
@@ -8,9 +8,13 @@ import MobileBottomNav from "./MobileBottomNav";
 import OfflineIndicator from "@/components/ui/OfflineIndicator";
 import LoadingState from "@/components/ui/LoadingState";
 import AccessDenied from "@/components/ui/AccessDenied";
+import ToastContainer from "@/components/ui/ToastContainer";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
+import { useTelemetryPolling } from "@/hooks/useTelemetryPolling";
 import { canAccessRoute } from "@/lib/permissions";
 import Icon from "@/components/ui/Icon";
+import type { TelemetryAlert } from "@/types";
 
 interface AppShellProps {
   children: ReactNode;
@@ -31,6 +35,28 @@ export default function AppShell({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // ── Toast system ──────────────────────────────────────────────
+  const { toasts, addTelemetryAlert, removeToast } = useToast();
+
+  const handleTelemetryAlert = useCallback(
+    (alert: TelemetryAlert) => {
+      addTelemetryAlert(alert);
+    },
+    [addTelemetryAlert]
+  );
+
+  // Polling — só envia alertas quando usuário está autenticado
+  const isAuthenticated = ready && !!user;
+  const stableAlert = useCallback(
+    (alert: TelemetryAlert) => {
+      if (isAuthenticated) handleTelemetryAlert(alert);
+    },
+    [isAuthenticated, handleTelemetryAlert]
+  );
+
+  useTelemetryPolling(stableAlert);
+  // ─────────────────────────────────────────────────────────────
+
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center safe-area-padding">
@@ -48,6 +74,9 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Toast de telemetria — Portal no topo da tela */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
       {sidebarOpen && (
         <button
           type="button"

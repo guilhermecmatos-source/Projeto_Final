@@ -9,7 +9,7 @@ import { filterNavByRole } from "@/lib/permissions";
 import { IMAGES } from "@/lib/images";
 import { User } from "@/types";
 import { authApi } from "@/services/api";
-import { getStoredTheme, applyTheme, ThemeId } from "@/lib/themes";
+import { getStoredTheme, applyTheme, ThemeId, THEME_OPTIONS } from "@/lib/themes";
 
 interface SidebarProps {
   user: User | null;
@@ -28,12 +28,6 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
   useEffect(() => {
     setCurrentTheme(getStoredTheme());
   }, []);
-
-  const toggleTheme = () => {
-    const nextTheme = currentTheme === "dark" ? "light" : "dark";
-    setCurrentTheme(nextTheme);
-    applyTheme(nextTheme);
-  };
 
   useEffect(() => {
     const getQueueSize = () => {
@@ -152,14 +146,22 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
           </div>
         </div>
         <div className="mb-3">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-high py-2 text-xs font-bold uppercase text-on-surface-variant hover:border-primary hover:text-primary transition"
+          <label className="mb-1 block text-[9px] uppercase tracking-wider text-on-surface-variant font-bold">
+            Tema da Interface
+          </label>
+          <select
+            value={currentTheme}
+            onChange={(e) => {
+              const t = e.target.value as ThemeId;
+              setCurrentTheme(t);
+              applyTheme(t);
+            }}
+            className="w-full rounded bg-surface border border-outline-variant p-1.5 text-[10px] text-on-surface focus:outline-none cursor-pointer"
           >
-            <Icon name={currentTheme === "dark" ? "light_mode" : "dark_mode"} className="text-sm" />
-            {currentTheme === "dark" ? "Modo Claro (Dia)" : "Modo Escuro (Noite)"}
-          </button>
+            {THEME_OPTIONS.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex gap-2">

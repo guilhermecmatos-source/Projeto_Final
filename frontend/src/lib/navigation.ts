@@ -15,6 +15,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/inspection", label: "Inspeção Veicular", icon: "fact_check" },
   { href: "/ai-security", label: "IA Suporte", icon: "psychology" },
   { href: "/intelligence", label: "Fleet Intelligence", icon: "insights" },
+  { href: "/marketplace", label: "Marketplace de Ativos", icon: "storefront" },
   { href: "/reports", label: "Relatórios Estratégicos", icon: "bar_chart" },
   { href: "/partners", label: "Parceiros & Oficinas", icon: "handshake" },
   { href: "/admin-solicitacoes", label: "Aprovações RUV", icon: "rule" },
