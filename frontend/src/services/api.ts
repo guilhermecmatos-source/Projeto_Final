@@ -197,3 +197,11 @@ export const telemetryApi = {
   simulate: (data: { category: string; title: string; message: string; severity: string }) =>
     api.post("/telemetry/alerts/simulate", data),
 };
+
+export const copilotApi = {
+  chat: (
+    messages: { role: string; text: string }[],
+    activeModule: string,
+    vehicleContext?: Record<string, unknown>
+  ) => api.post("/ai-chat", { messages, activeModule, vehicleContext }),
+};
