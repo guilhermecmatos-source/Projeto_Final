@@ -98,6 +98,7 @@ export const driversApi = {
 export const travelsApi = {
   list: (search?: string) => api.get("/travels", { params: search ? { search } : {} }),
   carpoolMatches: () => api.get("/travels/carpool/matches"),
+  positions: () => api.get("/travels/positions"),
   get: (id: string) => api.get(`/travels/${id}`),
   create: (data: Record<string, unknown>) => api.post("/travels", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/travels/${id}`, data),

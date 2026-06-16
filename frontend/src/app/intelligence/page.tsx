@@ -397,28 +397,52 @@ export default function IntelligencePage() {
                               {v.brand} {v.model}
                             </p>
                           </div>
-                          <p className="text-xs text-on-surface-variant">
-                            {v.mileage.toLocaleString("pt-BR")} km
-                          </p>
+                          <div className="flex flex-col items-end gap-1 text-right">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              v.failureProbability >= 60
+                                ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                                : v.failureProbability >= 30
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                : "bg-green-500/20 text-green-400 border border-green-500/40"
+                            }`}>
+                              Risco Falha: {v.failureProbability}%
+                            </span>
+                            <p className="text-[10px] text-on-surface-variant">
+                              {v.mileage.toLocaleString("pt-BR")} km
+                            </p>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          {v.parts.map((p) => (
-                            <div key={p.name} className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-on-surface-variant flex-1 min-w-0 truncate">
-                                {p.name}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-on-surface">
-                                  {p.kmUntilChange.toLocaleString("pt-BR")} km
-                                </span>
-                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
-                                  PART_SEVERITY[p.severity]?.cls ?? "chip-active"
-                                }`}>
-                                  {PART_SEVERITY[p.severity]?.label ?? p.severity}
-                                </span>
+                        <div className="space-y-3">
+                          {v.parts.map((p) => {
+                            const integrity = Math.max(0, Math.min(100, Math.round((p.kmUntilChange / p.intervalKm) * 100)));
+                            return (
+                              <div key={p.name} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-on-surface-variant truncate max-w-[120px]">{p.name}</span>
+                                  <div className="flex items-center gap-1.5 font-mono">
+                                    <span className="text-on-surface">{p.kmUntilChange.toLocaleString("pt-BR")} km</span>
+                                    <span className={`text-[9px] font-bold uppercase px-1 rounded ${
+                                      PART_SEVERITY[p.severity]?.cls ?? "chip-active"
+                                    }`}>
+                                      {integrity}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${
+                                      p.severity === "critical"
+                                        ? "bg-red-500"
+                                        : p.severity === "warning"
+                                        ? "bg-amber-500"
+                                        : "bg-green-500"
+                                    }`}
+                                    style={{ width: `${integrity}%` }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                         {v.lastMaintenance && (
                           <p className="mt-3 border-t border-outline-variant pt-2 text-[10px] text-on-surface-variant">
