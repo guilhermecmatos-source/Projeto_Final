@@ -118,6 +118,7 @@ export interface VehiclePredictiveReport {
   model: string;
   mileage: number;
   lastMaintenance: string | null;
+  failureProbability?: number;
   parts: PredictivePart[];
 }
 

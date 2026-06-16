@@ -13,6 +13,9 @@ import { travelsApi, vehiclesApi } from "@/services/api";
 import { formatPlateDisplay } from "@/lib/validators";
 import { addToSyncQueue, saveLogisticsDraft } from "@/lib/offline";
 import GoogleMapsGeoselector from "@/components/forms/GoogleMapsGeoselector";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import ListPageStates from "@/components/ui/ListPageStates";
+import { CardSkeleton, ListRowSkeleton } from "@/components/ui/LoadingSkeleton";
 
 interface Vehicle {
   id: string;
@@ -63,6 +66,7 @@ export default function LogisticsPage() {
   const [matches, setMatches] = useState<CarpoolMatch[]>([]);
   const [travels, setTravels] = useState<TravelRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -84,13 +88,16 @@ export default function LogisticsPage() {
 
   const load = () => {
     setLoading(true);
+    setError(null);
     Promise.all([vehiclesApi.list(), travelsApi.list(), travelsApi.carpoolMatches()])
       .then(([vRes, tRes, mRes]) => {
         setVehicles((vRes.data as Vehicle[]) ?? []);
         setTravels((tRes.data as TravelRow[]) ?? []);
         setMatches((mRes.data as CarpoolMatch[]) ?? []);
       })
-      .catch(() => {})
+      .catch((err) => {
+        setError("Não foi possível carregar os dados de logística.");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -140,74 +147,97 @@ export default function LogisticsPage() {
 
   return (
     <AppShell>
-      <PageHeader
-        breadcrumb="Logistics"
-        title="Logística & Caronas"
-        subtitle="Agende despachos com veículos da frota e aproveite viagens compatíveis para carona corporativa."
-        actions={
-          <>
-            <ActionButton variant="outline" onClick={() => setMovementModalOpen(true)}>
-              <Icon name="edit_road" />
-              Registrar Movimentação
-            </ActionButton>
-            <ActionButton onClick={() => setDispatchModalOpen(true)}>
-              <Icon name="add_task" />
-              Agendar Despacho
-            </ActionButton>
-          </>
-        }
-      />
+      <ErrorBoundary>
+        <PageHeader
+          breadcrumb="Logistics"
+          title="Logística & Caronas"
+          subtitle="Agende despachos com veículos da frota e aproveite viagens compatíveis para carona corporativa."
+          actions={
+            <>
+              <ActionButton variant="outline" onClick={() => setMovementModalOpen(true)}>
+                <Icon name="edit_road" />
+                Registrar Movimentação
+              </ActionButton>
+              <ActionButton onClick={() => setDispatchModalOpen(true)}>
+                <Icon name="add_task" />
+                Agendar Despacho
+              </ActionButton>
+            </>
+          }
+        />
 
-      <section className="mb-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-headline-sm">Caronas — viagens compatíveis</h2>
-          <span className="rounded-full bg-primary-container/10 px-3 py-1 text-label-md text-primary">
-            {loading ? "..." : `${matches.length} sugestão(ões)`}
-          </span>
-        </div>
-        {loading ? (
-          <p className="text-on-surface-variant">Carregando matching...</p>
-        ) : matches.length === 0 ? (
-          <p className="raised-card p-4 text-on-surface-variant">
-            Cadastre viagens com origem/destino semelhantes para ver sugestões de carona.
-          </p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {matches.map((m) => {
-              const pct = Math.min(99, 70 + Number(m.match_score) * 8);
-              return (
-                <div
-                  key={m.id}
-                  className={`raised-card flex flex-col justify-between border-l-4 p-4 ${pct > 85 ? "border-l-secondary-container" : "border-l-primary"}`}
-                >
-                  <div>
-                    <div className="mb-2 flex justify-between">
-                      <span className="text-label-md font-bold text-primary">MATCH {pct}%</span>
-                      <span className="text-label-md text-on-surface-variant">{STATUS_PT[m.status] ?? m.status}</span>
-                    </div>
-                    <p className="font-bold">{m.origin}</p>
-                    <p className="text-sm text-on-surface-variant">→ {m.destination}</p>
-                    <p className="mt-2 text-xs text-on-surface-variant">
-                      {formatPlateDisplay(m.vehicle_plate)} • {m.driver_name}
-                    </p>
-                  </div>
-                  <ActionButton variant="outline" className="mt-4 w-full justify-center" onClick={() => { setDestination(m.destination); setDispatchModalOpen(true); }}>
-                    Criar despacho relacionado
-                  </ActionButton>
-                </div>
-              );
-            })}
+        <section className="mb-8">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-headline-sm">Caronas — viagens compatíveis</h2>
+            <span className="rounded-full bg-primary-container/10 px-3 py-1 text-label-md text-primary">
+              {loading ? "..." : `${matches.length} sugestão(ões)`}
+            </span>
           </div>
-        )}
-      </section>
+          <ListPageStates
+            loading={loading}
+            error={error}
+            isEmpty={matches.length === 0}
+            onRetry={load}
+            emptyTitle="Nenhuma sugestão de carona"
+            emptyDescription="Cadastre viagens com origem/destino semelhantes para ver sugestões de carona."
+            emptyIcon="directions_car"
+            skeleton={
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            }
+          >
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {matches.map((m) => {
+                const pct = Math.min(99, 70 + Number(m.match_score) * 8);
+                return (
+                  <div
+                    key={m.id}
+                    className={`raised-card flex flex-col justify-between border-l-4 p-4 ${pct > 85 ? "border-l-secondary-container" : "border-l-primary"}`}
+                  >
+                    <div>
+                      <div className="mb-2 flex justify-between">
+                        <span className="text-label-md font-bold text-primary">MATCH {pct}%</span>
+                        <span className="text-label-md text-on-surface-variant">{STATUS_PT[m.status] ?? m.status}</span>
+                      </div>
+                      <p className="font-bold">{m.origin}</p>
+                      <p className="text-sm text-on-surface-variant">→ {m.destination}</p>
+                      <p className="mt-2 text-xs text-on-surface-variant">
+                        {formatPlateDisplay(m.vehicle_plate)} • {m.driver_name}
+                      </p>
+                    </div>
+                    <ActionButton variant="outline" className="mt-4 w-full justify-center" onClick={() => { setDestination(m.destination); setDispatchModalOpen(true); }}>
+                      Criar despacho relacionado
+                    </ActionButton>
+                  </div>
+                );
+              })}
+            </div>
+          </ListPageStates>
+        </section>
 
       <section className="raised-card p-6">
         <h2 className="mb-4 text-headline-sm">Despachos cadastrados</h2>
-        <div className="divide-y divide-outline-variant/30 overflow-hidden rounded-lg border border-outline-variant">
-          {travels.length === 0 ? (
-            <p className="p-4 text-on-surface-variant">Nenhum despacho no sistema.</p>
-          ) : (
-            travels.slice(0, 8).map((d) => (
+        <ListPageStates
+          loading={loading}
+          error={error}
+          isEmpty={travels.length === 0}
+          onRetry={load}
+          emptyTitle="Nenhum despacho no sistema"
+          emptyDescription="Nenhum despacho cadastrado no sistema no momento."
+          emptyIcon="local_shipping"
+          skeleton={
+            <div className="space-y-3">
+              <ListRowSkeleton />
+              <ListRowSkeleton />
+              <ListRowSkeleton />
+            </div>
+          }
+        >
+          <div className="divide-y divide-outline-variant/30 overflow-hidden rounded-lg border border-outline-variant">
+            {travels.slice(0, 8).map((d) => (
               <div key={d.id} className="flex items-center justify-between p-4 hover:bg-surface-container-low">
                 <div>
                   <p className="font-bold">{d.origin} → {d.destination}</p>
@@ -215,9 +245,9 @@ export default function LogisticsPage() {
                 </div>
                 <span className="chip-active">{STATUS_PT[d.status] ?? d.status}</span>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </ListPageStates>
       </section>
 
       <FormModal open={dispatchModalOpen} onClose={() => setDispatchModalOpen(false)} title="Agendamento Assistido" subtitle="Selecione veículo e destino" wide>
@@ -337,6 +367,7 @@ export default function LogisticsPage() {
         onSelect={handleMapSelect}
         title={mapTarget === "departure_location" ? "Selecione o Local de Saída" : "Selecione o Local de Chegada"}
       />
+      </ErrorBoundary>
     </AppShell>
   );
 }

@@ -65,6 +65,8 @@ export const geocodingApi = {
   distance: (origin: string, destination: string) =>
     api.get("/geocoding/distance", { params: { origin, destination } }),
   places: (q: string) => api.get("/geocoding/places", { params: { q } }),
+  routePoints: (origin: string, destination: string) =>
+    api.get("/geocoding/routes/points", { params: { origin, destination } }),
 };
 
 export const uploadsApi = {

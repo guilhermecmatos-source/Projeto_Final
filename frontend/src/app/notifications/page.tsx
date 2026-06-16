@@ -6,6 +6,7 @@ import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import FormModal from "@/components/ui/FormModal";
 import { ruvApi, usersApi } from "@/services/api";
+import { useTelemetrySocket } from "@/hooks/useTelemetrySocket";
 
 interface NotificationItem {
   id: string;
@@ -46,6 +47,36 @@ export default function NotificationsPage() {
   const [pendingRuvs, setPendingRuvs] = useState<PendingRuv[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("all");
+
+  // Escutar alertas via WebSocket em tempo real para alimentar a listagem
+  useTelemetrySocket(true, (alert) => {
+    setNotifications((prev) => {
+      // Evitar duplicados
+      if (prev.some((n) => n.id === alert.id)) return prev;
+
+      // Traduzir categorias do backend para as do feed do frontend
+      let categoryMap: NotificationItem["category"] = "sistema";
+      if (alert.type === "mechanical") categoryMap = "sistema";
+      else if (alert.type === "fatigue") categoryMap = "motoristas";
+      else if (alert.type === "route_deviation") categoryMap = "antt";
+
+      let severityMap: NotificationItem["severity"] = "info";
+      if (alert.severity === "critical") severityMap = "error";
+      else if (alert.severity === "high") severityMap = "warning";
+
+      const newItem: NotificationItem = {
+        id: alert.id,
+        timestamp: new Date(alert.timestamp || Date.now()).toLocaleTimeString("pt-BR"),
+        category: categoryMap,
+        title: alert.title,
+        message: alert.message,
+        status: "unread",
+        severity: severityMap,
+      };
+
+      return [newItem, ...prev];
+    });
+  });
   
   // Decision modal state (HUD trigger action)
   const [selectedRuv, setSelectedRuv] = useState<PendingRuv | null>(null);

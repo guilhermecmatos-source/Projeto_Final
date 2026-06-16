@@ -11,7 +11,7 @@ import AccessDenied from "@/components/ui/AccessDenied";
 import ToastContainer from "@/components/ui/ToastContainer";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
-import { useTelemetryPolling } from "@/hooks/useTelemetryPolling";
+import { useTelemetrySocket } from "@/hooks/useTelemetrySocket";
 import { canAccessRoute } from "@/lib/permissions";
 import Icon from "@/components/ui/Icon";
 import type { TelemetryAlert } from "@/types";
@@ -45,7 +45,7 @@ export default function AppShell({
     [addTelemetryAlert]
   );
 
-  // Polling — só envia alertas quando usuário está autenticado
+  // WebSockets — só envia alertas quando usuário está autenticado
   const isAuthenticated = ready && !!user;
   const stableAlert = useCallback(
     (alert: TelemetryAlert) => {
@@ -54,7 +54,7 @@ export default function AppShell({
     [isAuthenticated, handleTelemetryAlert]
   );
 
-  useTelemetryPolling(stableAlert);
+  useTelemetrySocket(isAuthenticated, stableAlert);
   // ─────────────────────────────────────────────────────────────
 
   if (!ready) {

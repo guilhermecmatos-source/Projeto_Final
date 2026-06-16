@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
+import { geocodingApi } from "@/services/api";
 import * as L from 'leaflet';
 
 interface VehicleMarker {
@@ -15,8 +16,8 @@ interface VehicleMarker {
 
 const FLEET_VEHICLES: VehicleMarker[] = [
   { id: "1", plate: "ABC-1234", lat: -10.184, lng: -48.333, speed: 62, heading: "Palmas → Gurupi" },
-  { id: "2", plate: "DEF-5678", lat: -10.212, lng: -48.360, speed: 48, heading: "Araguaína → Palmas" },
-  { id: "3", plate: "GHI-9012", lat: -10.170, lng: -48.310, speed: 71, heading: "Hub Palmas" },
+  { id: "2", plate: "DEF-5678", lat: -11.729, lng: -49.068, speed: 48, heading: "Gurupi → Palmas" },
+  { id: "3", plate: "GHI-9012", lat: -10.184, lng: -48.333, speed: 71, heading: "Palmas → Araguaína" },
 ];
 
 export default function SatelliteOperationalMap() {
@@ -30,6 +31,36 @@ export default function SatelliteOperationalMap() {
   const [vehicles, setVehicles] = useState(FLEET_VEHICLES);
   const [ready, setReady] = useState(false);
 
+  // Estados para as rotas reais consumidas da API do backend
+  const [routePalmasGurupi, setRoutePalmasGurupi] = useState<{ lat: number; lng: number }[]>([]);
+  const [routePalmasAraguaina, setRoutePalmasAraguaina] = useState<{ lat: number; lng: number }[]>([]);
+
+  // Índices e direções da simulação
+  const indicesRef = useRef({ v1: 0, v2: 0, v3: 0 });
+  const dirsRef = useRef({ v1: 1, v2: -1, v3: 1 }); // 1 = ida, -1 = volta
+
+  // Carregar as rotas da API no mount
+  useEffect(() => {
+    Promise.all([
+      geocodingApi.routePoints("Palmas", "Gurupi"),
+      geocodingApi.routePoints("Palmas", "Araguaína")
+    ])
+      .then(([rgRes, raRes]) => {
+        if (rgRes.data?.points) {
+          setRoutePalmasGurupi(rgRes.data.points);
+          indicesRef.current.v1 = 0;
+          indicesRef.current.v2 = rgRes.data.points.length - 1; // Começa de Gurupi
+        }
+        if (raRes.data?.points) {
+          setRoutePalmasAraguaina(raRes.data.points);
+          indicesRef.current.v3 = 0;
+        }
+      })
+      .catch((err) => {
+        console.error("[map] Erro ao obter rotas geográficas do backend:", err);
+      });
+  }, []);
+
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
 
@@ -42,20 +73,23 @@ export default function SatelliteOperationalMap() {
 
       const map = L.map(mapRef.current, {
         center: [-10.184, -48.333],
-        zoom: 11,
+        zoom: 7, // zoom menor para ver Palmas, Gurupi e Araguaína
         zoomControl: false,
       });
 
       L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { attribution: "Esri, Maxar, Earthstar Geographics", maxZoom: 19 }
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        { 
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', 
+          maxZoom: 19 
+        }
       ).addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
       const truckIcon = L.divIcon({
-        className: "transition-[left,top,transform] duration-[4000ms] ease-linear",
-        html: `<div style="background:#007194;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">
+        className: "leaflet-truck-icon-container",
+        html: `<div style="background:#007194;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:all 0.3s ease;">
           <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff" xmlns="http://www.w3.org/2000/svg">
             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-5h14v5zm-1.5-1.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
           </svg>
@@ -99,7 +133,7 @@ export default function SatelliteOperationalMap() {
           import("leaflet").then(({ default: L }) => {
             if (!mapInstance.current) return;
             if (!hasCentered.current) {
-              mapInstance.current.setView([latitude, longitude], 12);
+              mapInstance.current.setView([latitude, longitude], 9);
               hasCentered.current = true;
             }
             if (userMarkerRef.current) {
@@ -124,24 +158,73 @@ export default function SatelliteOperationalMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [ready]);
 
+  // Simular movimentação fluida dos veículos baseada nos pontos da rota da API
   useEffect(() => {
+    if (routePalmasGurupi.length === 0 || routePalmasAraguaina.length === 0) return;
+
     const id = setInterval(() => {
       setVehicles((prev) =>
-        prev.map((v) => ({
-          ...v,
-          lat: v.lat + (Math.random() - 0.5) * 0.002,
-          lng: v.lng + (Math.random() - 0.5) * 0.002,
-          speed: Math.round(Math.max(0, Math.min(90, v.speed + (Math.random() - 0.5) * 6))),
-        }))
-      );
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
+        prev.map((v) => {
+          let route = routePalmasGurupi;
+          let idxKey: "v1" | "v2" | "v3" = "v1";
 
+          if (v.id === "1") {
+            route = routePalmasGurupi;
+            idxKey = "v1";
+          } else if (v.id === "2") {
+            route = routePalmasGurupi;
+            idxKey = "v2";
+          } else if (v.id === "3") {
+            route = routePalmasAraguaina;
+            idxKey = "v3";
+          }
+
+          let idx = indicesRef.current[idxKey];
+          let dir = dirsRef.current[idxKey];
+
+          // Avança na direção correspondente
+          idx += dir;
+          
+          if (idx >= route.length) {
+            idx = route.length - 2;
+            dir = -1; // Volta na rota
+          } else if (idx < 0) {
+            idx = 1;
+            dir = 1; // Segue na rota novamente
+          }
+
+          indicesRef.current[idxKey] = idx;
+          dirsRef.current[idxKey] = dir;
+
+          const nextPoint = route[idx];
+          
+          let heading = "";
+          if (v.id === "1") heading = dir === 1 ? "Palmas → Gurupi" : "Gurupi → Palmas";
+          if (v.id === "2") heading = dir === 1 ? "Palmas → Gurupi" : "Gurupi → Palmas";
+          if (v.id === "3") heading = dir === 1 ? "Palmas → Araguaína" : "Araguaína → Palmas";
+
+          return {
+            ...v,
+            lat: nextPoint.lat,
+            lng: nextPoint.lng,
+            heading,
+            speed: Math.round(Math.max(50, Math.min(90, v.speed + (Math.random() - 0.5) * 10))),
+          };
+        })
+      );
+    }, 4000);
+
+    return () => clearInterval(id);
+  }, [routePalmasGurupi, routePalmasAraguaina]);
+
+  // Atualizar marcadores no mapa Leaflet
   useEffect(() => {
     if (!mapInstance.current || !ready) return;
     vehicles.forEach((v, i) => {
-      markersRef.current[i]?.setLatLng([v.lat, v.lng]);
+      if (markersRef.current[i]) {
+        markersRef.current[i].setLatLng([v.lat, v.lng]);
+        markersRef.current[i].setPopupContent(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`);
+      }
     });
   }, [vehicles, ready]);
 
@@ -159,7 +242,7 @@ export default function SatelliteOperationalMap() {
         )}
       </div>
 
-      <div ref={mapRef} className="h-[280px] w-full md:h-[360px]" />
+      <div ref={mapRef} className="h-[280px] w-full md:h-[360px] rounded-b-xl overflow-hidden" />
 
       <div className="flex flex-wrap gap-2 border-t border-outline-variant bg-surface-container-low p-3">
         {vehicles.map((v) => (

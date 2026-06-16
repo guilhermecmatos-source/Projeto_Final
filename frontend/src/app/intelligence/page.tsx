@@ -5,6 +5,8 @@ import AppShell from "@/components/layout/AppShell";
 import PageHeader from "@/components/ui/PageHeader";
 import LoadingState from "@/components/ui/LoadingState";
 import ErrorState from "@/components/ui/ErrorState";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { KpiSkeleton, CardSkeleton } from "@/components/ui/LoadingSkeleton";
 import { intelligenceApi, dashboardApi } from "@/services/api";
 import { extractApiError } from "@/lib/api-errors";
 import { formatBRL, formatBRLCompact } from "@/lib/currency";
@@ -118,11 +120,24 @@ export default function IntelligencePage() {
 
       {/* ── Estados de loading / erro ─────────────────────────────── */}
       {loading ? (
-        <LoadingState message="Carregando dados de inteligência..." />
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : (
-        <>
+        <ErrorBoundary>
+          <>
           {/* ═══════════════════════════════════ ABA EXECUTIVO ══════════════════════════════════ */}
           {activeTab === "Executivo" && analytics && (
             <div className="space-y-6">
@@ -388,51 +403,83 @@ export default function IntelligencePage() {
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {predictiveParts.map((v) => (
-                      <div key={v.vehicleId} className="raised-card p-4">
-                        <div className="mb-3 flex items-start justify-between">
+                    {predictiveParts.map((v) => {
+                      const failureProb = v.failureProbability ?? 10;
+                      return (
+                        <div key={v.vehicleId} className="raised-card p-4 border border-outline-variant/30 hover:border-primary/50 transition-all flex flex-col justify-between">
                           <div>
-                            <p className="font-bold text-primary">{v.plate}</p>
-                            <p className="text-xs text-on-surface-variant">
-                              {v.brand} {v.model}
-                            </p>
-                          </div>
-                          <p className="text-xs text-on-surface-variant">
-                            {v.mileage.toLocaleString("pt-BR")} km
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          {v.parts.map((p) => (
-                            <div key={p.name} className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-on-surface-variant flex-1 min-w-0 truncate">
-                                {p.name}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-on-surface">
-                                  {p.kmUntilChange.toLocaleString("pt-BR")} km
-                                </span>
-                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
-                                  PART_SEVERITY[p.severity]?.cls ?? "chip-active"
+                            <div className="mb-2 flex items-start justify-between">
+                              <div>
+                                <p className="font-bold text-primary text-sm font-mono">{v.plate}</p>
+                                <p className="text-xs text-on-surface-variant">
+                                  {v.brand} {v.model}
+                                </p>
+                              </div>
+                              <p className="text-xs text-on-surface-variant font-mono">
+                                {v.mileage.toLocaleString("pt-BR")} km
+                              </p>
+                            </div>
+
+                            {/* Probabilidade Dinâmica de Falha Mecânica */}
+                            <div className="mb-4 rounded-lg bg-surface-container-high/60 p-3 border border-outline-variant/20">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Probabilidade de Falha</span>
+                                <span className={`text-xs font-black font-mono px-2 py-0.5 rounded ${
+                                  failureProb > 60 ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  failureProb > 30 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                                  "bg-green-500/20 text-green-400 border border-green-500/30"
                                 }`}>
-                                  {PART_SEVERITY[p.severity]?.label ?? p.severity}
+                                  {failureProb}%
                                 </span>
                               </div>
+                              <div className="h-2 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    failureProb > 60 ? "bg-red-500" :
+                                    failureProb > 30 ? "bg-amber-500" :
+                                    "bg-green-500"
+                                  }`} 
+                                  style={{ width: `${failureProb}%` }} 
+                                />
+                              </div>
                             </div>
-                          ))}
+
+                            {/* Barras de Integridade das Autopeças */}
+                            <div className="space-y-3">
+                              <p className="text-[10px] font-black uppercase text-primary tracking-widest border-b border-outline-variant/30 pb-1 mb-2">Integridade de Componentes</p>
+                              {v.parts.map((p) => {
+                                const lifePct = Math.max(0, Math.min(100, Math.round((p.kmUntilChange / p.intervalKm) * 100)));
+                                const barColor = lifePct < 20 ? "bg-red-500" : lifePct < 50 ? "bg-amber-500" : "bg-green-500";
+                                return (
+                                  <div key={p.name} className="space-y-1">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="text-on-surface-variant font-medium">{p.name}</span>
+                                      <span className="text-on-surface font-semibold font-mono">{p.kmUntilChange.toLocaleString("pt-BR")} km ({lifePct}%)</span>
+                                    </div>
+                                    <div className="h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                                      <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${lifePct}%` }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {v.lastMaintenance && (
+                            <p className="mt-4 border-t border-outline-variant/30 pt-2 text-[10px] text-on-surface-variant font-mono">
+                              Última manutenção: {new Date(v.lastMaintenance).toLocaleDateString("pt-BR")}
+                            </p>
+                          )}
                         </div>
-                        {v.lastMaintenance && (
-                          <p className="mt-3 border-t border-outline-variant pt-2 text-[10px] text-on-surface-variant">
-                            Última manutenção: {new Date(v.lastMaintenance).toLocaleDateString("pt-BR")}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
-              </div>
             </div>
-          )}
-        </>
+          </div>
+        )}
+          </>
+        </ErrorBoundary>
       )}
     </AppShell>
   );

@@ -8,6 +8,8 @@ import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
 import FormField from "@/components/forms/FormField";
 import ListPageStates from "@/components/ui/ListPageStates";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { ListRowSkeleton } from "@/components/ui/LoadingSkeleton";
 import { fuelApi, uploadsApi, vehiclesApi, driversApi } from "@/services/api";
 import { extractApiError } from "@/lib/api-errors";
 import { formatBRL } from "@/lib/currency";
@@ -240,7 +242,8 @@ export default function FuelPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <ErrorBoundary>
+        <PageHeader
         breadcrumb="Sede Central / Unidade Operacional / Supplies"
         title="ABASTECIMENTO & CONTROLE DE SALDOS"
         subtitle="Gerencie o ciclo operacional de abastecimento, escaneie cupons fiscais e audite cartões pré-pagos NFC integrados."
@@ -643,6 +646,13 @@ export default function FuelPage() {
               emptyTitle="Nenhum abastecimento registrado"
               emptyDescription="Registre o primeiro lançamento de combustível."
               emptyIcon="local_gas_station"
+              skeleton={
+                <div className="space-y-3">
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                </div>
+              }
             >
               <div className="divide-y divide-outline-variant/20 max-h-[60vh] overflow-y-auto pr-1">
                 {records.map((r) => (
@@ -1048,6 +1058,7 @@ export default function FuelPage() {
           )}
         </div>
       </FormModal>
+      </ErrorBoundary>
     </AppShell>
   );
 }
