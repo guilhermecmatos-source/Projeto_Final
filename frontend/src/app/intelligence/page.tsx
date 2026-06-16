@@ -416,7 +416,6 @@ export default function IntelligencePage() {
                           <p className="text-xs text-on-surface-variant">
                             {v.mileage.toLocaleString("pt-BR")} km
                           </p>
-                        </div>
                         <div className="space-y-2">
                           {v.parts.map((p) => (
                             <div key={p.name} className="flex items-center justify-between gap-2">
@@ -442,7 +441,8 @@ export default function IntelligencePage() {
                           </p>
                         )}
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 )}
             </div>

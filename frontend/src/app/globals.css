@@ -383,9 +383,22 @@ input[type="date"],
 input[type="time"] {
   color: var(--on-surface) !important;
 }
-
 .date-range-picker-input {
-  color: #000 !important;
+  color: #000000 !important;
+  color-scheme: light !important;
+}
+
+.date-range-picker-input::-webkit-datetime-edit,
+.date-range-picker-input::-webkit-datetime-edit-fields-wrapper,
+.date-range-picker-input::-webkit-datetime-edit-text,
+.date-range-picker-input::-webkit-datetime-edit-month-field,
+.date-range-picker-input::-webkit-datetime-edit-day-field,
+.date-range-picker-input::-webkit-datetime-edit-year-field {
+  color: #000000 !important;
+}
+
+.date-range-picker-input::-webkit-calendar-picker-indicator {
+  filter: none !important;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator,
