@@ -2,11 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import Icon from "@/components/ui/Icon";
+import AuthHero from "@/components/auth/AuthHero";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+
+  const bgImage = "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=2000";
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -14,112 +16,81 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="flex min-h-screen">
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-mesh p-8 lg:flex lg:w-1/2">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0 L0 0 0 40' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`,
-          }}
-        />
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="rounded-lg bg-white p-1">
-            <Icon name="terminal" className="text-3xl text-primary" filled />
-          </div>
-          <h1 className="text-headline-md text-white">FleetAI</h1>
-        </div>
-        <div className="relative z-10 max-w-lg">
-          <h2 className="mb-4 text-headline-lg leading-tight text-white">
-            Mantenha o controle da sua infraestrutura.
-          </h2>
-          <p className="text-body-lg text-on-primary-container/90">
-            A plataforma FleetAI oferece inteligência em tempo real para operadores que demandam
-            precisão e confiabilidade em logística de alta escala.
-          </p>
-        </div>
-        <p className="relative z-10 text-label-md text-on-primary-container">
-          Confiado por mais de 5.000 operadores globais.
-        </p>
-      </section>
+    <main 
+      className="flex min-h-screen bg-black"
+      style={{
+        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.4) 100%), url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <AuthHero imageUrl="" />
 
-      <section className="flex w-full items-center justify-center bg-surface p-6 lg:w-1/2">
-        <div className="w-full max-w-md">
+      <section className="flex w-full flex-col items-center justify-center p-4 md:p-8 lg:w-1/2 relative z-10">
+        <div className="w-full max-w-[400px] rounded-3xl border border-outline-variant/20 bg-[#0c132b]/95 backdrop-blur-md p-10 shadow-2xl">
           {!sent ? (
             <>
-              <header className="mb-8 text-center lg:text-left">
-                <h3 className="mb-1 text-headline-lg text-on-surface">Esqueceu sua senha?</h3>
-                <p className="text-body-md text-on-surface-variant">
-                  Digite seu e-mail cadastrado e enviaremos um link de recuperação.
+              <header className="mb-8 text-center">
+                <h2 className="mb-2 text-2xl font-black text-white tracking-wide">Recuperar Credenciais</h2>
+                <p className="text-[10px] font-medium text-slate-400">
+                  Insira seu email para enviarmos instruções de redefinição.
                 </p>
               </header>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-1 block text-label-md text-on-surface-variant"
-                  >
-                    E-MAIL CORPORATIVO
+                  <label htmlFor="email" className="mb-1.5 block text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                    E-mail Cadastrado
                   </label>
                   <div className="relative">
-                    <Icon
-                      name="mail"
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-outline"
-                    />
                     <input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="input-fleet pl-12"
-                      placeholder="exemplo@fleetai.com"
+                      className="w-full rounded-xl bg-[#0F172A] border border-outline-variant/30 px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition"
+                      placeholder="seu@email.com.br"
                       required
                     />
                   </div>
                 </div>
 
-                <button type="submit" className="btn-secondary w-full uppercase tracking-wider">
-                  Enviar Link de Recuperação
-                  <Icon name="arrow_forward" className="text-lg" />
+                <button
+                  type="submit"
+                  className="w-full rounded-full bg-[#6c1628] hover:bg-[#841E34] py-3.5 text-[10px] font-black uppercase tracking-widest text-white transition shadow-lg shadow-red-900/20"
+                >
+                  RECUPERAR CREDENCIAIS
                 </button>
 
-                <div className="border-t border-outline-variant pt-4 text-center">
+                <div className="pt-2 text-center">
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-1 text-label-md font-bold text-primary hover:underline"
+                    className="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition"
                   >
-                    <Icon name="arrow_back" className="text-base" />
-                    Voltar para o login
+                    ← Voltar para Login
                   </Link>
                 </div>
               </form>
             </>
           ) : (
-            <div className="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary-container">
-                <Icon name="check_circle" className="text-3xl text-on-secondary-container" filled />
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30">
+                <span className="text-3xl text-green-400">✓</span>
               </div>
-              <h4 className="mb-1 text-headline-sm text-on-surface">Verifique seu e-mail</h4>
-              <p className="mb-6 text-body-md text-on-surface-variant">
+              <h4 className="mb-2 text-xl font-black text-white">Verifique seu e-mail</h4>
+              <p className="mb-8 text-[11px] text-slate-400 leading-relaxed">
                 Se houver uma conta associada ao e-mail informado, você receberá instruções para
                 redefinir sua senha em instantes.
               </p>
               <button
                 type="button"
                 onClick={() => setSent(false)}
-                className="w-full rounded-lg border border-primary py-2 text-label-md text-primary transition hover:bg-primary-fixed"
+                className="w-full rounded-full border border-outline-variant/30 hover:bg-white/5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition"
               >
                 Tentar outro e-mail
               </button>
             </div>
           )}
-
-          <p className="mt-8 text-center text-label-md text-on-surface-variant">
-            Precisa de ajuda?{" "}
-            <button type="button" className="text-primary hover:underline">
-              Entre em contato com o suporte
-            </button>
-          </p>
         </div>
       </section>
     </main>

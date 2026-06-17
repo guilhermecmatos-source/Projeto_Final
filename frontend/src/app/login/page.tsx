@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import AuthHero from "@/components/auth/AuthHero";
 import { authApi } from "@/services/api";
-import { IMAGES } from "@/lib/images";
 import { ensureCurrentProfileInList } from "@/lib/profiles";
 
 export default function LoginPage() {
@@ -17,6 +16,9 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Using a suitable unsplash image for the background
+  const bgImage = "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=2000";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -38,58 +40,51 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err: unknown) {
       const apiMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      if (!apiMsg && !(err as { response?: unknown })?.response) {
-        setError("Não foi possível conectar à API. Verifique se o Docker está rodando (docker compose up).");
-      } else {
-        setError(apiMsg || "Credenciais inválidas. Use admin@fleetai.com / admin123");
-      }
+      setError(apiMsg || "Credenciais inválidas. Verifique a API.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen-safe safe-area-padding bg-background">
-      <AuthHero imageUrl={IMAGES.loginElectricCar} alt="Concessionária premium" />
+    <main 
+      className="flex min-h-screen bg-black"
+      style={{
+        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.4) 100%), url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <AuthHero imageUrl="" />
 
-      <section className="flex w-full flex-col items-center justify-center bg-background p-4 md:p-8 lg:w-1/2">
-        <div className="mb-6 flex w-full max-w-[440px] items-center justify-between lg:max-w-[480px]">
-          <div className="flex items-center gap-2 lg:hidden">
-            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary font-black text-on-primary">F</span>
-            <span className="font-bold text-primary">FLEETAI</span>
-          </div>
-          <span className="hidden rounded-full border border-primary/40 px-3 py-1 text-[10px] font-bold text-primary lg:inline">
-            ★ PREMIUM UI MODELO ATIVO
-          </span>
-        </div>
-
-        <div className="w-full max-w-[480px] rounded-2xl border border-outline-variant bg-surface-container-low p-8 shadow-overlay">
+      <section className="flex w-full flex-col items-center justify-center p-4 md:p-8 lg:w-1/2 relative z-10">
+        <div className="w-full max-w-[400px] rounded-3xl border border-outline-variant/20 bg-[#0c132b]/95 backdrop-blur-md p-10 shadow-2xl">
           <header className="mb-8 text-center">
-            <h2 className="mb-1 text-headline-md text-on-surface">Login</h2>
-            <p className="text-body-md text-on-surface-variant">
+            <h2 className="mb-2 text-2xl font-black text-white tracking-wide">Login</h2>
+            <p className="text-[10px] font-medium text-slate-400">
               Faça login com a porta de acesso ou as contas rápidas.
             </p>
           </header>
 
           {error && (
-            <div role="alert" className="mb-4 rounded-lg bg-error-container p-3 text-sm text-on-error-container">
+            <div role="alert" className="mb-4 rounded-lg bg-error/20 border border-error/50 p-3 text-[11px] font-medium text-error">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm text-on-surface-variant">
+              <label htmlFor="email" className="mb-1.5 block text-[9px] font-bold uppercase tracking-widest text-slate-500">
                 Email
               </label>
               <div className="relative">
-                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-fleet pl-10"
+                  className="w-full rounded-xl bg-[#0F172A] border border-outline-variant/30 pl-10 pr-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition"
                   placeholder="seu@email.com.br ou admin"
                   required
                 />
@@ -97,65 +92,66 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1 block text-sm text-on-surface-variant">
+              <label htmlFor="password" className="mb-1.5 block text-[9px] font-bold uppercase tracking-widest text-slate-500">
                 Password
               </label>
               <div className="relative">
-                <Icon name="key" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <Icon name="key" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-fleet pl-10 pr-12"
-                  placeholder="••••••••"
+                  className="w-full rounded-xl bg-[#0F172A] border border-outline-variant/30 pl-10 pr-10 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition"
+                  placeholder="••••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary"
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition"
                 >
-                  <Icon name={showPassword ? "visibility_off" : "visibility"} />
+                  <Icon name={showPassword ? "visibility_off" : "visibility"} className="text-sm" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 rounded border-outline-variant text-primary"
+                  className="rounded border-outline-variant/30 bg-[#0F172A] text-blue-500 focus:ring-0 w-3 h-3"
                 />
-                <span className="text-sm text-on-surface-variant">Lembrar me</span>
+                <span className="text-[10px] font-medium text-slate-400">Lembrar me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-on-surface hover:text-primary">
-                Forgot Password?
+              <Link
+                href="/forgot-password"
+                className="text-[10px] font-medium text-slate-400 hover:text-white transition"
+              >
+                esqueci senha
               </Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="h-12 w-full rounded-xl bg-tertiary-container text-sm font-bold uppercase text-white transition hover:opacity-90 disabled:opacity-50"
+              className="mt-6 w-full rounded-full bg-[#6c1628] hover:bg-[#841E34] py-3.5 text-[10px] font-black uppercase tracking-widest text-white transition shadow-lg shadow-red-900/20 disabled:opacity-50"
             >
-              {loading ? "Entrando..." : "Login"}
+              {loading ? "ENTRANDO..." : "LOGIN"}
             </button>
+            
+            <div className="pt-2 text-center">
+              <Link 
+                href="/register"
+                className="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition"
+              >
+                CRIAR UMA CONTA
+              </Link>
+            </div>
           </form>
-
-          <footer className="mt-6 text-center">
-            <Link href="/register" className="text-sm font-semibold text-on-surface-variant hover:text-primary">
-              SIGN UP
-            </Link>
-          </footer>
         </div>
-
-        <p className="mt-8 text-[10px] uppercase tracking-widest text-on-surface-variant">
-          © 2026 FLEETAI LOGISTICS • RBAC AUTH V4.2.0
-        </p>
       </section>
     </main>
   );

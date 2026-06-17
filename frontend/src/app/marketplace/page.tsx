@@ -781,6 +781,330 @@ export default function MarketplacePage() {
           </div>
         </div>
       )}
+
+      {activeTab === "DASHBOARD PREMIUM" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-5 border-l-2 border-l-[#FCA311]">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">RECEITA FATURADA (VENDAS)</p>
+              <h3 className="text-2xl font-black text-[#FCA311] mb-1">R$ 295.000,00</h3>
+              <p className="text-[10px] font-bold text-green-400">+ 14% vs meta quadrimestre</p>
+            </div>
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-5 border-l-2 border-l-[#FCA311]">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">CONTRATOS LOCAÇÃO (REALIZADOS)</p>
+              <h3 className="text-2xl font-black text-[#FCA311] mb-1">R$ 124.000,00</h3>
+              <p className="text-[10px] text-slate-400">12 locações vigentes no pátio</p>
+            </div>
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-5 border-l-2 border-l-[#FCA311]">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">SOLICITAÇÕES PENDENTES</p>
+              <h3 className="text-2xl font-black text-[#FCA311] mb-1">4</h3>
+              <p className="text-[10px] text-slate-400">Aguardando autorização rbac</p>
+            </div>
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-5 border-l-2 border-l-green-500">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">VEÍCULO MAIS COBIÇADO</p>
+              <h3 className="text-lg font-black text-[#FCA311] mb-1 uppercase">VOLVO FH 540</h3>
+              <p className="text-[10px] font-bold text-green-400">+ 813 visualizações totais</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6">
+              <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-widest mb-1">AUDITORIA DE DESEMPENHO & FATURAMENTO</h3>
+              <p className="text-[9px] text-slate-400 font-medium mb-8">Gráficos de receitas acumuladas e conversões sazonais geradas.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div>
+                  <h4 className="text-[9px] font-bold text-[#FCA311] uppercase tracking-widest mb-4">EVOLUÇÃO MENSAL DE VENDAS (R$ MILHARES)</h4>
+                  <div className="h-32 border-b border-l border-outline-variant/20 relative flex items-end justify-between px-2 pb-2 pt-4">
+                    <div className="absolute left-0 -translate-x-full h-full flex flex-col justify-between text-[8px] text-slate-500 pr-2">
+                      <span>R$ 600k</span>
+                      <span>R$ 400k</span>
+                      <span></span>
+                    </div>
+                    <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+                      <path d="M 10 100 Q 50 60 90 80 T 200 20" fill="none" stroke="#FCA311" strokeWidth="3" />
+                      <circle cx="10" cy="100" r="4" fill="#FCA311" />
+                      <circle cx="90" cy="80" r="4" fill="#FCA311" />
+                      <circle cx="200" cy="20" r="4" fill="#FCA311" />
+                    </svg>
+                    <div className="absolute bottom-0 translate-y-full w-full flex justify-between text-[8px] text-slate-500 pt-2 pr-6">
+                      <span>Jan/Fev</span>
+                      <span>Mar/Abr</span>
+                      <span>Mai/Jun (Atual)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[9px] font-bold text-[#FCA311] uppercase tracking-widest mb-4">VOLUME DE LOCAÇÕES POR CANAL CORPORATIVO</h4>
+                  <div className="h-32 border-b border-outline-variant/20 relative flex items-end justify-around px-2 pb-0 pt-4">
+                    <div className="absolute left-0 -translate-x-full h-full flex flex-col justify-between text-[8px] text-slate-500 pr-2">
+                      <span>40 contratos</span>
+                      <span>20</span>
+                      <span></span>
+                    </div>
+                    
+                    <div className="w-8 h-12 bg-blue-600/50 rounded-t-sm relative group">
+                      <div className="absolute bottom-0 translate-y-full w-full text-center text-[8px] text-slate-500 pt-2 whitespace-nowrap -ml-2">Filiais Sul</div>
+                    </div>
+                    <div className="w-8 h-20 bg-blue-600/80 rounded-t-sm relative group">
+                      <div className="absolute bottom-0 translate-y-full w-full text-center text-[8px] text-slate-500 pt-2 whitespace-nowrap -ml-2">Filial Sudeste</div>
+                    </div>
+                    <div className="w-8 h-28 bg-blue-500 rounded-t-sm relative group">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#FCA311] text-[#0c132b] text-[9px] font-black px-1.5 py-0.5 rounded-full">88</div>
+                      <div className="absolute bottom-0 translate-y-full w-full text-center text-[8px] text-slate-500 pt-2 whitespace-nowrap -ml-2">Matriz S.Paulo</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-12">
+                <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">PARTICIPAÇÃO RELATIVA DO FATURAMENTO COMERCIAL</h4>
+                <div className="h-3 bg-[#0F172A] rounded-full overflow-hidden flex">
+                  <div className="h-full bg-[#FCA311]" style={{ width: "81%" }}></div>
+                  <div className="h-full bg-blue-600" style={{ width: "19%" }}></div>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <span className="text-[8px] font-bold text-[#FCA311]">■ Vendas Autorizadas (81% - R$ 680k)</span>
+                  <span className="text-[8px] font-bold text-blue-400">■ Locações de Cavaletes (19% - R$ 160k)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6">
+              <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-widest mb-6">TOP VEÍCULOS MAIS DESEJADOS</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 bg-[#0F172A] p-3 rounded-xl border border-outline-variant/20">
+                  <div className="w-6 h-6 rounded bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-black">1</div>
+                  <div className="flex-1">
+                    <h4 className="text-[11px] font-bold text-white">Scania R 450</h4>
+                    <p className="text-[8px] text-slate-500 font-mono">Placa: BRA-2E19</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-white">528 <span className="text-[8px] font-medium text-slate-500">views</span></p>
+                    <p className="text-[9px] font-bold text-error flex items-center justify-end gap-0.5"><Icon name="favorite" className="text-[10px]" /> 57 favs</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 bg-[#0F172A] p-3 rounded-xl border border-outline-variant/20">
+                  <div className="w-6 h-6 rounded bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-black">2</div>
+                  <div className="flex-1">
+                    <h4 className="text-[11px] font-bold text-white">Volvo FH 540</h4>
+                    <p className="text-[8px] text-slate-500 font-mono">Placa: FLT-0130</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-white">813 <span className="text-[8px] font-medium text-slate-500">views</span></p>
+                    <p className="text-[9px] font-bold text-error flex items-center justify-end gap-0.5"><Icon name="favorite" className="text-[10px]" /> 93 favs</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 bg-[#0F172A] p-3 rounded-xl border border-outline-variant/20">
+                  <div className="w-6 h-6 rounded bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-black">3</div>
+                  <div className="flex-1">
+                    <h4 className="text-[11px] font-bold text-white">Mercedes-Benz Atego 2426</h4>
+                    <p className="text-[8px] text-slate-500 font-mono">Placa: MEC-4D21</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-white">124 <span className="text-[8px] font-medium text-slate-500">views</span></p>
+                    <p className="text-[9px] font-bold text-error flex items-center justify-end gap-0.5"><Icon name="favorite_border" className="text-[10px]" /> 0 favs</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Icon name="account_balance_wallet" className="text-[#FCA311] text-lg" />
+                <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-widest">FLUXOS DE RECEBÍVEIS POR MODALIDADE</h3>
+              </div>
+              <p className="text-[9px] text-slate-400 font-medium mb-6 ml-6">Demonstrativo de faturamento bruto, encargos tributários e liquidação líquida instantânea por gateway BaaS.</p>
+              
+              <table className="w-full text-left">
+                <thead className="border-b border-outline-variant/20">
+                  <tr>
+                    <th className="pb-3 text-[8px] font-bold text-slate-500 uppercase tracking-widest">CANAL FINANCEIRO</th>
+                    <th className="pb-3 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">VALOR BRUTO</th>
+                    <th className="pb-3 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">COMISSÕES & TX</th>
+                    <th className="pb-3 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">TOTAL LÍQUIDO</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-white">PIX Cobrança Direta</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-300 text-right">R$ 320.000</td>
+                    <td className="py-3 text-[10px] font-mono text-error text-right">- R$ 320</td>
+                    <td className="py-3 text-[10px] font-black text-green-400 text-right">R$ 319.680</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-white">Transferência TED Integrada</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-300 text-right">R$ 450.000</td>
+                    <td className="py-3 text-[10px] font-mono text-error text-right">- R$ 45</td>
+                    <td className="py-3 text-[10px] font-black text-green-400 text-right">R$ 449.955</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-white">Carnê Interbancário Boleto</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-300 text-right">R$ 120.000</td>
+                    <td className="py-3 text-[10px] font-mono text-error text-right">- R$ 1.800</td>
+                    <td className="py-3 text-[10px] font-black text-green-400 text-right">R$ 118.200</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-white">Financiamento Leasing/BB</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-300 text-right">R$ 250.000</td>
+                    <td className="py-3 text-[10px] font-mono text-error text-right">- R$ 7.500</td>
+                    <td className="py-3 text-[10px] font-black text-green-400 text-right">R$ 242.500</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Icon name="trending_up" className="text-[#FCA311] text-lg" />
+                <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-widest">COMISSÕES E METAS DE REPRESENTANTES</h3>
+              </div>
+              <p className="text-[9px] text-slate-400 font-medium mb-6 ml-6">Acompanhamento de metas contratuuais mensais e gratificações sobre faturamento de pátio.</p>
+
+              <div className="space-y-5">
+                <div>
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h4 className="text-[11px] font-bold text-white">Amélia Lacerda</h4>
+                      <p className="text-[9px] text-slate-400">Faturado: <span className="text-white font-bold">R$ 930.000</span> (5 vendas)</p>
+                      <p className="text-[8px] text-slate-500 font-mono">Meta Mensal: R$ 500.000</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-green-400">R$ 19.200 comissão</p>
+                      <p className="text-[8px] text-slate-500 font-mono">fixo base: R$ 4500</p>
+                    </div>
+                  </div>
+                  <div className="h-1 bg-[#0F172A] rounded-full overflow-hidden flex relative">
+                    <div className="h-full bg-[#FCA311]" style={{ width: "100%" }}></div>
+                    <span className="absolute right-0 top-0 text-[8px] font-black text-[#FCA311] -mt-0.5">100%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h4 className="text-[11px] font-bold text-white">Bruno Castanho</h4>
+                      <p className="text-[9px] text-slate-400">Faturado: <span className="text-white font-bold">R$ 680.000</span> (2 vendas)</p>
+                      <p className="text-[8px] text-slate-500 font-mono">Meta Mensal: R$ 400.000</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-green-400">R$ 12.360 comissão</p>
+                      <p className="text-[8px] text-slate-500 font-mono">fixo base: R$ 4200</p>
+                    </div>
+                  </div>
+                  <div className="h-1 bg-[#0F172A] rounded-full overflow-hidden flex relative">
+                    <div className="h-full bg-[#FCA311]" style={{ width: "100%" }}></div>
+                    <span className="absolute right-0 top-0 text-[8px] font-black text-[#FCA311] -mt-0.5">100%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h4 className="text-[11px] font-bold text-white">Daniela Fraga</h4>
+                      <p className="text-[9px] text-slate-400">Faturado: <span className="text-white font-bold">R$ 1.260.000</span> (4 vendas)</p>
+                      <p className="text-[8px] text-slate-500 font-mono">Meta Mensal: R$ 500.000</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-green-400">R$ 23.180 comissão</p>
+                      <p className="text-[8px] text-slate-500 font-mono">fixo base: R$ 4000</p>
+                    </div>
+                  </div>
+                  <div className="h-1 bg-[#0F172A] rounded-full overflow-hidden flex relative">
+                    <div className="h-full bg-[#FCA311]" style={{ width: "100%" }}></div>
+                    <span className="absolute right-0 top-0 text-[8px] font-black text-[#FCA311] -mt-0.5">100%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Icon name="warning" className="text-[#FCA311] text-lg" />
+              <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-widest">CENTRAL DE ALERTAS OPERACIONAIS & PREDITIVOS</h3>
+            </div>
+            <p className="text-[9px] text-slate-400 font-medium mb-6 ml-6">Notificações geradas automaticamente por motor cognitivo para otimizar faturamento e evitar multas contratuais.</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-[#0F172A] p-4 rounded-xl border border-error/20">
+                <h4 className="text-[11px] font-bold text-error mb-2">Veículo Ocioso há 18 Dias</h4>
+                <p className="text-[9px] text-slate-400 leading-relaxed">Volvo FH 540 (Placa: MOC-2020) está qualificado para desconto agressivo de 12% na taxa de locação.</p>
+              </div>
+              <div className="bg-[#0F172A] p-4 rounded-xl border border-[#FCA311]/20">
+                <h4 className="text-[11px] font-bold text-[#FCA311] mb-2">Seguro Padrão Expirando</h4>
+                <p className="text-[9px] text-slate-400 leading-relaxed">Apólice nº 447.915-A de responsabilidade civil para pátio vence em 5 dias. Solicitar renovação Porto Seguro.</p>
+              </div>
+              <div className="bg-[#0F172A] p-4 rounded-xl border border-outline-variant/20">
+                <h4 className="text-[11px] font-bold text-blue-400 mb-2">Vistorias Clientes Pendentes</h4>
+                <p className="text-[9px] text-slate-400 leading-relaxed">Três co-assinaturas eletrônicas homologadas aguardam vistoria cautelar de entrega do frota.</p>
+              </div>
+              <div className="bg-[#0F172A] p-4 rounded-xl border border-outline-variant/20">
+                <h4 className="text-[11px] font-bold text-green-400 mb-2">Vencimento Parcelas BB</h4>
+                <p className="text-[9px] text-slate-400 leading-relaxed">Mensalidades de leasing e arrendamento das filiais Sul concluídas hoje via banco BaaS.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6 overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Icon name="history" className="text-[#FCA311] text-lg" />
+                <div>
+                  <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-widest">REGISTRO DE AUDITORIAS CORPORATIVAS (AUDIT TRAILS)</h3>
+                  <p className="text-[9px] text-slate-400 font-medium">Registro de logs de conformidade inalterável para fiscalização tributária, assinaturas e privilégios RBAC</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500">Total: 3 transações logadas</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="border-b border-outline-variant/20">
+                  <tr>
+                    <th className="pb-2 text-[8px] font-bold text-slate-500 uppercase tracking-widest">PROTOCOLO</th>
+                    <th className="pb-2 text-[8px] font-bold text-slate-500 uppercase tracking-widest">PROFISSIONAL</th>
+                    <th className="pb-2 text-[8px] font-bold text-slate-500 uppercase tracking-widest">OPERAÇÃO REALIZADA</th>
+                    <th className="pb-2 text-[8px] font-bold text-slate-500 uppercase tracking-widest">REGISTRO COMERCIAL AFETADO</th>
+                    <th className="pb-2 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">DATA & HORA</th>
+                    <th className="pb-2 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">ENDEREÇO IP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-[#FCA311]">#1</td>
+                    <td className="py-3 text-[10px] font-bold text-white">Amanda Silveira</td>
+                    <td className="py-3 text-[10px] text-slate-300">Status Renovado</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-400">v-1 (RESERVED)</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-400 text-right">2026-06-11 18:38</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-500 text-right">192.168.1.102</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-[#FCA311]">#2</td>
+                    <td className="py-3 text-[10px] font-bold text-white">Carlos Silveira</td>
+                    <td className="py-3 text-[10px] text-slate-300">Assinatura Blockchain de Contrato</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-400">rental-1</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-400 text-right">2026-06-10 16:21</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-500 text-right">172.22.40.12</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 text-[10px] font-bold text-[#FCA311]">#3</td>
+                    <td className="py-3 text-[10px] font-bold text-white">Amanda Silveira</td>
+                    <td className="py-3 text-[10px] text-slate-300">Fechamento de Proposta</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-400">sale-1</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-400 text-right">2026-06-09 11:45</td>
+                    <td className="py-3 text-[10px] font-mono text-slate-500 text-right">192.168.1.102</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
