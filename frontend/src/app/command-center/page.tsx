@@ -51,7 +51,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 /* ── Feed log data ── */
-const FEED_LOGS = [
+const INITIAL_FEED_LOGS = [
   { time: "23:46:54", severity: "SUCCESS", color: "text-green-400", msg: "Pacote de telemetria de precisão Palmas, TO recebido sem perdas." },
   { time: "23:46:37", severity: "SUCCESS", color: "text-green-400", msg: "Ana Lima check-in concluído via APP Simulado." },
   { time: "23:46:24", severity: "INFO", color: "text-blue-400", msg: "Atualização de coordenadas GPS [Carlos Silva] registrada – Av. MS-15." },
@@ -77,7 +77,7 @@ const RUVS = [
 ];
 
 /* ── CCO Notifications ── */
-const NOTIFICATIONS = [
+const INITIAL_NOTIFICATIONS = [
   { id: 1, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para AIK-12340 O evento foi listado no log geral." },
   { id: 2, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para ABC-1234! O evento foi listado no log geral." },
   { id: 3, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para DEF-5678! O evento foi listado no log geral." },
@@ -89,7 +89,13 @@ export default function CommandCenterPage() {
   const [showNotifs, setShowNotifs] = useState(true);
   const [dismissedNotifs, setDismissedNotifs] = useState<number[]>([]);
   const [selectedDriver, setSelectedDriver] = useState(DRIVERS[0]);
+  
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<any>(null);
+
+  // Dynamic State for Logs & Notifications
+  const [activeNotifications, setActiveNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [activeLogs, setActiveLogs] = useState(INITIAL_FEED_LOGS);
 
   // Simulated PING messages
   const [pings, setPings] = useState<string[]>([
@@ -108,11 +114,125 @@ export default function CommandCenterPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // LEAFLET DYNAMIC INITIALIZATION
+  useEffect(() => {
+    let L: any;
+    const initMap = async () => {
+      if (!document.getElementById("leaflet-cdn-css-dash")) {
+        const link = document.createElement("link");
+        link.id = "leaflet-cdn-css-dash";
+        link.rel = "stylesheet";
+        link.href = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
+      }
+
+      L = (await import("leaflet")).default;
+      
+      if (!mapRef.current || mapInstance.current) return;
+      
+      const map = L.map(mapRef.current, {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([-10.1843, -48.3338], 13);
+      
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        maxZoom: 18,
+      }).addTo(map);
+
+      mapInstance.current = map;
+
+      // Add driver markers dynamically
+      DRIVERS.forEach(dr => {
+        const icon = L.divIcon({
+          html: `<div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="background-color: ${dr.color}">${dr.avatar}</div>`,
+          className: "",
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+        const marker = L.marker([dr.lat, dr.lng], { icon }).addTo(map);
+        marker.bindPopup(`<div class="p-2 bg-[#111827] text-white rounded"><b class="text-sm">${dr.name}</b><br/><span class="text-[10px] text-slate-300">${dr.vehicle}</span></div>`);
+      });
+
+      // Labels
+      const praçaIcon = L.divIcon({ html: '<span class="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full uppercase tracking-wider">PRAÇA DOS GIRASSÓIS</span>', className: '' });
+      L.marker([-10.1845, -48.3336], { icon: praçaIcon }).addTo(map);
+
+      const mercadoIcon = L.divIcon({ html: '<span class="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full uppercase tracking-wider">MERCADO CENTRAL</span>', className: '' });
+      L.marker([-10.1981, -48.3492], { icon: mercadoIcon }).addTo(map);
+
+      setTimeout(() => { map.invalidateSize(); }, 200);
+    };
+
+    initMap();
+    
+    window.addEventListener("resize", invalidateSize);
+    return () => {
+      window.removeEventListener("resize", invalidateSize);
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, []);
+
+  // 1. invalidateSize: Corrige renderizações e previne quebras nas bordas geométricas
+  const invalidateSize = () => {
+    if (mapInstance.current) {
+      mapInstance.current.invalidateSize();
+    }
+  };
+
+  // 2. handleSyncDeviceCoords: Solicita permissões de geolocalização física
+  const handleSyncDeviceCoords = () => {
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const L = (await import("leaflet")).default;
+          
+          if (mapInstance.current) {
+            const managerIcon = L.divIcon({
+              html: `<div class="w-8 h-8 rounded-full bg-error border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="animation: pulse 2s infinite;">★</div>`,
+              className: "",
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+            });
+            const marker = L.marker([latitude, longitude], { icon: managerIcon }).addTo(mapInstance.current);
+            marker.bindPopup(`<div class="p-2 bg-slate-900 text-white rounded text-[10px] font-bold"><b class="text-error">📍 Gestor (Sede Central)</b><br/>Lat: ${latitude.toFixed(4)}<br/>Lng: ${longitude.toFixed(4)}</div>`).openPopup();
+            mapInstance.current.flyTo([latitude, longitude], 15, { duration: 1.5 });
+          }
+        },
+        (err) => console.error("Geolocation error:", err),
+        { enableHighAccuracy: true }
+      );
+    } else {
+      alert("Geolocalização não suportada pelo navegador.");
+    }
+  };
+
+  // 3. dispatchOperationalAlert: Dispara alertas preditivos de risco direto na rota
+  const dispatchOperationalAlert = (riskType: string) => {
+    const alertId = Date.now();
+    const newNotif = {
+      id: alertId,
+      msg: `[FleetAI Intelligence] Alerta Preditivo de Segurança (${riskType}) disparado direto na rota de motoristas próximos a áreas com registros de acidentes/mau tempo (ex: BR-116).`
+    };
+    const newLog = {
+      time: new Date().toLocaleTimeString("pt-BR", { hour12: false }),
+      severity: "CRITICAL",
+      color: "text-error",
+      msg: `Alerta Telemetria (Risco: ${riskType}) – Despachado para rota BR-116 com congestionamentos graves e acidentes.`
+    };
+    
+    setActiveNotifications(prev => [newNotif, ...prev]);
+    setActiveLogs(prev => [newLog, ...prev]);
+  };
+
   const dismissNotif = (id: number) => {
     setDismissedNotifs(prev => [...prev, id]);
   };
 
-  const visibleNotifs = NOTIFICATIONS.filter(n => !dismissedNotifs.includes(n.id));
+  const visibleNotifs = activeNotifications.filter(n => !dismissedNotifs.includes(n.id));
 
   return (
     <AppShell>
@@ -128,7 +248,10 @@ export default function CommandCenterPage() {
               OpenStreetMap real — Palmas, TO — atualiza a cada 3s
             </p>
           </div>
-          <button className="flex items-center gap-2 rounded-full bg-error/20 border border-error/30 hover:bg-error/30 px-4 py-2 text-[10px] font-bold text-error transition">
+          <button 
+            onClick={handleSyncDeviceCoords}
+            className="flex items-center gap-2 rounded-full bg-error/20 border border-error/30 hover:bg-error/30 px-4 py-2 text-[10px] font-bold text-error transition"
+          >
             <Icon name="my_location" className="text-sm" /> Usar Meu GPS
           </button>
         </div>
@@ -137,49 +260,15 @@ export default function CommandCenterPage() {
       {/* ──────── MAP + DRIVER SIDEBAR ──────── */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
         {/* Map Area */}
-        <div className="lg:col-span-3 relative rounded-2xl overflow-hidden border border-outline-variant/20 bg-[#0c132b]" style={{ minHeight: 380 }} ref={mapRef}>
-          {/* Embed an OSM tile map */}
-          <iframe
-            src="https://www.openstreetmap.org/export/embed.html?bbox=-48.39,-10.22,-48.28,-10.16&layer=mapnik"
-            width="100%"
-            height="100%"
-            style={{ border: 0, position: "absolute", inset: 0 }}
-            loading="lazy"
-          ></iframe>
+        <div className="lg:col-span-3 relative rounded-2xl overflow-hidden border border-outline-variant/20 bg-[#0c132b]" style={{ minHeight: 380 }}>
+          
+          {/* LEAFLET CONTAINER */}
+          <div ref={mapRef} style={{ width: "100%", height: "100%", position: "absolute", inset: 0, zIndex: 0 }} />
 
           {/* Zoom Controls */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-1">
-            <button className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white transition">+</button>
-            <button className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white transition">−</button>
-          </div>
-
-          {/* Map overlay — Carlos tooltip */}
-          <div className="absolute top-[15%] left-[35%] z-10 bg-[#111827]/95 border border-outline-variant/30 rounded-xl shadow-2xl p-4 min-w-[200px] backdrop-blur-sm">
-            <h4 className="text-sm font-black text-white mb-1">Carlos Silva</h4>
-            <p className="text-[10px] font-bold text-white">Moto Honda CG • ABC-1234</p>
-            <p className="text-[10px] font-bold text-blue-400 mt-1">Destino: Mercado São João</p>
-            <p className="text-[8px] font-mono text-slate-500 mt-2">Lat: -10.174545 | Lng: -48.330296</p>
-          </div>
-
-          {/* Map labels */}
-          <div className="absolute bottom-[55%] left-[50%] z-10">
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full uppercase tracking-wider">PRAÇA DOS GIRASSÓIS</span>
-          </div>
-          <div className="absolute bottom-[35%] left-[45%] z-10">
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full uppercase tracking-wider">MERCADO CENTRAL</span>
-          </div>
-
-          {/* Map driver icons */}
-          <div className="absolute bottom-[25%] left-[40%] z-10 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#F59E0B] border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-[#0c132b]">A</div>
-          </div>
-          <div className="absolute bottom-[15%] right-[30%] z-10 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#10B981] border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white">R</div>
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full mt-1 uppercase">ROBERTO</span>
-          </div>
-          <div className="absolute top-[30%] left-[32%] z-10 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#3B82F6] border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white">C</div>
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full mt-1 uppercase">CARLOS</span>
+            <button onClick={() => mapInstance.current?.zoomIn()} className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white transition">+</button>
+            <button onClick={() => mapInstance.current?.zoomOut()} className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white transition">−</button>
           </div>
 
           {/* PING overlay */}
@@ -201,7 +290,12 @@ export default function CommandCenterPage() {
                   ? "bg-[#0c132b] border-[#FCA311]/50" 
                   : "bg-[#0c132b]/80 border-outline-variant/20 hover:border-[#FCA311]/30"
               }`}
-              onClick={() => setSelectedDriver(d)}
+              onClick={() => {
+                setSelectedDriver(d);
+                if (mapInstance.current) {
+                  mapInstance.current.flyTo([d.lat, d.lng], 15, { duration: 1.2 });
+                }
+              }}
             >
               <div className="flex items-start gap-3 mb-3">
                 <div 
@@ -255,6 +349,7 @@ export default function CommandCenterPage() {
             {ALERT_TYPES.map(a => (
               <button 
                 key={a.label} 
+                onClick={() => dispatchOperationalAlert(a.label)}
                 className={`${a.color} text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-wider hover:opacity-80 transition`}
               >
                 {a.label}
@@ -295,7 +390,7 @@ export default function CommandCenterPage() {
               <Icon name="terminal" className="text-[11px]" /> FEED LOGÍSTICO EM TEMPO REAL (MDE LOGS)
             </h4>
             <div className="space-y-1 overflow-y-auto max-h-[230px] custom-scrollbar">
-              {FEED_LOGS.map((log, i) => (
+              {activeLogs.map((log, i) => (
                 <div key={i} className="flex items-start gap-2 text-[9px]">
                   <span className="text-slate-500 font-mono shrink-0">[{log.time}]</span>
                   <span className={`text-[7px] font-black px-1.5 py-0.5 rounded shrink-0 ${
