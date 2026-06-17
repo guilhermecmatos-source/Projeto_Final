@@ -210,7 +210,7 @@ export default function PartnersPage() {
                 <button 
                   onClick={() => {
                     setProfileModalOpen(false);
-                    router.push("/dashboard");
+                    router.push("/command-center");
                   }}
                   className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-500 py-2 text-[10px] font-bold text-white transition"
                 >
@@ -485,7 +485,7 @@ export default function PartnersPage() {
                 <button 
                   onClick={() => {
                     setDossieModalOpen(false);
-                    router.push("/dashboard");
+                    router.push("/command-center");
                   }}
                   className="rounded-lg border border-outline-variant/30 hover:bg-white/5 px-6 py-2.5 text-[9px] font-bold text-slate-300 uppercase tracking-widest transition"
                 >
