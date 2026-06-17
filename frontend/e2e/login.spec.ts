@@ -12,7 +12,9 @@ test.describe("Login", () => {
     await page.getByLabel("Email").fill("invalido@test.com");
     await page.getByLabel("Password").fill("senhaerrada");
     await page.getByRole("button", { name: "Login" }).click();
-    await expect(page.getByRole("alert").or(page.locator(".text-on-error-container"))).toBeVisible({
+    await expect(
+      page.getByRole("alert").filter({ hasText: /credenciais/i }).or(page.locator(".text-on-error-container"))
+    ).toBeVisible({
       timeout: 10_000,
     });
   });

@@ -441,7 +441,7 @@ export default function PartnersPage() {
                           </div>
                         </div>
                         <p className="text-[10px] text-slate-300 italic relative z-10 leading-relaxed">
-                          "Atendimento no meio da madrugada espetacular, trocaram a cuíca de freio em tempo recorde."
+                          &quot;Atendimento no meio da madrugada espetacular, trocaram a cuíca de freio em tempo recorde.&quot;
                         </p>
                         <div className="mt-4 flex justify-end relative z-10">
                           <span className="text-[8px] font-black text-green-400 bg-green-500/10 border border-green-500/30 px-3 py-1 rounded flex items-center gap-1">
@@ -462,7 +462,7 @@ export default function PartnersPage() {
                           </div>
                         </div>
                         <p className="text-[10px] text-slate-300 italic relative z-10 leading-relaxed">
-                          "Equipe de injeção diesel muito qualificada. Scanner pegou o bico trancado logo de cara."
+                          &quot;Equipe de injeção diesel muito qualificada. Scanner pegou o bico trancado logo de cara.&quot;
                         </p>
                         <div className="mt-4 flex justify-end relative z-10">
                           <button className="text-[8px] font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1 rounded flex items-center gap-1 transition">
