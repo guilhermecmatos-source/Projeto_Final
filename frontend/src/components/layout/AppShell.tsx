@@ -8,13 +8,15 @@ import MobileBottomNav from "./MobileBottomNav";
 import OfflineIndicator from "@/components/ui/OfflineIndicator";
 import LoadingState from "@/components/ui/LoadingState";
 import AccessDenied from "@/components/ui/AccessDenied";
-import ToastContainer from "@/components/ui/ToastContainer";
+import TelemetryToastContainer from "@/components/ui/ToastContainer";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { useTelemetrySocket } from "@/hooks/useTelemetrySocket";
 import { canAccessRoute, normalizeRole } from "@/lib/permissions";
 import Icon from "@/components/ui/Icon";
-import ToastContainer from "@/components/ui/Toast";
+import GlobalToastContainer from "@/components/ui/Toast";
+import { io } from "socket.io-client";
+import type { TelemetryAlert } from "@/types";
 
 interface AppShellProps {
   children: ReactNode;
@@ -182,7 +184,7 @@ export default function AppShell({
   return (
     <div className="min-h-screen bg-background">
       {/* Toast de telemetria — Portal no topo da tela */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <TelemetryToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* Toast de Sincronização — laranja, topo direito, 1.5s */}
       {showSyncToast && (
@@ -342,7 +344,7 @@ export default function AppShell({
       </div>
 
       <MobileBottomNav onOpenMenu={() => setSidebarOpen(true)} />
-      <ToastContainer />
+      <GlobalToastContainer />
     </div>
   );
 }
