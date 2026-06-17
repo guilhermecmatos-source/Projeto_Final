@@ -14,6 +14,8 @@ export interface User {
   rg?: string | null;
   cargo?: string | null;
   unidade?: string | null;
+  status?: string | null;
+  acceptedTerms?: boolean;
 }
 
 export interface Kpis {

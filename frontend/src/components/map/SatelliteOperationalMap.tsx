@@ -20,6 +20,15 @@ const FLEET_VEHICLES: VehicleMarker[] = [
   { id: "3", plate: "GHI-9012", lat: -10.184, lng: -48.333, speed: 71, heading: "Palmas → Araguaína" },
 ];
 
+/** Guard: retorna true somente se lat/lng são números finitos e não-NaN */
+function isValidCoord(lat: unknown, lng: unknown): boolean {
+  return (
+    typeof lat === "number" && typeof lng === "number" &&
+    !isNaN(lat) && !isNaN(lng) &&
+    isFinite(lat) && isFinite(lng)
+  );
+}
+
 export default function SatelliteOperationalMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
@@ -99,6 +108,7 @@ export default function SatelliteOperationalMap() {
       });
 
       FLEET_VEHICLES.forEach((v) => {
+        if (!isValidCoord(v.lat, v.lng)) return; // guard: skip invalid coords
         const m = L.marker([v.lat, v.lng], { icon: truckIcon })
           .bindPopup(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`)
           .addTo(map);
@@ -127,6 +137,7 @@ export default function SatelliteOperationalMap() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
+        if (!isValidCoord(latitude, longitude)) return; // guard: skip bad GPS fix
         setGps({ lat: latitude, lng: longitude });
         setGpsError("");
         if (mapInstance.current) {          
@@ -221,7 +232,7 @@ export default function SatelliteOperationalMap() {
   useEffect(() => {
     if (!mapInstance.current || !ready) return;
     vehicles.forEach((v, i) => {
-      if (markersRef.current[i]) {
+      if (markersRef.current[i] && isValidCoord(v.lat, v.lng)) {
         markersRef.current[i].setLatLng([v.lat, v.lng]);
         markersRef.current[i].setPopupContent(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`);
       }

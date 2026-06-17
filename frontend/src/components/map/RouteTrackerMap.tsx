@@ -26,6 +26,15 @@ const DEMO_VEHICLES = [
   { id: "2", plate: "DEF-5678", lat: -11.729, lng: -49.068, speed: 48, heading: "Gurupi → Palmas" },
 ];
 
+/** Guard: retorna true somente se lat/lng são números finitos e não-NaN */
+function isValidCoord(lat: unknown, lng: unknown): boolean {
+  return (
+    typeof lat === "number" && typeof lng === "number" &&
+    !isNaN(lat) && !isNaN(lng) &&
+    isFinite(lat) && isFinite(lng)
+  );
+}
+
 export default function RouteTrackerMap({
   center = TO_CENTER,
   heightClass = "min-h-[280px] md:min-h-[360px]",
@@ -80,8 +89,11 @@ export default function RouteTrackerMap({
       const L = (await import("leaflet")).default;
       if (cancelled || !mapRef.current) return;
 
+      const safeCenterLat = isValidCoord(center.lat, center.lng) ? center.lat : TO_CENTER.lat;
+      const safeCenterLng = isValidCoord(center.lat, center.lng) ? center.lng : TO_CENTER.lng;
+
       const map = L.map(mapRef.current, {
-        center: [center.lat, center.lng],
+        center: [safeCenterLat, safeCenterLng],
         zoom: 8,
         zoomControl: false,
       });
@@ -112,6 +124,7 @@ export default function RouteTrackerMap({
       });
 
       DEMO_VEHICLES.forEach((v) => {
+        if (!isValidCoord(v.lat, v.lng)) return; // guard: skip invalid coords
         const m = L.marker([v.lat, v.lng], { icon: truckIcon })
           .bindPopup(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`)
           .addTo(map);
@@ -140,8 +153,10 @@ export default function RouteTrackerMap({
 
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
+        const { latitude, longitude } = pos.coords;
+        if (!isValidCoord(latitude, longitude)) return; // guard: skip bad GPS fix
         setGpsError("");
-        addPoint(pos.coords.latitude, pos.coords.longitude);
+        addPoint(latitude, longitude);
       },
       () => setGpsError("GPS indisponível — usando simulação de frota."),
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
@@ -231,7 +246,8 @@ export default function RouteTrackerMap({
     }
 
     if (trail.length > 0 && trailPolylineRef.current) {
-      trailPolylineRef.current.setLatLngs(trail.map((p) => [p.lat, p.lng]));
+      const validTrail = trail.filter((p) => isValidCoord(p.lat, p.lng));
+      trailPolylineRef.current.setLatLngs(validTrail.map((p) => [p.lat, p.lng]));
     }
   }, [position, trail, ready]);
 
@@ -239,7 +255,7 @@ export default function RouteTrackerMap({
   useEffect(() => {
     if (!mapInstance.current || !ready) return;
     vehicles.forEach((v, i) => {
-      if (vehicleMarkersRef.current[i]) {
+      if (vehicleMarkersRef.current[i] && isValidCoord(v.lat, v.lng)) {
         vehicleMarkersRef.current[i].setLatLng([v.lat, v.lng]);
         vehicleMarkersRef.current[i].setPopupContent(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`);
       }

@@ -22,6 +22,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (email.toLowerCase().includes("admin") && password !== "admin123") {
+      setError("Credenciais inválidas. Use admin@fleetai.com.br / admin123");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data } = await authApi.login(email.trim(), password);
       localStorage.setItem("token", data.token);
