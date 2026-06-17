@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { trailDistanceKm } from "@/lib/geo";
 import { geocodingApi } from "@/services/api";
-import * as L from 'leaflet';
+import type * as L from "leaflet";
 
 export interface MapPoint {
   lat: number;
@@ -231,17 +231,20 @@ export default function RouteTrackerMap({
       if (userMarkerRef.current) {
         userMarkerRef.current.setLatLng([position.lat, position.lng]);
       } else {
-        userMarkerRef.current = L.circleMarker([position.lat, position.lng], {
-          radius: 8,
-          color: "#4ade80",
-          fillColor: "#4ade80",
-          fillOpacity: 0.9,
-          weight: 2,
-        })
-          .addTo(mapInstance.current)
-          .bindPopup("Sua localização");
-        
-        mapInstance.current.setView([position.lat, position.lng], 9);
+        import("leaflet").then(({ default: LeafletLib }) => {
+          if (!mapInstance.current) return;
+          userMarkerRef.current = LeafletLib.circleMarker([position.lat, position.lng], {
+            radius: 8,
+            color: "#4ade80",
+            fillColor: "#4ade80",
+            fillOpacity: 0.9,
+            weight: 2,
+          })
+            .addTo(mapInstance.current)
+            .bindPopup("Sua localização");
+
+          mapInstance.current.setView([position.lat, position.lng], 9);
+        });
       }
     }
 

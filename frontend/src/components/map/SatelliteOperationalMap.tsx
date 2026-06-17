@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { showToast } from "@/components/ui/Toast";
-import * as L from "leaflet";
+import type * as L from "leaflet";
 
 interface DriverMarker {
   id: string;
@@ -19,6 +19,9 @@ interface DriverMarker {
   originName: string;
   destinationName: string;
 }
+
+// VehicleMarker is the same shape as DriverMarker
+type VehicleMarker = DriverMarker;
 
 const FLEET_VEHICLES: VehicleMarker[] = [
   {
@@ -133,6 +136,8 @@ export default function SatelliteOperationalMap() {
   const [gpsError, setGpsError] = useState("");
   const [ready, setReady] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<DriverMarker | null>(null);
+  // Reactive vehicle list for real-time telemetry simulation
+  const [vehicles, setVehicles] = useState<VehicleMarker[]>(FLEET_VEHICLES);
 
   // Simulated movement offsets for drivers
   const offsetsRef = useRef({ carlos: 0, ana: 0, roberto: 0 });
