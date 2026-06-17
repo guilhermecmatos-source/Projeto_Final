@@ -1,556 +1,236 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
-import FormModal from "@/components/ui/FormModal";
-import { ruvApi, usersApi } from "@/services/api";
-import { useTelemetrySocket } from "@/hooks/useTelemetrySocket";
 
-interface NotificationItem {
-  id: string;
-  timestamp: string;
-  category: "sistema" | "antt" | "motoristas" | "ruv";
-  title: string;
-  message: string;
-  status: "unread" | "read";
-  severity: "info" | "warning" | "error";
-  relatedId?: string; // e.g. RUV ID
-}
-
-interface PendingRuv {
-  id: string;
-  auth_number: string;
-  requester_name: string;
-  destination: string;
-  service: string;
-}
-
-interface PendingUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  created_at: string;
-}
-
-const TABS = [
-  { id: "all", label: "Histórico Completo" },
-  { id: "sistema", label: "Sistema (Sensores)" },
-  { id: "antt", label: "Cliente & ANTT" },
-  { id: "motoristas", label: "Motoristas & RUVs" },
-] as const;
+type TabId = "all" | "sys" | "client" | "ruv";
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [pendingRuvs, setPendingRuvs] = useState<PendingRuv[]>([]);
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("all");
+  const [activeTab, setActiveTab] = useState<TabId>("all");
 
-  // Escutar alertas via WebSocket em tempo real para alimentar a listagem
-  useTelemetrySocket(true, (alert) => {
-    setNotifications((prev) => {
-      // Evitar duplicados
-      if (prev.some((n) => n.id === alert.id)) return prev;
-
-      // Traduzir categorias do backend para as do feed do frontend
-      let categoryMap: NotificationItem["category"] = "sistema";
-      if (alert.type === "mechanical") categoryMap = "sistema";
-      else if (alert.type === "fatigue") categoryMap = "motoristas";
-      else if (alert.type === "route_deviation") categoryMap = "antt";
-
-      let severityMap: NotificationItem["severity"] = "info";
-      if (alert.severity === "critical") severityMap = "error";
-      else if (alert.severity === "high") severityMap = "warning";
-
-      const newItem: NotificationItem = {
-        id: alert.id,
-        timestamp: new Date(alert.timestamp || Date.now()).toLocaleTimeString("pt-BR"),
-        category: categoryMap,
-        title: alert.title,
-        message: alert.message,
-        status: "unread",
-        severity: severityMap,
-      };
-
-      return [newItem, ...prev];
-    });
-  });
-  
-  // Decision modal state (HUD trigger action)
-  const [selectedRuv, setSelectedRuv] = useState<PendingRuv | null>(null);
-  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
-  const [justification, setJustification] = useState("");
-  const [actionSuccess, setActionSuccess] = useState("");
-  const [processing, setProcessing] = useState(false);
-
-  // Load initial notifications and pending RUVs
-  useEffect(() => {
-    const defaultList: NotificationItem[] = [
-      {
-        id: "1",
-        timestamp: new Date(Date.now() - 5 * 60000).toLocaleTimeString("pt-BR"),
-        category: "sistema",
-        title: "Alerta de Freio Térmico",
-        message: "Temperatura do freio do veículo DEF-5678 atingiu 295°C no eixo traseiro direito.",
-        status: "unread",
-        severity: "error",
-      },
-      {
-        id: "2",
-        timestamp: new Date(Date.now() - 15 * 60000).toLocaleTimeString("pt-BR"),
-        category: "motoristas",
-        title: "DriverEye Fadiga",
-        message: "Condutor Carlos Eduardo com score de fadiga elevado em 82%. Sugerido ponto de parada imediata.",
-        status: "unread",
-        severity: "warning",
-      },
-      {
-        id: "3",
-        timestamp: new Date(Date.now() - 45 * 60000).toLocaleTimeString("pt-BR"),
-        category: "antt",
-        title: "ANTT Rotas",
-        message: "Veículo GHI-9012 cruzou divisa interestadual em rota homologada ANTT.",
-        status: "read",
-        severity: "info",
-      },
-      {
-        id: "4",
-        timestamp: new Date(Date.now() - 120 * 60000).toLocaleTimeString("pt-BR"),
-        category: "ruv",
-        title: "RUV Requisitada",
-        message: "RUV #99214 aguardando aprovação para Toyota Hilux (Placa ABC-1234).",
-        status: "unread",
-        severity: "info",
-        relatedId: "ruv-mock-1",
-      },
-    ];
-    setNotifications(defaultList);
-
-    // Initial mock pending RUV
-    setPendingRuvs([
-      {
-        id: "ruv-mock-1",
-        auth_number: "99214",
-        requester_name: "Ana Martins",
-        destination: "Filial Santos / Porto",
-        service: "Entrega de Carga Crítica",
-      },
-    ]);
-
-    // Also try to fetch pending RUVs from API
-    ruvApi.list("pending").then((res) => {
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        const mapped = res.data.map((r: any) => ({
-          id: r.id,
-          auth_number: r.auth_number,
-          requester_name: r.requester_name,
-          destination: r.destination,
-          service: r.service,
-        }));
-        setPendingRuvs((prev) => [...mapped, ...prev.filter(p => !mapped.some((m: any) => m.id === p.id))]);
-      }
-    }).catch(() => {});
-
-    // Try to fetch pending users if administrator
-    try {
-      const userStr = localStorage.getItem("user");
-      const currentUser = userStr ? JSON.parse(userStr) : null;
-      if (currentUser?.role === "administrador" || currentUser?.role === "admin") {
-        usersApi.list({ status: "pending" }).then((res) => {
-          if (Array.isArray(res.data)) {
-            setPendingUsers(res.data);
-          }
-        }).catch(() => {});
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const handleUserDecision = async (approve: boolean) => {
-    if (!selectedUser) return;
-    setProcessing(true);
-    setActionSuccess("");
-    try {
-      if (approve) {
-        await usersApi.approve(selectedUser.id);
-        setActionSuccess(`Usuário ${selectedUser.name} aprovado com sucesso!`);
-      } else {
-        await usersApi.reject(selectedUser.id);
-        setActionSuccess(`Cadastro do usuário ${selectedUser.name} recusado.`);
-      }
-      setPendingUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
-
-      const timestamp = new Date().toLocaleTimeString("pt-BR");
-      setNotifications((prev) => [
-        {
-          id: Date.now().toString(),
-          timestamp,
-          category: "sistema",
-          title: `Cadastro ${approve ? "Aprovado" : "Recusado"}`,
-          message: `O cadastro do usuário ${selectedUser.name} (${selectedUser.email}) foi ${approve ? "aprovado" : "rejeitado"}.`,
-          status: "unread",
-          severity: approve ? "info" : "warning",
-        },
-        ...prev,
-      ]);
-
-      setTimeout(() => {
-        setSelectedUser(null);
-        setActionSuccess("");
-      }, 1000);
-    } catch {
-      setActionSuccess("Erro ao registrar decisão.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleSimulateEvent = (type: "thermal" | "fatigue" | "antt" | "ruv") => {
-    const timestamp = new Date().toLocaleTimeString("pt-BR");
-    let newItem: NotificationItem;
-
-    if (type === "thermal") {
-      newItem = {
-        id: Date.now().toString(),
-        timestamp,
-        category: "sistema",
-        title: "Falta Resfriamento (Freio Térmico)",
-        message: `ALERTA CRÍTICO: Discos de freio do cavalo mecânico JKL-3456 atingiram 310°C.`,
-        status: "unread",
-        severity: "error",
-      };
-    } else if (type === "fatigue") {
-      newItem = {
-        id: Date.now().toString(),
-        timestamp,
-        category: "motoristas",
-        title: "Cansaço Excessivo (DriverEye)",
-        message: `DriverEye: Micro-sonolência detectada no condutor do veículo GHI-9012.`,
-        status: "unread",
-        severity: "error",
-      };
-    } else if (type === "antt") {
-      newItem = {
-        id: Date.now().toString(),
-        timestamp,
-        category: "antt",
-        title: "Divergência de Rota ANTT",
-        message: "Veículo DEF-5678 fora do corredor alfandegário homologado.",
-        status: "unread",
-        severity: "warning",
-      };
-    } else {
-      const auth = Math.floor(10000 + Math.random() * 90000).toString();
-      const mockId = `ruv-mock-${Date.now()}`;
-      newItem = {
-        id: Date.now().toString(),
-        timestamp,
-        category: "ruv",
-        title: "Nova RUV Solicitada",
-        message: `Requisitante solicitou veículo de frota. RUV #${auth} pendente aprovação.`,
-        status: "unread",
-        severity: "info",
-        relatedId: mockId,
-      };
-
-      setPendingRuvs((prev) => [
-        {
-          id: mockId,
-          auth_number: auth,
-          requester_name: "Simulador Evento",
-          destination: "Base Regional SP",
-          service: "Movimentação Interna",
-        },
-        ...prev,
-      ]);
-    }
-
-    setNotifications((prev) => [newItem, ...prev]);
-
-    // Show HTML5 native alert if permitted
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-      new Notification(newItem.title, { body: newItem.message });
-    }
-  };
-
-  const handleDecision = async (approve: boolean) => {
-    if (!selectedRuv) return;
-    
-    setProcessing(true);
-    setActionSuccess("");
-    try {
-      if (selectedRuv.id.startsWith("ruv-mock")) {
-        // Mock success for simulated RUVs
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        setActionSuccess(`RUV #${selectedRuv.auth_number} ${approve ? "Aprovada" : "Rejeitada"} com sucesso!`);
-      } else {
-        // Call real API for database RUVs
-        if (approve) {
-          await ruvApi.approve(selectedRuv.id, justification.trim() || undefined);
-        } else {
-          await ruvApi.reject(selectedRuv.id, justification.trim());
-        }
-        setActionSuccess(`RUV #${selectedRuv.auth_number} processada com sucesso.`);
-      }
-      
-      // Clean states and lists
-      setPendingRuvs((prev) => prev.filter((r) => r.id !== selectedRuv.id));
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.relatedId === selectedRuv.id
-            ? { ...n, message: `${n.message} (Processada: ${approve ? "Aprovado" : "Rejeitado"})`, severity: "info" }
-            : n
-        )
-      );
-
-      setTimeout(() => {
-        setSelectedRuv(null);
-        setJustification("");
-        setActionSuccess("");
-      }, 1000);
-    } catch {
-      setActionSuccess("Erro ao registrar decisão.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Filtered lists
-  const filteredNotifications = notifications.filter(
-    (n) => activeTab === "all" || n.category === activeTab || (activeTab === "motoristas" && n.category === "ruv")
-  );
+  const TABS = [
+    { id: "all", label: "Histórico Completo", count: 4, active: true },
+    { id: "sys", label: "Sistema Gps/Telemetria", count: 1 },
+    { id: "client", label: "Cliente & ANTT", count: 1 },
+    { id: "ruv", label: "Motoristas & RUVs", count: 2 },
+  ];
 
   return (
     <AppShell>
       <PageHeader
-        title="Central de Notificações e Eventos"
-        subtitle="Monitoramento unificado de alertas de segurança, telemetrias ativas e solicitações RUV."
+        breadcrumb="SEDE CENTRAL / UNIDADE OPERACIONAL / NOTIFICATIONS"
+        title="Central de Notificações & Solicitações"
+        subtitle="Homologação e auditoria integrada em tempo real. Monitore alertas do sistema, comunicados do cliente e aprove as RUVs de motoristas."
+        actions={
+          <div className="flex gap-2">
+            <button className="flex items-center gap-1.5 rounded-lg border border-[#FCA311]/50 bg-[#FCA311]/10 px-4 py-2 text-xs font-bold uppercase text-[#FCA311] hover:bg-[#FCA311]/20 transition">
+              <Icon name="check_circle" className="text-sm" /> Lidas
+            </button>
+            <button className="flex items-center gap-1.5 rounded-lg border border-error/50 bg-error/10 px-4 py-2 text-xs font-bold uppercase text-error hover:bg-error/20 transition">
+              <Icon name="delete_sweep" className="text-sm" /> Limpar Lidas
+            </button>
+          </div>
+        }
       />
 
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Main Notifications Log Feed */}
-        <div className="space-y-6 lg:col-span-8">
-          {/* Abas */}
-          <div className="raised-card overflow-hidden">
-            <div className="border-b border-outline-variant px-4 py-3 flex gap-4 bg-surface-container-high/40 overflow-x-auto">
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActiveTab(t.id)}
-                  className={`pb-1 text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
-                    activeTab === t.id
-                      ? "border-primary text-primary"
-                      : "border-transparent text-on-surface-variant hover:text-slate-200"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* List */}
-            <div className="divide-y divide-outline-variant/20 p-4">
-              {filteredNotifications.length === 0 ? (
-                <p className="py-6 text-center text-xs text-on-surface-variant uppercase">
-                  Nenhuma notificação neste filtro.
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
+        {/* Left Side: Summary & Simulator */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
+            <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-wider mb-4">
+              SUMÁRIO OPERACIONAL
+            </h3>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="rounded-xl border border-outline-variant/20 bg-[#0F172A] p-3">
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-between">
+                  TOTAL SOLICITAÇÕES <Icon name="list_alt" className="text-[10px]" />
                 </p>
-              ) : (
-                filteredNotifications.map((n) => (
-                  <div key={n.id} className="py-3 flex items-start gap-3 text-xs hover:bg-white/5 transition px-2 rounded-lg">
-                    <span
-                      className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
-                        n.severity === "error"
-                          ? "bg-error-container/20 text-error"
-                          : n.severity === "warning"
-                            ? "bg-amber-500/10 text-amber-500"
-                            : "bg-primary/10 text-primary"
-                      }`}
-                    >
-                      <Icon
-                        name={
-                          n.category === "sistema"
-                            ? "thermostat"
-                            : n.category === "antt"
-                              ? "gavel"
-                              : n.category === "motoristas"
-                                ? "face"
-                                : "assignment"
-                        }
-                        className="text-sm"
-                      />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-bold text-slate-100">{n.title}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">{n.timestamp}</p>
-                      </div>
-                      <p className="text-slate-300 mt-1">{n.message}</p>
-                    </div>
-                  </div>
-                ))
-              )}
+                <p className="text-2xl font-bold text-white">13</p>
+              </div>
+              <div className="rounded-xl border border-outline-variant/20 bg-[#0F172A] p-3">
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-between">
+                  PENDENTES <Icon name="schedule" className="text-[10px]" />
+                </p>
+                <p className="text-2xl font-bold text-[#FCA311]">1</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-error/20 bg-error/5 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ALERTAS ATIVOS DE SISTEMA</p>
+                <p className="text-lg font-bold text-error flex items-center gap-2">
+                  <Icon name="show_chart" className="text-error animate-pulse" /> 1 Críticos
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
+            <h3 className="text-[10px] font-bold text-[#FCA311] uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Icon name="hub" className="text-sm" /> SIMULADOR DE EVENTOS
+            </h3>
+            <p className="text-[10px] text-slate-400 mb-5 leading-relaxed">
+              Utilize o console abaixo para emitir solicitações de motoristas ou alertas do veículo pátio de forma instantânea.
+            </p>
+            <div className="space-y-3">
+              <button className="w-full flex items-center justify-between gap-3 bg-blue-500/10 border border-blue-500/30 p-3 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition text-left">
+                <span className="flex items-center gap-2"><Icon name="add_circle" className="text-sm" /> Emitir Nova RUV de Motorista</span>
+                <span className="text-[8px] bg-blue-500/20 px-1.5 py-0.5 rounded">RUV</span>
+              </button>
+              <button className="w-full flex items-center justify-between gap-3 bg-error/5 border border-error/30 p-3 rounded-lg text-xs font-bold text-error hover:bg-error/10 transition text-left">
+                <span className="flex items-center gap-2"><Icon name="warning" className="text-sm" /> Disparar Falha Mecânica</span>
+                <span className="text-[8px] bg-error/20 px-1.5 py-0.5 rounded">ALERTA</span>
+              </button>
+              <button className="w-full flex items-center justify-between gap-3 bg-green-500/5 border border-green-500/30 p-3 rounded-lg text-xs font-bold text-green-400 hover:bg-green-500/10 transition text-left">
+                <span className="flex items-center gap-2"><Icon name="campaign" className="text-sm" /> Postar Comunicado Corporativo</span>
+                <span className="text-[8px] bg-green-500/20 px-1.5 py-0.5 rounded">INFO</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Side Event Simulator Panel */}
-        <div className="lg:col-span-4">
-          <div className="raised-card p-6 bg-[#0b132b]/80 border border-outline-variant/30 text-slate-100">
-            <h3 className="mb-4 flex items-center gap-2 text-headline-sm text-primary font-bold">
-              <Icon name="videogame_asset" />
-              Simulador Telemetria
-            </h3>
-            <p className="text-xs text-on-surface-variant mb-6">
-              Mule simulador de eventos em tempo real para testar reatividade dos alarmes e HUD de RUVs na central.
-            </p>
-            
-            <div className="space-y-3">
+        {/* Right Side: Feed */}
+        <div className="lg:col-span-8 flex flex-col">
+          {/* Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-4 custom-scrollbar">
+            {TABS.map((t) => (
               <button
-                type="button"
-                onClick={() => handleSimulateEvent("thermal")}
-                className="w-full flex items-center gap-3 bg-error/10 hover:bg-error/20 border border-error/20 p-3 rounded-lg text-xs font-semibold text-error transition"
+                key={t.id}
+                onClick={() => setActiveTab(t.id as TabId)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                  activeTab === t.id
+                    ? "bg-blue-600 text-white"
+                    : "bg-[#0F172A] border border-outline-variant/30 text-slate-400 hover:bg-[#0F172A]/80"
+                }`}
               >
-                <Icon name="thermostat" />
-                Disparar Alerta Térmico
+                {t.label}
+                {t.count > 0 && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                    activeTab === t.id ? "bg-white/20 text-white" : "bg-slate-800 text-slate-300"
+                  }`}>
+                    {t.count}
+                  </span>
+                )}
               </button>
-              
-              <button
-                type="button"
-                onClick={() => handleSimulateEvent("fatigue")}
-                className="w-full flex items-center gap-3 bg-error/10 hover:bg-error/20 border border-error/20 p-3 rounded-lg text-xs font-semibold text-error transition"
-              >
-                <Icon name="visibility" />
-                Disparar Alerta Fadiga
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => handleSimulateEvent("antt")}
-                className="w-full flex items-center gap-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 p-3 rounded-lg text-xs font-semibold text-amber-500 transition"
-              >
-                <Icon name="navigation" />
-                Desvio de Corredor ANTT
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => handleSimulateEvent("ruv")}
-                className="w-full flex items-center gap-3 bg-primary/10 hover:bg-primary/20 border border-primary/20 p-3 rounded-lg text-xs font-semibold text-primary transition"
-              >
-                <Icon name="assignment" />
-                Simular Requisição RUV
-              </button>
+            ))}
+          </div>
+
+          {/* Feed List */}
+          <div className="space-y-4">
+            {/* Alerta Crítico */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-t-2 border-t-[#FCA311] border-l-2 border-l-[#FCA311] border-r border-r-outline-variant/30 border-b border-b-outline-variant/30 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[8px] font-bold text-[#FCA311] uppercase tracking-widest">PROBLEMA DO SISTEMA</span>
+                <span className="text-[10px] text-slate-500 font-mono">2026-06-17 01:39</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-1 w-6 h-6 rounded-md border border-[#FCA311]/50 bg-[#FCA311]/10 flex items-center justify-center shrink-0">
+                  <Icon name="warning" className="text-sm text-[#FCA311]" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-white mb-1 uppercase">ALERTA CRÍTICO: PRESSÃO PNEUS (FLT-0130)</h4>
+                  <p className="text-xs text-slate-400 mb-4">Sensores de temperatura e pressão na banda de rodagem detectaram pressão abaixo do nível seguro para frenagem de emergência.</p>
+                  <div className="flex justify-end">
+                    <button className="text-[9px] font-bold text-slate-400 hover:text-white uppercase tracking-wider transition">MARCAR COMO LIDA</button>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Atualização Cliente */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border border-blue-500/30 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">ATUALIZAÇÕES DO CLIENTE</span>
+                <span className="text-[10px] text-slate-500 font-mono">2026-06-17 01:37</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-1 w-6 h-6 rounded-md border border-blue-400/50 bg-blue-400/10 flex items-center justify-center shrink-0">
+                  <Icon name="info" className="text-sm text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-white mb-1 uppercase">RELATÓRIO DE HOMOLOGAÇÃO ANTT</h4>
+                  <p className="text-xs text-slate-400 mb-4">O cadastro do motorista Roberto Souza foi atualizado junto à base de dados nacional da ANTT.</p>
+                  <div className="flex justify-end">
+                    <button className="text-[9px] font-bold text-slate-400 hover:text-white uppercase tracking-wider transition">MARCAR COMO LIDA</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Solicitação RUV */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border border-[#FCA311]/30 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[8px] font-bold text-[#FCA311] uppercase tracking-widest">SOLICITAÇÕES</span>
+                <span className="text-[10px] text-slate-500 font-mono">2026-06-17 01:37</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-1 w-6 h-6 rounded-md border border-[#FCA311]/50 bg-[#FCA311]/10 flex items-center justify-center shrink-0">
+                  <Icon name="assignment_ind" className="text-sm text-[#FCA311]" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-white mb-1 uppercase">SOLICITAÇÃO DE VIAGEM RUV-6452</h4>
+                  <p className="text-xs text-slate-400 mb-4">O condutor Carlos Silveira solicitou o veículo Mercedes-Benz Atego 2426 em pátio operacional.</p>
+                  
+                  {/* Expanded detail box */}
+                  <div className="rounded-xl border border-outline-variant/20 bg-[#0F172A]/80 p-4">
+                    <h5 className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                      <Icon name="check_circle" className="text-xs" /> ACORDO TÉCNICO DE HOMOLOGAÇÃO DE PÁTIO
+                    </h5>
+                    
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase mb-0.5">VEÍCULO ALOCADO</p>
+                        <p className="text-[10px] font-bold text-white">Mercedes-Benz Atego 2426</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase mb-0.5">MOTORISTA PILOTO</p>
+                        <p className="text-[10px] font-bold text-white">Carlos Silveira</p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase mb-0.5">TRAJETÓRIA PREVISTA</p>
+                        <p className="text-[10px] font-bold text-[#FCA311]">Matriz São Paulo (SP) ➔ São José dos Campos (SP)</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between border-t border-outline-variant/10 pt-3">
+                      <div className="flex gap-6">
+                        <div>
+                          <p className="text-[8px] font-bold text-slate-500 uppercase mb-0.5">Carona/Passageiros</p>
+                          <p className="text-[10px] font-bold text-slate-300">Carona Corporativa 2</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-bold text-slate-500 uppercase mb-0.5">Solicitado por</p>
+                          <p className="text-[10px] font-bold text-slate-300">Carlos Silveira</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="flex items-center gap-1.5 px-4 py-2 border border-error/50 text-error rounded-lg text-[10px] font-bold uppercase hover:bg-error/10 transition">
+                          <Icon name="close" className="text-xs" /> REJEITAR
+                        </button>
+                        <button className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-[10px] font-bold uppercase transition">
+                          <Icon name="check" className="text-xs" /> AUTORIZAR VIAGEM
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+
+            {/* Generic RUV request bottom cut off */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border border-outline-variant/30 rounded-xl opacity-50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[8px] font-bold text-[#FCA311] uppercase tracking-widest">SOLICITAÇÕES</span>
+                <span className="text-[10px] text-slate-500 font-mono">2026-06-09 21:27</span>
+              </div>
+              <h4 className="text-sm font-bold text-white uppercase ml-9">SOLICITAÇÃO DE VIAGEM RUV-1768</h4>
+            </div>
+
           </div>
         </div>
       </div>
-
-      {/* Decision HUD Modal */}
-      <FormModal
-        open={!!selectedRuv}
-        onClose={() => {
-          setSelectedRuv(null);
-          setJustification("");
-          setActionSuccess("");
-        }}
-        title={`RUV # ${selectedRuv?.auth_number}`}
-        subtitle="Auditoria Rápida RUV"
-      >
-        {selectedRuv && (
-          <div className="space-y-4 text-slate-100">
-            <div className="rounded-lg bg-surface-container-high p-4 space-y-2 text-xs">
-              <p><strong>Requisitante:</strong> {selectedRuv.requester_name}</p>
-              <p><strong>Destino:</strong> {selectedRuv.destination}</p>
-              <p><strong>Objetivo:</strong> {selectedRuv.service}</p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label htmlFor="decision_comment" className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">
-                  Justificativa / Comentário (Obrigatório para Rejeições)
-                </label>
-                <textarea
-                  id="decision_comment"
-                  rows={3}
-                  className="input-fleet min-h-[80px]"
-                  placeholder="Justificativa técnica..."
-                  value={justification}
-                  onChange={(e) => setJustification(e.target.value)}
-                />
-              </div>
-
-              {actionSuccess && <p className="text-sm font-semibold text-green-400">{actionSuccess}</p>}
-
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  type="button"
-                  disabled={processing || !!actionSuccess}
-                  onClick={() => handleDecision(false)}
-                  className="btn-outline border-error text-error py-2.5 rounded-lg text-xs font-bold uppercase hover:bg-error/10 transition"
-                >
-                  Rejeitar
-                </button>
-                <button
-                  type="button"
-                  disabled={processing || !!actionSuccess}
-                  onClick={() => handleDecision(true)}
-                  className="btn-primary py-2.5 rounded-lg text-xs font-bold uppercase"
-                >
-                  Aprovar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </FormModal>
-
-      <FormModal
-        open={!!selectedUser}
-        onClose={() => {
-          setSelectedUser(null);
-          setActionSuccess("");
-        }}
-        title={`Aprovação de Cadastro`}
-        subtitle={`REVISÃO DO USUÁRIO: ${selectedUser?.name}`}
-      >
-        {selectedUser && (
-          <div className="space-y-4 text-slate-100">
-            <div className="rounded-lg bg-surface-container-high p-4 space-y-2 text-xs">
-              <p><strong>Nome Completo:</strong> {selectedUser.name}</p>
-              <p><strong>E-mail:</strong> {selectedUser.email}</p>
-              <p><strong>Cargo Solicitado:</strong> {selectedUser.role}</p>
-              <p><strong>Cadastrado em:</strong> {new Date(selectedUser.created_at).toLocaleDateString("pt-BR")}</p>
-            </div>
-
-            <div className="space-y-3">
-              {actionSuccess && <p className="text-sm font-semibold text-green-400">{actionSuccess}</p>}
-
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  type="button"
-                  disabled={processing || !!actionSuccess}
-                  onClick={() => handleUserDecision(false)}
-                  className="btn-outline border-error text-error py-2.5 rounded-lg text-xs font-bold uppercase hover:bg-error/10 transition"
-                >
-                  Recusar Registro
-                </button>
-                <button
-                  type="button"
-                  disabled={processing || !!actionSuccess}
-                  onClick={() => handleUserDecision(true)}
-                  className="btn-primary py-2.5 rounded-lg text-xs font-bold uppercase"
-                >
-                  Aprovar Cadastro
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </FormModal>
     </AppShell>
   );
 }

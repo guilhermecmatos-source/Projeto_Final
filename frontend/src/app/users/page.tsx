@@ -19,9 +19,10 @@ const ROLES = [
 ];
 
 function roleBadge(role: string) {
-  if (role === "administrador" || role === "admin") return "badge-admin";
-  if (role === "gestor" || role === "attendant") return "badge-gestor";
-  return "badge-solicitante";
+  const r = role.toLowerCase();
+  if (r === "administrador" || r === "admin") return "text-[#FCA311] border border-[#FCA311]/30 bg-[#FCA311]/10 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider";
+  if (r === "gestor" || r === "attendant") return "text-blue-400 border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider";
+  return "text-slate-300 border border-slate-500/30 bg-slate-500/10 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider";
 }
 
 export default function UsersPage() {
@@ -43,18 +44,7 @@ export default function UsersPage() {
   });
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editError, setEditError] = useState("");
-  const [editForm, setEditForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    cpf: "",
-    rg: "",
-    cargo: "",
-    unidade: "",
-    role: "solicitante",
-  });
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -94,66 +84,17 @@ export default function UsersPage() {
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
-    setEditForm({
-      name: user.name || "",
-      email: user.email || "",
-      password: "",
-      cpf: user.cpf || "",
-      rg: user.rg || "",
-      cargo: user.cargo || "",
-      unidade: user.unidade || "",
-      role: user.role || "solicitante",
-    });
-    setEditError("");
-    setEditModalOpen(true);
+    setProfileModalOpen(true);
   };
 
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    setEditError("");
-    if (!selectedUser) return;
-    const em = validateEmail(editForm.email);
-    if (!em.valid) return setEditError(em.message ?? "E-mail inválido");
-    if (editForm.cpf) {
-      const cp = validateCpf(editForm.cpf);
-      if (!cp.valid) return setEditError(cp.message ?? "CPF inválido");
-    }
-
-    const payload: Record<string, unknown> = {
-      name: editForm.name,
-      email: editForm.email,
-      cpf: editForm.cpf,
-      rg: editForm.rg,
-      cargo: editForm.cargo,
-      unidade: editForm.unidade,
-      role: editForm.role,
-    };
-    if (editForm.password) {
-      payload.password = editForm.password;
-    }
-
-    try {
-      await usersApi.update(selectedUser.id, payload);
-      setEditModalOpen(false);
-      load();
-    } catch (err: unknown) {
-      setEditError(
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error || "Erro ao atualizar usuário"
-      );
-    }
-  }
-
-  async function handleDelete() {
-    if (!selectedUser) return;
+  async function handleDelete(user: User, e: React.MouseEvent) {
+    e.stopPropagation();
     if (!confirm("Tem certeza que deseja excluir este usuário permanentemente?")) return;
     try {
-      await usersApi.remove(selectedUser.id);
-      setEditModalOpen(false);
+      await usersApi.remove(user.id);
       load();
     } catch (err: unknown) {
-      setEditError(
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error || "Erro ao excluir usuário"
-      );
+      alert("Erro ao excluir usuário");
     }
   }
 
@@ -166,24 +107,26 @@ export default function UsersPage() {
   return (
     <AppShell>
       <PageHeader
-        breadcrumb="Users"
+        breadcrumb="SEDE CENTRAL / UNIDADE OPERACIONAL / USERS"
         title="Gestão de Usuários"
         subtitle="Controle de perfis corporativos e restrições de privilégios rbac."
         actions={
-          <ActionButton onClick={() => setModalOpen(true)}>
-            <Icon name="person_add" />
-            Novo Usuário
-          </ActionButton>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-[#FCA311]/50 bg-[#FCA311]/10 px-4 py-2 text-xs font-bold uppercase text-[#FCA311] hover:bg-[#FCA311]/20 transition"
+          >
+            + NOVO USUÁRIO
+          </button>
         }
       />
 
-      <section className="raised-card overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant p-4">
-          <h2 className="text-headline-sm">Usuários com Login Homologado</h2>
+      <section className="raised-card overflow-hidden bg-[#0c132b]/80 border-outline-variant/30">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/30 p-4">
+          <h2 className="text-sm font-bold text-[#FCA311]">Usuários com Login Homologado</h2>
           <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
-            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
             <input
-              className="input-fleet pl-10 !h-10"
+              className="w-full rounded-lg bg-[#0F172A]/80 border border-outline-variant/30 pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary/50"
               placeholder="Filtrar por nome ou e-mail..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -199,42 +142,57 @@ export default function UsersPage() {
           emptyTitle={search ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado"}
           emptyDescription={search ? "Tente outro termo de busca." : "Adicione o primeiro perfil corporativo."}
           emptyIcon="manage_accounts"
-          emptyAction={
-            !search ? (
-              <ActionButton onClick={() => setModalOpen(true)}>
-                <Icon name="person_add" />
-                Novo Usuário
-              </ActionButton>
-            ) : undefined
-          }
         >
           <div className="table-responsive">
-            <table className="zebra-table w-full text-sm">
+            <table className="w-full text-sm text-left">
               <thead>
-                <tr className="border-b bg-surface-container-high text-left text-[10px] font-bold uppercase text-on-surface-variant">
-                  <th className="px-4 py-3">Operador</th>
-                  <th className="px-4 py-3">Cargo / Lotação</th>
+                <tr className="border-b border-outline-variant/30 bg-[#0F172A]/40 text-[9px] font-bold uppercase text-slate-500 tracking-wider">
+                  <th className="px-4 py-3">OPERADOR</th>
+                  <th className="px-4 py-3">CARGO / LOTAÇÃO</th>
                   <th className="px-4 py-3">CPF / RG</th>
-                  <th className="px-4 py-3">Privilégio</th>
+                  <th className="px-4 py-3">PRIVILÉGIO</th>
+                  <th className="px-4 py-3 text-center">AÇÕES</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-outline-variant/10">
                 {filtered.map((u) => (
-                  <tr key={u.id} className="cursor-pointer hover:bg-surface-container-high/40 transition" onClick={() => handleSelectUser(u)}>
+                  <tr key={u.id} className="hover:bg-white/5 transition group">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-xs font-bold text-primary">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high border border-outline-variant/30 text-xs font-bold text-slate-300 uppercase shrink-0">
                           {u.name.charAt(0)}
-                        </span>
+                        </div>
                         <div>
-                          <p className="font-bold">{u.name}</p>
-                          <p className="text-xs text-on-surface-variant">{u.email}</p>
+                          <p className="font-bold text-white text-xs flex items-center gap-1.5">
+                            {u.name}
+                            {u.role === "solicitante" && <span className="text-[10px] text-slate-400 font-normal">(Condutor)</span>}
+                            <button onClick={() => handleSelectUser(u)} className="text-[9px] text-blue-400 hover:text-blue-300 font-medium">(Ficha)</button>
+                          </p>
+                          <p className="text-[10px] text-slate-500">{u.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs">{u.cargo ?? "—"} {u.unidade ? `| ${u.unidade}` : ""}</td>
-                    <td className="px-4 py-3 text-xs">{u.cpf ?? "—"} / {u.rg ?? "—"}</td>
-                    <td className="px-4 py-3"><span className={roleBadge(u.role)}>{u.role}</span></td>
+                    <td className="px-4 py-3 text-[11px] text-slate-300">
+                      <p className="font-semibold">{u.cargo ?? "Não definido"}</p>
+                      <p className="text-[9px] text-slate-500 mt-0.5">{u.unidade ?? "Sem lotação"}</p>
+                    </td>
+                    <td className="px-4 py-3 text-[10px] text-slate-400 font-mono">
+                      <p>CPF: <span className="text-slate-300">{u.cpf || "000.000.000-00"}</span></p>
+                      <p className="mt-0.5">RG: <span className="text-slate-300">{u.rg || "00.000.000-0"}</span></p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={roleBadge(u.role)}>{u.role}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition">
+                        <button onClick={() => handleSelectUser(u)} className="p-1 text-slate-400 hover:text-blue-400 transition" title="Ver Ficha">
+                          <Icon name="visibility" className="text-sm" />
+                        </button>
+                        <button onClick={(e) => handleDelete(u, e)} className="p-1 text-slate-400 hover:text-red-400 transition" title="Excluir">
+                          <Icon name="delete" className="text-sm" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -243,6 +201,7 @@ export default function UsersPage() {
         </ListPageStates>
       </section>
 
+      {/* Modal Novo Usuário */}
       <FormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -293,71 +252,62 @@ export default function UsersPage() {
         </form>
       </FormModal>
 
-      <FormModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        title="Detalhes do Usuário"
-        subtitle="EDITAR OU EXCLUIR PERFIL CORPORATIVO"
-      >
-        <form className="space-y-3" onSubmit={handleUpdate}>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Nome Completo</label>
-            <input className="input-fleet" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">E-mail Corporativo</label>
-            <input className="input-fleet" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} required />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">CPF</label>
-              <input className="input-fleet" value={editForm.cpf} onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })} />
+      {/* Modal View Profile */}
+      {profileModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-[#0c132b] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col">
+            {/* Header blue gradient */}
+            <div className="bg-gradient-to-b from-blue-600 to-[#121b38] pt-8 pb-10 flex flex-col items-center relative">
+              <div className="w-20 h-20 rounded-full border-4 border-[#121b38] bg-slate-300 relative overflow-hidden shadow-lg flex items-center justify-center text-3xl font-bold text-slate-500 uppercase">
+                {selectedUser.name.charAt(0)}
+              </div>
+              <div className="absolute top-[88px] right-[140px] w-4 h-4 rounded-full bg-[#FCA311] border-2 border-[#121b38]"></div>
+              
+              <h3 className="mt-3 text-lg font-bold text-white">{selectedUser.name}</h3>
+              <p className="text-xs text-slate-300">{selectedUser.email}</p>
             </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">RG</label>
-              <input className="input-fleet" value={editForm.rg} onChange={(e) => setEditForm({ ...editForm, rg: e.target.value })} />
+            
+            {/* Body */}
+            <div className="p-6 space-y-4 text-xs font-bold uppercase tracking-wider">
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-3">
+                <span className="text-slate-500">PRIVILÉGIO RBAC</span>
+                <span className="text-blue-500">{selectedUser.role}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-3">
+                <span className="text-slate-500">CARGO CORPORATIVO</span>
+                <span className="text-slate-300 capitalize text-right">{selectedUser.cargo || "Não informado"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-3">
+                <span className="text-slate-500">LOTAÇÃO / UNIDADE</span>
+                <span className="text-slate-300 capitalize text-right">{selectedUser.unidade || "Não informada"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-3">
+                <span className="text-slate-500">DOCUMENTO CPF</span>
+                <span className="text-slate-300 font-mono">{selectedUser.cpf || "000.000.000-00"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-3">
+                <span className="text-slate-500">DOCUMENTO RG</span>
+                <span className="text-slate-300 font-mono">{selectedUser.rg || "00.000.000-0"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-3">
+                <span className="text-slate-500">STATUS DE LOGIN</span>
+                <span className="text-[#FCA311]">PENDENTE</span>
+              </div>
+              <div className="flex justify-between items-center pb-3">
+                <span className="text-slate-500">ACEITOU TERMOS & LGPD</span>
+                <span className="text-green-400">Sim, Homologado</span>
+              </div>
+              
+              <button 
+                onClick={() => setProfileModalOpen(false)}
+                className="w-full mt-2 py-3 rounded-xl bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-xs tracking-widest transition"
+              >
+                FECHAR PERFIL
+              </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Cargo</label>
-              <input className="input-fleet" value={editForm.cargo} onChange={(e) => setEditForm({ ...editForm, cargo: e.target.value })} />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Unidade</label>
-              <input className="input-fleet" value={editForm.unidade} onChange={(e) => setEditForm({ ...editForm, unidade: e.target.value })} />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Nova Senha (deixe em branco para manter)</label>
-            <input className="input-fleet" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Perfil de Privilégios</label>
-            <select className="input-fleet" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
-              {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-            </select>
-          </div>
-          {editError && <p className="text-sm text-error">{editError}</p>}
-          
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="bg-error hover:bg-red-700 text-white rounded-lg px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition flex items-center justify-center gap-1 flex-1 font-bold"
-            >
-              <Icon name="delete" />
-              Excluir
-            </button>
-            <button
-              type="submit"
-              className="btn-primary flex-1 uppercase font-semibold text-xs tracking-wider"
-            >
-              Salvar Alterações
-            </button>
-          </div>
-        </form>
-      </FormModal>
+        </div>
+      )}
     </AppShell>
   );
 }
