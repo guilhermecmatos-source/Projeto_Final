@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState, useCallback } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -8,12 +8,13 @@ import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
 import FormField from "@/components/forms/FormField";
 import ListPageStates from "@/components/ui/ListPageStates";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { ListRowSkeleton } from "@/components/ui/LoadingSkeleton";
 import { fuelApi, uploadsApi, vehiclesApi, driversApi } from "@/services/api";
 import { extractApiError } from "@/lib/api-errors";
 import { formatBRL } from "@/lib/currency";
 import { formatPlateDisplay } from "@/lib/validators";
 import CurrencyField from "@/components/forms/CurrencyField";
-import MediaUpload from "@/components/forms/MediaUpload";
 
 interface FuelRow {
   id: string;
@@ -29,7 +30,7 @@ interface FuelRow {
 }
 
 export default function FuelPage() {
-  const [activeTab, setActiveTab] = useState<"cards" | "ocr">("cards");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "cards" | "ocr">("dashboard");
   const [records, setRecords] = useState<FuelRow[]>([]);
   const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [drivers, setDrivers] = useState<{ id: string; name: string }[]>([]);
@@ -45,6 +46,7 @@ export default function FuelPage() {
   const [nfcModalOpen, setNfcModalOpen] = useState(false);
   const [nfcWalletType, setNfcWalletType] = useState<"Google Wallet" | "Apple Pay" | null>(null);
   const [nfcStep, setNfcStep] = useState<"connecting" | "processing" | "success">("connecting");
+  const [showEmitForm, setShowEmitForm] = useState(false);
 
   // Pix refund modal states
   const [pixRefundModalOpen, setPixRefundModalOpen] = useState(false);
@@ -54,13 +56,14 @@ export default function FuelPage() {
   // Statement & Receipt states
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [thermalReceiptOpen, setThermalReceiptOpen] = useState(false);
+  const [compraModalOpen, setCompraModalOpen] = useState(false);
 
   const [transactions, setTransactions] = useState([
     {
       id: "tx-1",
       title: "Carga PIX: Central Gestor",
       type: "credit",
-      amount: 1000.00,
+      amount: 500.00,
       date: "2026-06-09 19:01:55",
       status: "Sucesso",
       method: "Compensado",
@@ -68,32 +71,49 @@ export default function FuelPage() {
       details: "Injeção de fundos autorizada pelo gestor de frota.",
       plate: "BRA-2E19",
       driver: "Jeovana Lopesvalente"
-    },
+    }
+  ]);
+
+  const [historicoTransacoes, setHistoricoTransacoes] = useState([
     {
-      id: "tx-2",
-      title: "Abastecimento: Posto Petrobras Deca",
-      type: "debit",
+      id: "h1",
+      type: "CUPOM ESCANEADO",
+      vehicle: "SCANIA R 450 (BRA-2E19)",
+      details: "Posto Central / Cupom OCR - Operador: Carlos Silveira",
+      date: "2026-06-12",
+      odom: "145.210 Km",
       amount: 450.00,
-      date: "2026-06-09 21:15:00",
-      status: "Sucesso",
-      method: "NFC Proximidade",
-      authCode: "AUT871239",
-      details: "Diesel S10 | Litros: 75L | Preço/L: R$ 6,00",
-      plate: "BRA-2E19",
-      driver: "Jeovana Lopesvalente"
+      liters: 75
     },
     {
-      id: "tx-3",
-      title: "Abastecimento: Shell Marginal",
-      type: "debit",
-      amount: 280.00,
-      date: "2026-06-10 08:30:00",
-      status: "Sucesso",
-      method: "NFC Proximidade",
-      authCode: "AUT991283",
-      details: "Diesel S10 | Litros: 46.6L | Preço/L: R$ 6,00",
-      plate: "BRA-2E19",
-      driver: "Jeovana Lopesvalente"
+      id: "h2",
+      type: "CUPOM ESCANEADO",
+      vehicle: "SCANIA R 450 (BRA-2E19)",
+      details: "Posto Central / Cupom OCR - Operador: Carlos Silveira",
+      date: "2026-06-09",
+      odom: "136.949 Km",
+      amount: 183.08,
+      liters: 33.3
+    },
+    {
+      id: "h3",
+      type: "CARTÃO NFC",
+      vehicle: "SCANIA R 450 (BRA-2E19)",
+      details: "Posto Ipiranga Rota Norte - Operador: Amanda Silveira",
+      date: "2026-06-09",
+      odom: "136.949 Km",
+      amount: 183.08,
+      liters: 33.3
+    },
+    {
+      id: "h4",
+      type: "CARTÃO NFC",
+      vehicle: "SCANIA R 450 (BRA-2E19)",
+      details: "Posto Shell Rota Norte - Operador: Amanda Silveira",
+      date: "2026-06-05",
+      odom: "125.420 Km",
+      amount: 825.00,
+      liters: 150
     }
   ]);
 
@@ -103,9 +123,7 @@ export default function FuelPage() {
     setNfcModalOpen(true);
     setTimeout(() => {
       setNfcStep("processing");
-      setTimeout(() => {
-        setNfcStep("success");
-      }, 2000);
+      setTimeout(() => { setNfcStep("success"); }, 2000);
     }, 1500);
   };
 
@@ -115,27 +133,20 @@ export default function FuelPage() {
     setNfcModalOpen(true);
     setTimeout(() => {
       setNfcStep("processing");
-      setTimeout(() => {
-        setNfcStep("success");
-      }, 2000);
+      setTimeout(() => { setNfcStep("success"); }, 2000);
     }, 1500);
   };
 
-  // Pix refund form states
   const [pixKeyType, setPixKeyType] = useState("CPF/CNPJ");
   const [pixKey, setPixKey] = useState("");
   const [pixName, setPixName] = useState("");
-  const [refunding, setRefunding] = useState(false);
   const [refundMessage, setRefundMessage] = useState("");
 
   const load = () => {
     setLoading(true);
     setFetchError(null);
-    fuelApi
-      .list()
-      .then((res) => {
+    fuelApi.list().then((res) => {
         const data = Array.isArray(res.data) ? res.data : [];
-        // Inject mock records to guarantee the lists populate exactly like Image 2 if empty
         const mockRecords: FuelRow[] = [
           {
             id: "sup-1",
@@ -144,9 +155,9 @@ export default function FuelPage() {
             driver_name: "Carlos Silveira",
             liters: 75,
             cost: 450.00,
-            mileage_at_fill: 125100,
+            mileage_at_fill: 145210,
             suspicious: false,
-            station: "Posto Ipiranga — Av. Paulista"
+            station: "Posto Ipiranga"
           },
           {
             id: "sup-2",
@@ -157,29 +168,36 @@ export default function FuelPage() {
             cost: 183.08,
             mileage_at_fill: 136949,
             suspicious: false,
-            station: "Shell — Marginal Tietê"
+            station: "Shell"
           },
           {
             id: "sup-3",
             filled_at: new Date(Date.now() - 172800000).toISOString(),
+            vehicle_plate: "BRA-2E19",
+            driver_name: "Carlos Silveira",
+            liters: 75,
+            cost: 450.00,
+            mileage_at_fill: 125100,
+            suspicious: false,
+            station: "Posto Ipiranga"
+          },
+          {
+            id: "sup-4",
+            filled_at: new Date(Date.now() - 259200000).toISOString(),
             vehicle_plate: "FLT-0130",
             driver_name: "Roberto Souza",
             liters: 208,
             cost: 1250.00,
             mileage_at_fill: 81880,
             suspicious: false,
-            station: "Posto Ipiranga — Anchieta"
+            station: "Posto Ipiranga"
           }
         ];
         
-        // Merge real records and mocks, avoiding duplicates by id
         const merged = [...data];
         mockRecords.forEach(mock => {
-          if (!merged.some(r => r.id === mock.id)) {
-            merged.push(mock);
-          }
+          if (!merged.some(r => r.id === mock.id)) merged.push(mock);
         });
-
         setRecords(merged);
       })
       .catch((err) => {
@@ -195,12 +213,6 @@ export default function FuelPage() {
     driversApi.list().then((res) => setDrivers(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, []);
 
-  const kpis = useMemo(() => {
-    const totalCost = records.reduce((s, r) => s + Number(r.cost), 0);
-    const totalLiters = records.reduce((s, r) => s + Number(r.liters), 0);
-    return { totalCost, totalLiters, avgPrice: totalLiters > 0 ? totalCost / totalLiters : 0 };
-  }, [records]);
-
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
@@ -214,15 +226,7 @@ export default function FuelPage() {
         mileage_at_fill: Number(form.get("mileage_at_fill")),
         receipt_url: receiptDataUrl || undefined,
       });
-      const recordId = (res.data as { id?: string })?.id;
-      if (recordId && receiptFile) {
-        await uploadsApi.upload(receiptFile, "fuel_receipt", recordId);
-      }
-      setReceiptFile(null);
-      setReceiptDataUrl(null);
       load();
-      // Switch back to list view
-      setActiveTab("ocr");
     } catch (err) {
       console.error(err);
     } finally {
@@ -240,12 +244,24 @@ export default function FuelPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <ErrorBoundary>
+        <PageHeader
         breadcrumb="Sede Central / Unidade Operacional / Supplies"
         title="ABASTECIMENTO & CONTROLE DE SALDOS"
         subtitle="Gerencie o ciclo operacional de abastecimento, escaneie cupons fiscais e audite cartões pré-pagos NFC integrados."
         actions={
           <div className="flex gap-2 bg-[#0F172A] p-1.5 rounded-lg border border-outline-variant/30">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold uppercase transition ${
+                activeTab === "dashboard"
+                  ? "bg-blue-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Icon name="dashboard" className="text-sm" />
+              Dashboard de Abastecimento
+            </button>
             <button
               onClick={() => setActiveTab("cards")}
               className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold uppercase transition ${
@@ -261,42 +277,280 @@ export default function FuelPage() {
               onClick={() => setActiveTab("ocr")}
               className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold uppercase transition ${
                 activeTab === "ocr"
-                  ? "bg-[#1E293B] text-[#FCA311] border border-outline-variant/30"
+                  ? "bg-blue-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              <Icon name="receipt_long" className="text-sm" />
+              <Icon name="photo_camera" className="text-sm" />
               Lançar Cupons (OCR)
             </button>
           </div>
         }
       />
 
-      {activeTab === "cards" ? (
-        /* TAB 1: CARTÕES NFC & SALDOS */
+      {activeTab === "dashboard" && (
         <div className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
+          {/* Top KPIs */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CUSTO TOTAL COMBUSTÍVEL</p>
+              <p className="text-xl font-bold text-[#FCA311] font-mono">R$ 5.256,16</p>
+              <p className="text-[9px] text-slate-400 mt-1 flex justify-center items-center gap-1"><Icon name="trending_up" className="text-[12px] text-[#FCA311]"/> Desta frota ativa & cartões NFC</p>
+            </div>
+            <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">VOLUME TOTAL FATURADO</p>
+              <p className="text-xl font-bold text-[#FCA311] font-mono">924,6 L</p>
+              <p className="text-[9px] text-blue-400 mt-1 font-bold flex justify-center items-center gap-1"><Icon name="link" className="text-[12px]" /> Média paga: R$ 5,68/L</p>
+            </div>
+            <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">SALDO ATIVO EM CARTÕES</p>
+              <p className="text-xl font-bold text-[#FCA311] font-mono">R$ 3.076,92</p>
+              <p className="text-[9px] text-slate-400 mt-1 flex justify-center items-center gap-1"><Icon name="account_balance_wallet" className="text-[12px] text-green-400"/> Garantia pré-paga NFC ativa</p>
+            </div>
+            <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">LANÇAMENTOS DE ABASTECIMENTO</p>
+              <p className="text-xl font-bold text-[#FCA311] font-mono flex justify-center items-center gap-2">8 Eventos <Icon name="trending_up" className="text-purple-400 text-[18px]" /></p>
+              <p className="text-[9px] text-slate-400 mt-1"><span className="text-blue-400">4 NFC</span> | <span className="text-purple-400">4 Cupons</span></p>
+            </div>
+          </div>
+
+          {/* Gráficos */}
+          <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xs font-bold uppercase text-primary flex items-center gap-1.5"><Icon name="bar_chart"/> GRÁFICOS COMPARATIVOS MENSAIS</h3>
+                <p className="text-[10px] text-slate-400 mt-1">Visualize a série financeira e volumétrica do veículo selecionado em 2026.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">SELECIONE O VEÍCULO:</span>
+                <select className="bg-[#0b0e14]/80 border border-outline-variant/30 rounded text-[10px] p-1.5 text-[#FCA311] font-bold w-48">
+                  <option>Volvo FH 540 (FLT-0130)</option>
+                  <option>Scania R 450 (BRA-2E19)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 h-64">
+              {/* Bar Chart */}
+              <div className="border border-outline-variant/20 rounded-lg bg-[#0F172A]/40 p-4 flex flex-col relative">
+                <h4 className="text-[9px] font-bold text-slate-300 uppercase flex items-center gap-1 mb-4"><Icon name="trending_up" className="text-[12px] text-[#FCA311]" /> GASTO FATURADO MENSAL (R$)</h4>
+                <div className="flex-1 flex items-end justify-between relative pl-8 pb-4">
+                  {/* Y Axis */}
+                  <div className="absolute left-0 top-0 bottom-4 flex flex-col justify-between text-[8px] text-slate-500 font-mono">
+                    <span>2800</span>
+                    <span>2100</span>
+                    <span>1400</span>
+                    <span>700</span>
+                    <span>0</span>
+                  </div>
+                  {/* Grid lines */}
+                  <div className="absolute left-8 right-0 top-0 bottom-4 flex flex-col justify-between">
+                    {[0,1,2,3,4].map(i => <div key={i} className="border-b border-white/5 w-full h-0"></div>)}
+                  </div>
+                  {/* Bars */}
+                  {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => (
+                    <div key={m} className="flex flex-col items-center w-full z-10 relative h-full justify-end">
+                      {m === 'Jun' && <div className="w-1/2 bg-blue-600 h-[85%] rounded-t-sm shadow-[0_0_10px_rgba(37,99,235,0.5)]"></div>}
+                      <span className="text-[8px] text-slate-500 mt-2 absolute -bottom-4">{m}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Line Chart */}
+              <div className="border border-outline-variant/20 rounded-lg bg-[#0F172A]/40 p-4 flex flex-col relative">
+                <h4 className="text-[9px] font-bold text-slate-300 uppercase flex items-center gap-1 mb-4"><Icon name="opacity" className="text-[12px] text-[#FCA311]" /> VOLUME MENSAL CONSUMIDO (LITROS)</h4>
+                <div className="flex-1 flex items-end justify-between relative pl-8 pb-4">
+                  <div className="absolute left-0 top-0 bottom-4 flex flex-col justify-between text-[8px] text-slate-500 font-mono">
+                    <span>600</span>
+                    <span>450</span>
+                    <span>300</span>
+                    <span>150</span>
+                    <span>0</span>
+                  </div>
+                  <div className="absolute left-8 right-0 top-0 bottom-4 flex flex-col justify-between">
+                    {[0,1,2,3,4].map(i => <div key={i} className="border-b border-white/5 w-full h-0"></div>)}
+                  </div>
+                  {/* SVG Line */}
+                  <svg className="absolute left-8 right-0 top-0 bottom-4 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                    <path d="M 0 100 L 8.3 100 L 16.6 100 L 25 100 L 33.3 100 L 41.6 100 L 50 15 L 58.3 100 L 66.6 100 L 75 100 L 83.3 100 L 91.6 100 L 100 100" fill="none" stroke="#FCA311" strokeWidth="1.5" />
+                    <circle cx="50" cy="15" r="2" fill="#0F172A" stroke="#FCA311" strokeWidth="1" />
+                    <circle cx="41.6" cy="100" r="1.5" fill="#FCA311" />
+                    <circle cx="58.3" cy="100" r="1.5" fill="#FCA311" />
+                  </svg>
+                  {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => (
+                    <div key={m} className="flex flex-col items-center w-full z-10 relative h-full justify-end">
+                      <span className="text-[8px] text-slate-500 mt-2 absolute -bottom-4">{m}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Relatório Consolidado */}
+          <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 mb-1"><Icon name="local_shipping"/> RELATÓRIO CONSOLIDADO DE GASTOS POR VEÍCULO</h3>
+            <p className="text-[9px] text-slate-400 mb-4">Auditoria financeira de consumo com o rateio absoluto de custos por automóvel.</p>
             
-            {/* Column 1: Active cards list */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col h-full">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-outline-variant/30 text-[9px] font-bold text-slate-500 uppercase">
+                    <th className="py-3 px-2 font-bold">VEÍCULO</th>
+                    <th className="py-3 px-2 font-bold text-center">PLACA</th>
+                    <th className="py-3 px-2 font-bold text-center">LANÇAMENTOS</th>
+                    <th className="py-3 px-2 font-bold w-48">LITROS COMPRADOS</th>
+                    <th className="py-3 px-2 font-bold text-center">PREÇO MÉDIO / L</th>
+                    <th className="py-3 px-2 font-bold text-right">GASTO ACUMULADO (R$)</th>
+                    <th className="py-3 px-2 font-bold text-center">AÇÕES</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10 text-[10px] text-slate-300">
+                  <tr className="hover:bg-white/5 transition">
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs"/></div>
+                        <div>
+                          <p className="font-bold text-slate-100 text-[11px]">Scania R 450</p>
+                          <p className="text-[8px] text-slate-500">Sugerido: 2.5 Km/L</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-[#FCA311]">BRA-2E19</td>
+                    <td className="py-3 px-2 text-center text-slate-400">6 abastecimentos</td>
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
+                          <div className="h-full bg-[#FCA311] w-[45%]"></div>
+                        </div>
+                        <span className="font-bold text-[9px]">446,6 L</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-blue-400">R$ 5,61</td>
+                    <td className="py-3 px-2 text-right">
+                      <p className="font-bold text-slate-100 text-[11px]">R$ 2.506,16</p>
+                      <p className="text-[8px] text-slate-500">48% da frota</p>
+                    </td>
+                    <td className="py-3 px-2 text-center">
+                      <button className="border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[8px] font-bold transition uppercase">FILTRAR GRÁFICO</button>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-white/5 transition">
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs"/></div>
+                        <div>
+                          <p className="font-bold text-slate-100 text-[11px]">Volvo FH 540</p>
+                          <p className="text-[8px] text-slate-500">Sugerido: 2.5 Km/L</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-[#FCA311]">FLT-0130</td>
+                    <td className="py-3 px-2 text-center text-slate-400">2 abastecimentos</td>
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
+                          <div className="h-full bg-[#FCA311] w-[52%]"></div>
+                        </div>
+                        <span className="font-bold text-[9px]">478 L</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-blue-400">R$ 5,75</td>
+                    <td className="py-3 px-2 text-right">
+                      <p className="font-bold text-slate-100 text-[11px]">R$ 2.750,00</p>
+                      <p className="text-[8px] text-slate-500">52% da frota</p>
+                    </td>
+                    <td className="py-3 px-2 text-center">
+                      <button className="border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[8px] font-bold transition uppercase">FILTRAR GRÁFICO</button>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-white/5 transition">
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs"/></div>
+                        <div>
+                          <p className="font-bold text-slate-100 text-[11px]">Mercedes-Benz Atego 2426</p>
+                          <p className="text-[8px] text-slate-500">Sugerido: 3.5 Km/L</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-[#FCA311]">MEC-4D21</td>
+                    <td className="py-3 px-2 text-center text-slate-400">0 abastecimentos</td>
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
+                          <div className="h-full bg-[#FCA311] w-[0%]"></div>
+                        </div>
+                        <span className="font-bold text-[9px]">0 L</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-blue-400">R$ 0,00</td>
+                    <td className="py-3 px-2 text-right">
+                      <p className="font-bold text-slate-100 text-[11px]">R$ 0,00</p>
+                      <p className="text-[8px] text-slate-500">0% da frota</p>
+                    </td>
+                    <td className="py-3 px-2 text-center">
+                      <button className="border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[8px] font-bold transition uppercase">FILTRAR GRÁFICO</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Histórico Consolidado de Transações */}
+          <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
+             <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 mb-1"><Icon name="history"/> HISTÓRICO CONSOLIDADO DE TRANSAÇÕES</h3>
+             <p className="text-[9px] text-slate-400 mb-4">Lançamentos em tempo de execução vindos de cupons OCR e cartões de abastecimento NFC.</p>
+             <div className="space-y-2">
+               {historicoTransacoes.map((t) => (
+                 <div key={t.id} onClick={() => setCompraModalOpen(true)} className="flex justify-between items-center bg-[#0F172A]/80 border border-outline-variant/30 rounded-lg p-3 hover:bg-white/5 cursor-pointer transition">
+                   <div className="flex items-center gap-4">
+                     <span className={`text-[8px] font-bold px-2 py-1 rounded uppercase ${t.type === 'CUPOM ESCANEADO' ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30' : 'bg-green-600/20 text-green-400 border border-green-600/30'}`}>
+                       {t.type}
+                     </span>
+                     <div>
+                       <p className="text-[10px] font-bold text-[#FCA311]">{t.vehicle}</p>
+                       <p className="text-[9px] text-slate-400">{t.details}</p>
+                       <p className="text-[8px] text-slate-500 font-mono">{t.date} - Odômetro: {t.odom}</p>
+                     </div>
+                   </div>
+                   <div className="text-right">
+                     <p className="text-[11px] font-bold text-white">R$ {t.amount.toFixed(2).replace('.', ',')}</p>
+                     <p className="text-[9px] text-[#FCA311] font-bold">{t.liters} Litros</p>
+                   </div>
+                 </div>
+               ))}
+             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "cards" && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Column 1: Active cards list & Emit Card */}
+          <div className="flex flex-col gap-6">
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
               <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
                 <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">CARTÕES DE ABASTECIMENTO ATIVOS</h3>
                 <button
                   type="button"
-                  className="rounded-lg bg-blue-600 px-3 py-1 text-[10px] font-bold text-white uppercase hover:bg-blue-500 transition"
+                  onClick={() => setShowEmitForm(!showEmitForm)}
+                  className="rounded bg-blue-600 px-3 py-1.5 text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition flex items-center gap-1"
                 >
-                  + Emitir
+                  <Icon name={showEmitForm ? "close" : "add"} className="text-[14px]"/> {showEmitForm ? "FECHAR" : "EMITIR"}
                 </button>
               </div>
-              <div className="space-y-3 flex-1 overflow-y-auto">
+              <div className="space-y-3">
                 <div className="rounded-lg border border-outline-variant/30 bg-[#0F172A]/80 p-3 flex justify-between items-start">
                   <div>
                     <span className="inline-block rounded bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-[#FCA311] font-mono">BRA-2E19</span>
                     <p className="text-[10px] text-slate-300 mt-1.5">Scania R 450</p>
-                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: {formatBRL(cardBalance)}</p>
+                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 1.000,00</p>
                   </div>
                   <div className="text-right">
-                    <span className="chip-active text-[9px]">Ativo</span>
+                    <span className="chip-active text-[9px]">ATIVO</span>
                     <p className="text-[9px] text-slate-400 mt-2 font-mono">Jeovana Lopesvalente</p>
                   </div>
                 </div>
@@ -305,11 +559,11 @@ export default function FuelPage() {
                   <div>
                     <span className="inline-block rounded bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-[#FCA311] font-mono">BRA-2E19</span>
                     <p className="text-[10px] text-slate-300 mt-1.5">Scania R 450</p>
-                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 2.876,43</p>
+                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 2.876,92</p>
                   </div>
                   <div className="text-right">
-                    <span className="chip-active text-[9px]">Ativo</span>
-                    <p className="text-[9px] text-slate-400 mt-2 font-mono">Amanda Silveira</p>
+                    <span className="chip-active text-[9px]">ATIVO</span>
+                    <p className="text-[9px] text-slate-400 mt-2 font-mono">Bianca Silveira</p>
                   </div>
                 </div>
 
@@ -320,151 +574,46 @@ export default function FuelPage() {
                     <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 0,00</p>
                   </div>
                   <div className="text-right">
-                    <span className="chip-active text-[9px]">Ativo</span>
+                    <span className="chip-active text-[9px]">ATIVO</span>
                     <p className="text-[9px] text-slate-400 mt-2 font-mono">Carlos Silveira</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Column 2: Fleet Card details & Digital wallet */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3">CARTÃO FROTA</h3>
+            {showEmitForm && (
+              <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col transition-all duration-300">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">EMITIR NOVO CARTÃO PRÉ-PAGO</h3>
+                <p className="text-[10px] text-slate-400 mb-4">Gere um cartão físico/digital associado por segurança a uma placa da frota.</p>
                 
-                {/* Physical Card Mockup */}
-                <div className="relative w-full aspect-[1.58/1] rounded-2xl bg-gradient-to-br from-[#1E293B] to-[#0b0f19] p-5 text-white shadow-xl overflow-hidden border border-white/5 select-none">
-                  {/* Top line */}
-                  <div className="flex justify-between items-start">
-                    <span className="text-[11px] font-bold tracking-widest font-mono text-slate-100">CARTÃO FROTA</span>
-                    <span className="rounded bg-green-500/20 border border-green-500/30 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-green-400 font-mono">
-                      PRE-PAG PAS
-                    </span>
-                  </div>
-                  {/* Chip and logo */}
-                  <div className="mt-4 flex items-center justify-between">
-                    {/* Visual Card Chip */}
-                    <div className="h-7 w-9 rounded bg-amber-500/20 border border-amber-500/40 relative overflow-hidden shrink-0">
-                      <div className="absolute inset-x-2 inset-y-1 border-r border-amber-500/30" />
-                      <div className="absolute inset-y-2 inset-x-1 border-b border-amber-500/30" />
-                    </div>
-                    {/* NFC Symbol */}
-                    <Icon name="contactless" className="text-slate-400 text-xl" />
-                  </div>
-                  {/* Card number */}
-                  <p className="mt-4 text-lg font-mono font-semibold tracking-widest text-slate-100">•••• •••• •••• 5485</p>
-                  {/* Plate / Holder */}
-                  <div className="mt-4 flex justify-between items-end text-[9px] font-mono text-slate-300">
+                <form className="space-y-4">
                     <div>
-                      <span className="block text-[7px] text-slate-400 uppercase">Valido / Placa</span>
-                      <span className="font-bold text-slate-100 text-xs">BRA-2E19 (SCANIA)</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-[7px] text-slate-400 uppercase">Valido Div</span>
-                      <span className="font-bold text-slate-100">06/31 •••</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* NFC Proximidade Wallet */}
-              <div className="mt-6 border-t border-outline-variant/20 pt-4">
-                <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="nfc" className="text-sm text-primary" /> CARTEIRA DIGITAL & APROXIMAÇÃO NFC</p>
-                <p className="text-[10px] text-slate-400 mt-1">Adicione o cartão à carteira para pagamentos por aproximação em maquininhas de postos sem precisar de cartão físico.</p>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button onClick={handleGoogleWalletClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
-                    <Icon name="google" className="text-sm text-primary" /> GOOGLE WALLET
-                  </button>
-                  <button onClick={handleApplePayClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
-                    <Icon name="phone_iphone" className="text-sm text-primary" /> APPLE PAY
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 3: Expense Metrics & Pix refund */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3">MÉTRICAS DE GASTOS</h3>
-                
-                <div className="space-y-3 text-xs mb-6">
-                  <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
-                    <span className="text-slate-400">Total Depositado:</span>
-                    <span className="font-bold text-slate-200">R$ 1.730,00</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
-                    <span className="text-slate-400">Total Utilizado:</span>
-                    <span className="font-bold text-red-400">R$ 730,00</span>
-                  </div>
-                  <div className="rounded-lg bg-[#0F172A] p-3 border border-outline-variant/30 mt-3 text-center">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">SALDO DISPONÍVEL NO CARTÃO</span>
-                    <span className="text-2xl font-mono font-bold text-[#FCA311]">{formatBRL(cardBalance)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Devolution Pix form */}
-              <div className="border-t border-outline-variant/20 pt-4">
-                <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="reply" className="text-sm text-primary -rotate-90" /> DEVOLUÇÃO DE SALDO (ESTORNO PIX)</p>
-                <p className="text-[10px] text-slate-400 mt-1">Resgatar o valor restante do cartão direto para uma conta.</p>
-                
-                <form onSubmit={handleRefundSubmit} className="space-y-3.5 mt-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">TIPO DE CHAVE</label>
-                      <select 
-                        value={pixKeyType} 
-                        onChange={(e) => setPixKeyType(e.target.value)}
-                        className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2"
-                      >
-                        <option>CPF/CNPJ</option>
-                        <option>E-mail</option>
-                        <option>Telefone</option>
-                        <option>Chave Aleatória</option>
+                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">VINCULAR A QUAL VEÍCULO</label>
+                      <select className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white">
+                        <option>Selecione um veículo...</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">CHAVE PIX DE DESTINO</label>
-                      <input 
-                        type="text" 
-                        placeholder="Digite a chave..." 
-                        value={pixKey}
-                        onChange={(e) => setPixKey(e.target.value)}
-                        required
-                        className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white"
-                      />
+                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">CARGA INICIAL DE SALDO (R$)</label>
+                      <input type="text" defaultValue="500" readOnly className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none" />
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">NOME COMPLETO DO TITULAR</label>
-                    <input 
-                      type="text" 
-                      placeholder="Favorecido do estorno" 
-                      value={pixName}
-                      onChange={(e) => setPixName(e.target.value)}
-                      required
-                      className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white"
-                    />
-                  </div>
-                  
-                  {refundMessage && <p className="text-[10px] text-green-400">{refundMessage}</p>}
-
-                  <button 
-                    type="submit" 
-                    disabled={cardBalance <= 0 || !pixKey || !pixName}
-                    className="w-full rounded bg-green-500/20 hover:bg-green-500/35 border border-green-500/30 text-green-400 font-bold uppercase text-xs py-2.5 transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    SOLICITAR REEMBOLSO DE {formatBRL(cardBalance)}
-                  </button>
+                    <div className="text-[9px] text-slate-400 mt-2">
+                      <span className="font-bold text-[#FCA311]">Detalhes do Portador:</span><br/>
+                      Criado pelo Usuário: <span className="text-slate-200">Administrador Fleet AI (Administrador)</span><br/>
+                      Criptografia PCI compliant. O cartão de faturamento BaaS será gerado sob demanda.
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <button type="button" onClick={() => setShowEmitForm(false)} className="w-full rounded border border-outline-variant/30 bg-[#0F172A] py-2.5 text-[10px] font-bold text-white uppercase hover:bg-white/5 transition">
+                        CANCELAR
+                      </button>
+                      <button type="button" className="w-full rounded bg-[#FCA311] py-2.5 text-[10px] font-bold text-black uppercase hover:bg-[#FCA311]/90 transition">
+                        PROCESSAR EMISSÃO
+                      </button>
+                    </div>
                 </form>
               </div>
-            </div>
+            )}
 
-          </div>
-
-          {/* Bottom Row: Faturamento/Auditoria and transactions detail */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            
             {/* Audit panel */}
             <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3 flex items-center gap-1.5">
@@ -487,83 +636,226 @@ export default function FuelPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Terminal Comercial</span>
-                  <span className="font-bold text-slate-200">Multipostos Credenciados (BaaS)</span>
+                  <span className="font-bold text-[#FCA311]">Multipostos Credenciados (BaaS)</span>
                 </div>
               </div>
 
-              <div className="flex gap-2 items-start text-[9px] text-[#FCA311] mt-4 bg-[#FCA311]/5 border border-[#FCA311]/10 rounded-lg p-3">
+              <div className="flex gap-2 items-start text-[9px] text-blue-400 mt-4 bg-blue-400/5 border border-blue-400/10 rounded-lg p-3">
                 <Icon name="location_on" className="text-sm shrink-0" />
                 <p>Maquininhas capturadas via geolocalização IP no raio do veículo BRA-2E19.</p>
               </div>
             </div>
 
-            {/* Extrato detailed card */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
-                  <div>
-                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">EXTRATO DETALHADO DO CARTÃO</h3>
-                    <p className="text-[8px] text-slate-400 font-mono mt-0.5">Chave do Extrato: 897.291.382-83</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText("00020126580014br.gov.bcb.pix013689729138283520400005303986540510.005802BR5925Jeovana Lopesvalente6009Sao Paulo62070503***6304E219");
-                      alert("Pix Copia-Cola copiado para a área de transferência!");
-                    }}
-                    className="flex items-center gap-1 bg-blue-600 px-3 py-1.5 rounded-lg text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition"
-                  >
-                    <Icon name="qr_code_2" className="text-sm" /> + Injetar Carga (PIX COPIA-COLA)
-                  </button>
-                </div>
+          </div>
 
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {transactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      onClick={() => {
-                        setSelectedTx(tx);
-                        setThermalReceiptOpen(true);
-                      }}
-                      className="rounded border border-outline-variant/30 bg-[#0F172A]/60 p-3 flex justify-between items-center cursor-pointer hover:bg-white/5 hover:border-primary/50 transition active:scale-[0.99]"
-                    >
-                      <div>
-                        <p className="text-xs font-bold text-white">
-                          {tx.title}
-                          <span className="text-[8px] text-blue-400 uppercase font-mono ml-2">Ver Comprovante</span>
-                        </p>
-                        <p className="text-[9px] text-slate-400 mt-1">
-                          Status: {tx.status} | Unidade: BaaS | Método: {tx.method}
-                        </p>
-                        <p className="text-[8px] text-slate-400 font-mono">
-                          ID: {tx.authCode} | Horário: {tx.date}
-                        </p>
-                      </div>
-                      <span className={`text-sm font-mono font-bold ${tx.type === "credit" ? "text-blue-400" : "text-[#FCA311]"}`}>
-                        {tx.type === "credit" ? "+" : "-"} {formatBRL(tx.amount)}
-                      </span>
+          {/* Column 2: Fleet Card details & Digital wallet & Extrato Detalhado */}
+          <div className="flex flex-col gap-6">
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Icon name="credit_card" className="text-sm"/> CARTÃO FROTA</h3>
+                <span className="rounded bg-green-500/20 border border-green-500/30 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-green-400 font-mono">
+                  PREMIUM PASS
+                </span>
+              </div>
+              
+              {/* Physical Card Mockup */}
+              <div className="relative w-full aspect-[1.58/1] rounded-2xl bg-gradient-to-br from-[#1E293B] to-[#0b0f19] p-5 text-white shadow-xl overflow-hidden border border-white/5 select-none">
+                <div className="flex items-center justify-between">
+                  <div className="h-7 w-9 rounded bg-amber-500/20 border border-amber-500/40 relative overflow-hidden shrink-0">
+                    <div className="absolute inset-x-2 inset-y-1 border-r border-amber-500/30" />
+                    <div className="absolute inset-y-2 inset-x-1 border-b border-amber-500/30" />
+                  </div>
+                  <Icon name="contactless" className="text-slate-400 text-2xl" />
+                </div>
+                <p className="mt-8 text-[18px] font-mono font-semibold tracking-widest text-slate-100 flex justify-between items-center">
+                  <span>4532 8598 9742 5485</span>
+                  <Icon name="visibility_off" className="text-slate-400 text-sm" />
+                </p>
+                <div className="mt-6 flex justify-between items-end text-[9px] font-mono text-slate-300">
+                  <div>
+                    <span className="block text-[7px] text-slate-400 uppercase">VEÍCULO / PLACA</span>
+                    <span className="font-bold text-slate-100 text-[10px]">BRA-2E19 (SCANIA)</span>
+                  </div>
+                  <div className="flex gap-4 text-right">
+                    <div>
+                      <span className="block text-[7px] text-slate-400 uppercase">VÁLIDO</span>
+                      <span className="font-bold text-slate-100">06/31</span>
                     </div>
-                  ))}
+                    <div>
+                      <span className="block text-[7px] text-slate-400 uppercase">CVV</span>
+                      <span className="font-bold text-slate-100">033</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <p className="text-[10px] font-bold text-slate-100 flex items-center gap-1.5 mb-1"><Icon name="smartphone" className="text-sm text-primary" /> CARTEIRA DIGITAL & APROXIMAÇÃO NFC</p>
+              <p className="text-[10px] text-slate-400">Adicione o cartão à carteira para pagamentos por aproximação em maquininhas de postos sem precisar de cartão físico.</p>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button onClick={handleGoogleWalletClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-[10px] font-bold hover:bg-white/5 transition text-white">
+                  <Icon name="google" className="text-sm text-primary" /> GOOGLE WALLET
+                </button>
+                <button onClick={handleApplePayClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-[10px] font-bold hover:bg-white/5 transition text-white">
+                  <Icon name="phone_iphone" className="text-sm text-primary" /> APPLE PAY
+                </button>
+              </div>
+            </div>
+
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <div className="flex justify-between items-center mb-1">
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Icon name="receipt" className="text-sm"/> EXTRATO DETALHADO DO CARTÃO</h3>
+                  <p className="text-[8px] text-slate-400 font-mono mt-0.5">Chave do Extrato: 087.251.382-83</p>
+                </div>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 bg-blue-600 px-3 py-1.5 rounded-lg text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition shadow"
+                >
+                  <Icon name="add" className="text-[14px]" /> INJETAR CARGA (PIX COPIA COLA)
+                </button>
+              </div>
+
+              <div className="mt-4 border-t border-outline-variant/20 pt-4">
+                <h4 className="text-[10px] font-bold uppercase text-slate-100 mb-1">CARGA DE FATURAMENTO PIX BAAS</h4>
+                <p className="text-[9px] text-slate-400 mb-4">Para depositar, escaneie o código dinâmico ou copie a linha de pagamento digitável. O processamento compensará em até 2 segundos.</p>
+                
+                <div className="flex gap-4 items-center bg-[#0F172A] p-3 rounded-lg border border-outline-variant/30">
+                  <div className="bg-white p-2 rounded flex items-center justify-center shrink-0">
+                    <Icon name="qr_code_2" className="text-black text-5xl" />
+                  </div>
+                  <div className="flex-1 w-full overflow-hidden">
+                    <div className="flex gap-2">
+                       <input 
+                         type="text" 
+                         readOnly
+                         value="00020101021226820014br.gov.bcb.pix2561api.asaas.com/v3/cob/9525Card-17310435985"
+                         className="w-full text-[9px] h-8 bg-[#0b0e14]/80 border border-[#FCA311]/50 rounded px-2 text-[#FCA311] font-mono overflow-ellipsis focus:outline-none" 
+                       />
+                       <button className="rounded bg-transparent border border-outline-variant/30 px-3 py-1.5 text-[9px] font-bold text-slate-200 uppercase hover:bg-white/5 transition whitespace-nowrap shrink-0">COPIAR CHAVE</button>
+                    </div>
+                    <div className="flex gap-2 mt-3 justify-end">
+                       <button className="rounded bg-transparent border border-outline-variant/30 px-4 py-1.5 text-[9px] font-bold text-slate-300 uppercase hover:bg-white/5 transition">CANCELAR</button>
+                       <button className="rounded bg-blue-600 px-4 py-1.5 text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition shadow">SIMULAR COMPENSAÇÃO BAAS (WEBHOOK)</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 pt-4 border-t border-outline-variant/20">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="flex justify-between items-center bg-[#0F172A]/60 border border-blue-500/20 rounded-lg p-3">
+                     <div className="flex items-center gap-3">
+                       <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
+                         <Icon name="call_received" className="text-[12px]" />
+                       </div>
+                       <div>
+                         <p className="text-[10px] font-bold text-[#FCA311]">{tx.title} <span className="text-[8px] text-slate-400 uppercase font-mono ml-2 border-b border-slate-400 cursor-pointer hover:text-white">Ver Detalhes</span></p>
+                         <p className="text-[8px] text-slate-400 font-mono mt-0.5">Status: <span className="text-white font-bold">{tx.status}</span> | Unidade Comerc.: BaaS Webhook Compensado</p>
+                         <p className="text-[8px] text-slate-500 font-mono">ID Extrato: tx-dep-{Math.floor(Math.random() * 1000000000)} | Horário: {tx.date}</p>
+                       </div>
+                     </div>
+                     <span className="text-xs font-bold text-blue-400">+ R$ {tx.amount.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          </div>
+
+          {/* Column 3: Expense Metrics & Pix refund */}
+          <div className="flex flex-col gap-6">
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3">MÉTRICAS DE GASTOS</h3>
+              
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
+                  <span className="text-slate-400">Total Depositado:</span>
+                  <span className="font-bold text-slate-200">R$ 1.000,00</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
+                  <span className="text-slate-400">Total Utilizado:</span>
+                  <span className="font-bold text-red-400">R$ 0,00</span>
+                </div>
+                <div className="rounded-lg bg-[#0F172A] p-3 border border-outline-variant/30 mt-3 text-center">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">SALDO DISPONÍVEL NO CARTÃO</span>
+                  <span className="text-2xl font-mono font-bold text-[#FCA311]">R$ 1.000,00</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Devolution Pix form */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <p className="text-[10px] font-bold text-slate-100 flex items-center gap-1.5 mb-1"><Icon name="reply" className="text-sm text-green-400 -rotate-90" /> DEVOLUÇÃO DE SALDO (ESTORNO PIX)</p>
+              <p className="text-[10px] text-slate-400 mb-4">Resgatar o valor restante do cartão direto para uma conta.</p>
+              
+              <form onSubmit={handleRefundSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">TIPO DE CHAVE</label>
+                    <select 
+                      value={pixKeyType} 
+                      onChange={(e) => setPixKeyType(e.target.value)}
+                      className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none"
+                    >
+                      <option>CPF/CNPJ</option>
+                      <option>E-mail</option>
+                      <option>Telefone</option>
+                      <option>Chave Aleatória</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">CHAVE PIX DE DESTINO</label>
+                    <input 
+                      type="text" 
+                      placeholder="Digite a chave..." 
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      required
+                      className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">NOME COMPLETO DO TITULAR</label>
+                  <input 
+                    type="text" 
+                    placeholder="Favorecido do estorno" 
+                    value={pixName}
+                    onChange={(e) => setPixName(e.target.value)}
+                    required
+                    className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none"
+                  />
+                </div>
+                
+                {refundMessage && <p className="text-[10px] text-green-400">{refundMessage}</p>}
+
+                <button 
+                  type="submit" 
+                  disabled={cardBalance <= 0 || !pixKey || !pixName}
+                  className="w-full rounded bg-green-600/30 hover:bg-green-600/50 border border-green-600/50 text-green-400 font-bold uppercase text-[10px] py-3 transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  SOLICITAR REEMBOLSO DE R$ 1.000,00
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-      ) : (
-        /* TAB 2: LANÇAR CUPONS (OCR) & HISTÓRICO */
+      )}
+
+      {activeTab === "ocr" && (
         <div className="grid gap-6 lg:grid-cols-12">
           
-          {/* Left Column: Form (5 Columns) */}
+          {/* Left Column: Form */}
           <div className="lg:col-span-5 raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3 flex items-center gap-1.5">
-              <Icon name="add_circle" /> LANÇAR CUPOM MANUAL / OCR
+              <Icon name="add" /> LANÇAR CUPOM MANUAL / OCR
             </h3>
             <p className="text-[10px] text-slate-400 mb-4">Carregue ou digite o comprovante emitido pela franqueadora de combustível.</p>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               
-              {/* Fake OCR Dropzone */}
               <div 
                 onClick={() => {
                   const input = document.createElement("input");
@@ -582,315 +874,176 @@ export default function FuelPage() {
                 }}
                 className="border-2 border-dashed border-outline-variant/40 rounded-xl bg-[#0F172A]/40 p-6 text-center cursor-pointer hover:border-[#FCA311]/40 transition group"
               >
-                <Icon name="photo_camera" className="text-3xl text-slate-400 mb-2 group-hover:text-[#FCA311]" />
+                <Icon name="document_scanner" className="text-3xl text-slate-400 mb-2 group-hover:text-[#FCA311]" />
                 <p className="text-xs font-bold text-slate-200">Escanear Cupom Fiscal</p>
                 <p className="text-[10px] text-slate-400 mt-1">Direcione para câmera do dispositivo ou anexe arquivos png/jpg</p>
-                <button type="button" className="mt-3 bg-blue-600 hover:bg-blue-500 transition text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase">
-                  {receiptFile ? `CUPOM SELECIONADO: ${receiptFile.name}` : "ESCANKAR CUPOM (TIRAR FOTO OU ARQUIVOS)"}
+                <button type="button" className="mt-4 bg-blue-600 hover:bg-blue-500 transition text-white px-4 py-2 rounded text-[9px] font-bold uppercase shadow flex items-center gap-1.5 mx-auto">
+                  <Icon name="photo_camera" className="text-[12px]"/> {receiptFile ? `CUPOM SELECIONADO: ${receiptFile.name}` : "ESCANEAR CUPOM (TIRAR FOTO OU ARQUIVOS)"}
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <FormField 
-                  label="VEÍCULO DA FROTA" 
-                  name="vehicle_id" 
-                  required 
-                  options={[{ value: "", label: "Selecione..." }, ...vehicles.map((v) => ({ value: v.id, label: v.plate }))]} 
-                />
-                <FormField 
-                  label="MOTORISTA RESPONSÁVEL" 
-                  name="driver_id" 
-                  options={[{ value: "", label: "Selecione..." }, ...drivers.map((d) => ({ value: d.id, label: d.name }))]} 
-                />
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">VEÍCULO DA FROTA</label>
+                  <select name="vehicle_id" required className="w-full text-xs h-10 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none">
+                     <option value="">Selecione...</option>
+                     {vehicles.map(v => <option key={v.id} value={v.id}>{v.plate}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">MOTORISTA RESPONSÁVEL</label>
+                  <select name="driver_id" className="w-full text-xs h-10 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none">
+                     <option value="">Selecione...</option>
+                     {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <FormField label="LITRAGEM DIESEL (L)" name="liters" type="number" defaultValue="75" required />
-                <FormField label="ODÔMETRO (KM)" name="mileage_at_fill" type="number" defaultValue="125100" required />
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">LITRAGEM DIESEL (L)</label>
+                  <input type="number" name="liters" placeholder="Litros abastecidos" required className="w-full text-xs h-10 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-3 text-white focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">ODÔMETRO (KM)</label>
+                  <input type="number" name="mileage_at_fill" placeholder="Ex: 125820" required className="w-full text-xs h-10 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-3 text-white focus:outline-none" />
+                </div>
               </div>
 
-              <CurrencyField label="VALOR CONSOLIDADO / NOTA (R$)" name="cost" defaultValue={450.00} required />
+              <div>
+                 <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">VALOR CONSOLIDADO / NOTA (R$)</label>
+                 <input type="number" step="0.01" name="cost" placeholder="R$ Ex: R$ 825,00" required className="w-full text-xs h-10 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-3 text-white focus:outline-none" />
+              </div>
 
               <button 
                 type="submit" 
                 disabled={saving} 
-                className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 font-bold uppercase text-xs py-3.5 text-white transition active:scale-[0.99]"
+                className="w-full rounded bg-blue-600 hover:bg-blue-500 font-bold uppercase text-[10px] py-3.5 text-white transition active:scale-[0.99] shadow"
               >
                 {saving ? "GRAVANDO..." : "GRAVAR E CONSOLIDAR ABASTECIMENTO"}
               </button>
             </form>
           </div>
 
-          {/* Right Column: Supply History (7 Columns) */}
+          {/* Right Column: Supply History */}
           <div className="lg:col-span-7 raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">HISTÓRICO GERAL DE ABASTECIMENTOS</h3>
-              <div className="relative max-w-xs shrink-0">
-                <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" />
+            <div className="flex justify-between items-center mb-6 border-b border-outline-variant/20 pb-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#FCA311]">HISTÓRICO GERAL DE<br/>ABASTECIMENTOS</h3>
+              <div className="relative w-64 shrink-0">
+                <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
                 <input
                   placeholder="Filtrar lançamentos..."
-                  className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded pl-9 pr-3 text-white"
+                  className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded pl-9 pr-3 text-slate-300 focus:outline-none"
                 />
               </div>
             </div>
 
-            <ListPageStates
-              loading={loading}
-              error={fetchError}
-              isEmpty={records.length === 0}
-              onRetry={load}
-              loadingMessage="Carregando abastecimentos..."
-              emptyTitle="Nenhum abastecimento registrado"
-              emptyDescription="Registre o primeiro lançamento de combustível."
-              emptyIcon="local_gas_station"
-            >
-              <div className="divide-y divide-outline-variant/20 max-h-[60vh] overflow-y-auto pr-1">
-                {records.map((r) => (
-                  <div
-                    key={r.id}
-                    onClick={() => setSelectedRecord(r)}
-                    className="py-3.5 flex justify-between items-center cursor-pointer hover:bg-white/5 transition rounded px-2"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon name="local_gas_station" className="text-xl text-[#FCA311]" />
-                      <div>
-                        <p className="text-xs font-bold text-white">
-                          Abastecimento de Diesel • <span className="text-blue-400 font-normal hover:underline text-[10px]">Ver Comprovante</span>
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          Unidade Fretada: <span className="font-bold text-slate-300">{formatPlateDisplay(r.vehicle_plate)}</span> | Motorista: {r.driver_name || "—"} | Odômetro: {r.mileage_at_fill?.toLocaleString("pt-BR") ?? "—"} KM
-                        </p>
-                      </div>
+            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+              {records.map((r) => (
+                <div
+                  key={r.id}
+                  onClick={() => setSelectedRecord(r)}
+                  className="p-4 flex justify-between items-center bg-[#0F172A]/50 border border-outline-variant/20 rounded-lg hover:bg-white/5 cursor-pointer transition"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-[#FCA311] border border-outline-variant/30">
+                      <Icon name="local_gas_station" className="text-lg" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-[#FCA311]">{formatBRL(Number(r.cost))}</p>
-                      <p className="text-[9px] text-slate-400">Vol: {Number(r.liters).toFixed(1)} Litros</p>
-                      <div className="flex items-center gap-1.5 justify-end mt-1">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-[8px] font-bold uppercase text-green-400">
-                          CONFIRMADO
-                        </span>
-                        <span className="text-[8px] font-bold text-green-500 uppercase tracking-wide">
-                          CUPOM AUDITADO
-                        </span>
-                      </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-white flex items-center gap-2">
+                        Abastecimento de Diesel 
+                        <span className="text-blue-500 font-normal text-[8px] uppercase hover:underline">Ver Comprovante</span>
+                      </p>
+                      <p className="text-[9px] text-slate-400 mt-1">
+                        Unidade Fretada: <span className="font-bold text-slate-200">{r.vehicle_plate === "BRA-2E19" ? "Scania R 450" : "Volvo FH 540"} ({formatPlateDisplay(r.vehicle_plate)})</span><br/>
+                        Motorista: {r.driver_name || "—"} | Odômetro: {r.mileage_at_fill?.toLocaleString("pt-BR") ?? "—"} KM
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </ListPageStates>
+                  <div className="text-right">
+                    <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest block mb-1">CUPOM AUDITADO</span>
+                    <p className="text-xs font-bold text-green-500">R$ {Number(r.cost).toFixed(2).replace('.', ',')}</p>
+                    <p className="text-[9px] text-slate-400 mb-2">Vol: {Number(r.liters).toFixed(1).replace('.0', '')} Litros</p>
+                    <span className="inline-block px-1.5 py-0.5 rounded border border-green-500/50 text-[8px] font-bold uppercase text-green-500 tracking-wider">
+                      CONFIRMADO
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
         </div>
       )}
 
-      {/* DETAILED WHITE THERMAL RECEIPT AUDIT MODAL (Image 4) */}
+      {/* COMPROVANTE DE COMPRA MODAL */}
       <FormModal
-        open={!!selectedRecord}
-        onClose={() => setSelectedRecord(null)}
-        title="Dossiê do Abastecimento"
-        subtitle={`Auditoria de Lançamento de Combustível`}
+        open={compraModalOpen}
+        onClose={() => setCompraModalOpen(false)}
+        title=""
+        subtitle=""
       >
-        {selectedRecord && (
-          <div className="space-y-4 text-slate-100">
-            {/* Auditoria title */}
+        <div className="bg-[#1E293B] rounded-xl overflow-hidden shadow-2xl">
+          <div className="p-5 space-y-4">
+            <div className="flex justify-between items-start">
+              <span className="bg-[#FCA311] text-black text-[9px] font-bold px-2 py-0.5 rounded uppercase">COMPROVANTE DE COMPRA</span>
+              <span className="text-green-400 text-[9px] font-bold uppercase flex items-center gap-1"><Icon name="check_circle" className="text-[12px]" /> SUCESSO</span>
+            </div>
+            
             <div>
-              <span className="inline-block px-2.5 py-0.5 rounded bg-green-500/15 border border-green-500/30 text-[9px] font-bold text-green-400 uppercase tracking-wider mb-2">
-                ABASTECIMENTO AUDITADO
-              </span>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-lg font-bold text-[#FCA311] leading-none uppercase">AUDITORIA DE CUPOM FISCAL</h4>
-                  <p className="text-[10px] text-slate-400 mt-1 font-mono">Lançamento ID: {selectedRecord.id}</p>
-                </div>
-                <span className="inline-block px-2.5 py-0.5 rounded border border-green-500 text-[9px] font-bold uppercase text-green-400 font-mono">
-                  CONFIRMADO
-                </span>
+              <h3 className="text-sm font-bold text-[#FCA311] uppercase tracking-wide">POSTO IPIRANGA ROTA SUDOESTE</h3>
+              <p className="text-[9px] text-slate-400 font-mono mt-1">Transação ID: tx-sim-1781697619242</p>
+            </div>
+
+            <div className="space-y-3 pt-4 border-t border-slate-700/50 text-[10px]">
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                <span className="text-slate-400">Estabelecimento (Razão Social)</span>
+                <span className="font-bold text-white text-right">Posto Ipiranga Rota<br/>Sudoeste</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                <span className="text-slate-400">Data & Horário</span>
+                <span className="font-bold text-white">2026-06-17 às 21:53:55</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                <span className="text-slate-400">Localização do Terminal</span>
+                <span className="font-bold text-white">Rodovia Castelo Branco BR-374</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                <span className="text-slate-400">Categoria</span>
+                <span className="font-bold text-white bg-slate-700/50 px-2 py-0.5 rounded">Combustível</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                <span className="text-slate-400">Litragem Carregada</span>
+                <span className="font-bold text-blue-400">40.5 Litros</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                <span className="text-slate-400">Odômetro Declarado</span>
+                <span className="font-bold text-white">137833 KM</span>
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-slate-400 uppercase font-bold">VALOR DEBITADO</span>
+                <span className="font-bold text-green-400 text-sm">R$ 222,49</span>
               </div>
             </div>
 
-            {/* Readout Parameters Grid */}
-            <div className="grid grid-cols-2 gap-4 border-t border-outline-variant/30 pt-4 text-xs">
-              <div>
-                <p className="text-[9px] font-semibold text-slate-400 uppercase">CAVALO TRATOR</p>
-                <p className="text-sm font-bold text-slate-100 mt-0.5">{selectedRecord.vehicle_plate === "BRA-2E19" ? "Scania R 450" : "Hilux / Sprinter"}</p>
-                <p className="text-[9px] text-[#FCA311] font-mono mt-0.5">Placa: {formatPlateDisplay(selectedRecord.vehicle_plate)}</p>
-              </div>
-              <div>
-                <p className="text-[9px] font-semibold text-slate-400 uppercase">MOTORISTA AUDITOR</p>
-                <p className="text-sm font-bold text-slate-100 mt-0.5">{selectedRecord.driver_name || "Central BaaS"}</p>
-              </div>
-              <div>
-                <p className="text-[9px] font-semibold text-slate-400 uppercase">ODÔMETRO ATUAL</p>
-                <p className="text-sm font-bold text-slate-100 mt-0.5">{selectedRecord.mileage_at_fill?.toLocaleString("pt-BR") ?? "—"} KM</p>
-              </div>
-              <div>
-                <p className="text-[9px] font-semibold text-slate-400 uppercase">PREÇO CONSOLIDADO</p>
-                <p className="text-sm font-bold text-green-400 mt-0.5">{formatBRL(Number(selectedRecord.cost))}</p>
-              </div>
+            <div className="bg-[#0F172A] p-3 rounded text-center border border-slate-700/50 mt-4">
+              <p className="text-[8px] font-bold text-[#FCA311] uppercase mb-1">BAAS LIQUIDATION WEBHOOK</p>
+              <p className="text-[7px] text-slate-500 font-mono">NFC contactless authorization takes matches PCI-DSS specifications. No physical card was swiped.</p>
             </div>
 
-            {/* Realistic White Thermal Ticket Mockup */}
-            <div className="mt-4">
-              <div 
-                className="bg-white text-black p-5 font-mono text-[10px] tracking-tight relative shadow-lg overflow-hidden border border-slate-300"
-                style={{
-                  clipPath: "polygon(0 0, 100% 0, 100% 97%, 98% 100%, 96% 97%, 94% 100%, 92% 97%, 90% 100%, 88% 97%, 86% 100%, 84% 97%, 82% 100%, 80% 97%, 78% 100%, 76% 97%, 74% 100%, 72% 97%, 70% 100%, 68% 97%, 66% 100%, 64% 97%, 62% 100%, 60% 97%, 58% 100%, 56% 97%, 54% 100%, 52% 97%, 50% 100%, 48% 97%, 46% 100%, 44% 97%, 42% 100%, 40% 97%, 38% 100%, 36% 97%, 34% 100%, 32% 97%, 30% 100%, 28% 97%, 26% 100%, 24% 97%, 22% 100%, 20% 97%, 18% 100%, 16% 97%, 14% 100%, 12% 97%, 10% 100%, 8% 97%, 6% 100%, 4% 97%, 2% 100%, 0 97%)"
-                }}
-              >
-                <p className="text-center font-bold text-[11px] mb-4">*** POSTO IPIRANGA ***</p>
-                <div className="flex justify-between border-b border-dashed border-black/40 pb-2 mb-2">
-                  <span>PRODUTO: DIESEL S10</span>
-                  <span className="font-bold">VOL: {Number(selectedRecord.liters).toFixed(0)} L</span>
-                </div>
-                <div className="flex justify-between border-b border-dashed border-black/40 pb-2 mb-2">
-                  <span>ODOMETRO: {selectedRecord.mileage_at_fill} KM</span>
-                  <span>STATUS: CONSOLIDADO</span>
-                </div>
-                <div className="flex justify-between font-bold text-[12px] border-b border-black pb-2 mb-3">
-                  <span>TOTAL CONSOLIDADO:</span>
-                  <span>{formatBRL(Number(selectedRecord.cost))}</span>
-                </div>
-                <p className="text-[7px] text-center opacity-70 leading-normal uppercase">
-                  OCR AUDITADO DIGITALMENTE EM CONFORMIDADE COM O RBAC FLEETAI
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom Full-Width Close Button */}
-            <div className="mt-6 pt-4 border-t border-outline-variant/30">
-              <button
-                type="button"
-                onClick={() => setSelectedRecord(null)}
-                className="w-full rounded-lg bg-[#FCA311] py-3 text-center text-sm font-bold text-black uppercase transition hover:bg-[#FCA311]/90 active:scale-[0.99]"
-              >
-                FECHAR FICHA DE ABASTECIMENTO
-              </button>
-            </div>
+            <button onClick={() => setCompraModalOpen(false)} className="w-full py-3 rounded bg-slate-700/50 hover:bg-slate-700 transition text-[9px] font-bold text-white uppercase mt-4">
+              FECHAR COMPROVANTE
+            </button>
           </div>
-        )}
+        </div>
       </FormModal>
 
-      {/* THERMAL TRANSACTION RECEIPT MODAL */}
-      <FormModal
-        open={thermalReceiptOpen}
-        onClose={() => setThermalReceiptOpen(false)}
-        title="Comprovante de Transação"
-        subtitle="Visualização do cupom térmico impresso"
-      >
-        {selectedTx && (
-          <div className="flex flex-col items-center p-2">
-            {/* The Receipt container */}
-            <div className="w-full max-w-sm bg-[#faf8f5] text-slate-800 p-6 rounded-md shadow-inner border border-amber-900/10 font-mono text-xs relative overflow-hidden select-text">
-              {/* Paper cut edge simulation */}
-              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-b from-black/5 to-transparent" />
-              
-              <div className="text-center space-y-1 mb-4">
-                <p className="font-bold text-sm tracking-widest text-slate-900">FLEET AI LOGISTICS</p>
-                <p className="text-[10px] text-slate-600">MULTIPOSTE COMERCIAL BAAS S.A.</p>
-                <p className="text-[10px] text-slate-600">CNPJ: 45.981.392/0001-83</p>
-                <p className="text-[10px] text-slate-600">AV. PAULISTA, 1000 - SAO PAULO/SP</p>
-                <p className="text-[10px] text-slate-500 border-b border-dashed border-slate-400/50 pb-2">----------------------------------------</p>
-              </div>
-
-              <div className="space-y-1.5 text-slate-800">
-                <div className="flex justify-between font-bold">
-                  <span>TRANSACAO:</span>
-                  <span>{selectedTx.title.toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>METODO:</span>
-                  <span>{selectedTx.method.toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between font-mono">
-                  <span>ID COMPROVANTE:</span>
-                  <span>{selectedTx.authCode}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>DATA E HORA:</span>
-                  <span>{selectedTx.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>PLACA DO VEICULO:</span>
-                  <span>{selectedTx.plate || "BRA-2E19"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>MOTORISTA:</span>
-                  <span>{selectedTx.driver || "Jeovana Lopesvalente"}</span>
-                </div>
-                <p className="text-slate-500 border-b border-dashed border-slate-400/50 py-1">----------------------------------------</p>
-                
-                {selectedTx.type === "debit" ? (
-                  <div className="space-y-1">
-                    <div className="flex justify-between font-mono text-slate-800">
-                      <span>COMBUSTIVEL:</span>
-                      <span>DIESEL S10</span>
-                    </div>
-                    <div className="flex justify-between font-mono text-slate-800">
-                      <span>VALOR DO LITRO:</span>
-                      <span>R$ 6,00</span>
-                    </div>
-                    <div className="flex justify-between font-mono text-slate-800">
-                      <span>QUANTIDADE:</span>
-                      <span>{(selectedTx.amount / 6).toFixed(1)} L</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <div className="flex justify-between font-mono text-slate-800">
-                      <span>TIPO DE OPERACAO:</span>
-                      <span>ENTRADA / RECARGA</span>
-                    </div>
-                    <div className="flex justify-between font-mono text-slate-800">
-                      <span>ORIGEM:</span>
-                      <span>BANCO DO BRASIL - PIX</span>
-                    </div>
-                  </div>
-                )}
-                
-                <p className="text-slate-500 border-b border-dashed border-slate-400/50 py-1">----------------------------------------</p>
-                <div className="flex justify-between text-sm font-bold text-slate-900 border-b border-dashed border-slate-400/50 pb-2">
-                  <span>VALOR TOTAL:</span>
-                  <span>{formatBRL(selectedTx.amount)}</span>
-                </div>
-              </div>
-
-              <div className="text-center mt-6 space-y-2">
-                <div className="inline-block bg-white p-2 border border-slate-300">
-                  <div className="flex items-center gap-0.5 h-10 w-48 bg-slate-900 border-x border-slate-900" style={{
-                    backgroundImage: "repeating-linear-gradient(90deg, #000 0px, #000 2px, #fff 2px, #fff 5px, #000 5px, #000 8px)"
-                  }} />
-                </div>
-                <p className="text-[9px] uppercase tracking-wider text-slate-500">HOMOLOGADO POR AUTORIDADE OPERACIONAL</p>
-                <p className="text-[8px] font-mono text-slate-400">PROTOCOLO BAAS: {selectedTx.authCode}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 w-full mt-4">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="btn-outline flex-1 py-2 text-xs font-bold border border-slate-600 text-slate-300 flex items-center justify-center gap-1.5 hover:bg-white/5 transition"
-              >
-                <Icon name="print" className="text-sm" /> IMPRIMIR VIA
-              </button>
-              <button
-                type="button"
-                onClick={() => setThermalReceiptOpen(false)}
-                className="btn-primary flex-1 py-2 text-xs font-bold uppercase text-black bg-[#FCA311] hover:bg-[#FCA311]/90"
-              >
-                FECHAR
-              </button>
-            </div>
-          </div>
-        )}
-      </FormModal>
-
-      {/* NFC WALLET PROVISIONING MODAL */}
+      {/* NFC WALLET MODALS (Keep existing) */}
       <FormModal
         open={nfcModalOpen}
         onClose={() => setNfcModalOpen(false)}
-        title={nfcWalletType === "Google Wallet" ? "Google Wallet" : "Apple Pay"}
-        subtitle="In-App Provisioning — Carteira de Proximidade"
+        title={`Adicionar ao ${nfcWalletType}`}
+        subtitle="Carteira Digital NFC"
       >
         <div className="flex flex-col items-center justify-center p-6 text-center space-y-6">
           {nfcStep === "connecting" ? (
@@ -926,7 +1079,7 @@ export default function FuelPage() {
               <button
                 type="button"
                 onClick={() => setNfcModalOpen(false)}
-                className="btn-primary w-full py-2 font-bold uppercase text-xs text-black bg-[#FCA311] hover:bg-[#FCA311]/90"
+                className="w-full py-2 font-bold uppercase text-xs text-black bg-[#FCA311] hover:bg-[#FCA311]/90 rounded"
               >
                 Concluir
               </button>
@@ -934,7 +1087,7 @@ export default function FuelPage() {
           )}
         </div>
       </FormModal>
-
+      
       {/* CENTRAL BANK PIX REFUND CONFIRMATION MODAL */}
       <FormModal
         open={pixRefundModalOpen}
@@ -981,7 +1134,7 @@ export default function FuelPage() {
                   type="button"
                   onClick={() => setPixRefundModalOpen(false)}
                   disabled={pixRefundConfirming}
-                  className="btn-secondary flex-1 py-2 text-xs font-bold uppercase"
+                  className="rounded flex-1 py-2 text-xs font-bold uppercase border border-slate-600 text-white"
                 >
                   Cancelar
                 </button>
@@ -993,28 +1146,12 @@ export default function FuelPage() {
                     setTimeout(() => {
                       setPixRefundConfirming(false);
                       setPixRefundSuccess(true);
-                      setTransactions(prev => [
-                        {
-                          id: `tx-${Date.now()}`,
-                          title: "Estorno Pix: Devolução Central",
-                          type: "debit",
-                          amount: cardBalance,
-                          date: new Date().toISOString().replace("T", " ").substring(0, 19),
-                          status: "Sucesso",
-                          method: "Pix Devolution",
-                          authCode: `PIX${Math.floor(Math.random()*900000000 + 100000000)}`,
-                          details: `Reembolso de saldo residual. Chave Pix: ${pixKey}`,
-                          plate: "BRA-2E19",
-                          driver: "Jeovana Lopesvalente"
-                        },
-                        ...prev
-                      ]);
                       setCardBalance(0);
                       setPixKey("");
                       setPixName("");
                     }, 2000);
                   }}
-                  className="btn-primary flex-1 py-2 text-xs font-bold uppercase bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-1.5"
+                  className="rounded flex-1 py-2 text-xs font-bold uppercase bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-1.5"
                 >
                   {pixRefundConfirming ? (
                     <>
@@ -1039,7 +1176,7 @@ export default function FuelPage() {
                 <button
                   type="button"
                   onClick={() => setPixRefundModalOpen(false)}
-                  className="btn-primary w-full py-2 font-bold uppercase text-xs text-black bg-[#FCA311] hover:bg-[#FCA311]/90"
+                  className="w-full py-2 font-bold uppercase text-xs text-black bg-[#FCA311] hover:bg-[#FCA311]/90 rounded"
                 >
                   Fechar
                 </button>
@@ -1048,6 +1185,8 @@ export default function FuelPage() {
           )}
         </div>
       </FormModal>
+
+      </ErrorBoundary>
     </AppShell>
   );
 }

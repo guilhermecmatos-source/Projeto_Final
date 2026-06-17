@@ -15,6 +15,7 @@ interface ListPageStatesProps {
   emptyAction?: ReactNode;
   children: ReactNode;
   className?: string;
+  skeleton?: ReactNode;
 }
 
 export default function ListPageStates({
@@ -29,8 +30,10 @@ export default function ListPageStates({
   emptyAction,
   children,
   className = "",
+  skeleton,
 }: ListPageStatesProps) {
   if (loading) {
+    if (skeleton) return <div className={className}>{skeleton}</div>;
     return <LoadingState message={loadingMessage} className={className} />;
   }
 

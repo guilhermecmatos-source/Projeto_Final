@@ -50,14 +50,14 @@ export default function DateRangePicker({ value, onChange, className = "" }: Dat
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2 text-black">
         <button
           type="button"
           onClick={openStartPicker}
           className="flex items-center gap-1 focus:outline-none"
           title="Selecionar data inicial"
         >
-          <Icon name="calendar_today" className="text-sm text-primary" />
+          <Icon name="calendar_today" className="text-sm text-black" />
         </button>
         <label className="sr-only" htmlFor="date-range-start">
           Data inicial
@@ -66,12 +66,12 @@ export default function DateRangePicker({ value, onChange, className = "" }: Dat
           ref={startInputRef}
           id="date-range-start"
           type="date"
-          className="border-0 bg-transparent text-label-md text-black outline-none cursor-pointer"
+          className="border-0 bg-transparent text-label-md text-black font-mono outline-none cursor-pointer date-range-picker-input"
           value={value.start}
           max={value.end}
           onChange={(e) => onChange({ ...value, start: e.target.value })}
         />
-        <span className="text-black/70">até</span>
+        <span className="text-black">até</span>
         <label className="sr-only" htmlFor="date-range-end">
           Data final
         </label>
@@ -79,7 +79,7 @@ export default function DateRangePicker({ value, onChange, className = "" }: Dat
           ref={endInputRef}
           id="date-range-end"
           type="date"
-          className="border-0 bg-transparent text-label-md text-black outline-none cursor-pointer"
+          className="border-0 bg-transparent text-label-md text-black font-mono outline-none cursor-pointer date-range-picker-input"
           value={value.end}
           min={value.start}
           max={todayISO()}
@@ -91,7 +91,7 @@ export default function DateRangePicker({ value, onChange, className = "" }: Dat
           className="flex items-center gap-1 focus:outline-none"
           title="Selecionar data final"
         >
-          <Icon name="date_range" className="text-sm text-primary" />
+          <Icon name="date_range" className="text-sm text-black" />
         </button>
       </div>
     </div>

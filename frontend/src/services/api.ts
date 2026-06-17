@@ -58,12 +58,15 @@ export const authApi = {
 export const dashboardApi = {
   get: (params?: { dateFrom?: string; dateTo?: string }) =>
     api.get("/dashboard", { params }),
+  analytics: () => api.get("/dashboard/analytics"),
 };
 
 export const geocodingApi = {
   distance: (origin: string, destination: string) =>
     api.get("/geocoding/distance", { params: { origin, destination } }),
   places: (q: string) => api.get("/geocoding/places", { params: { q } }),
+  routePoints: (origin: string, destination: string) =>
+    api.get("/geocoding/routes/points", { params: { origin, destination } }),
 };
 
 export const uploadsApi = {
@@ -97,6 +100,7 @@ export const driversApi = {
 export const travelsApi = {
   list: (search?: string) => api.get("/travels", { params: search ? { search } : {} }),
   carpoolMatches: () => api.get("/travels/carpool/matches"),
+  positions: () => api.get("/travels/positions"),
   get: (id: string) => api.get(`/travels/${id}`),
   create: (data: Record<string, unknown>) => api.post("/travels", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/travels/${id}`, data),
@@ -136,6 +140,9 @@ export const intelligenceApi = {
   discovery: () => api.get("/intelligence/discovery"),
   ceo: () => api.get("/intelligence/ceo"),
   travels: () => api.get("/intelligence/travels"),
+  driverScores: () => api.get("/intelligence/driver-scores"),
+  predictiveParts: () => api.get("/intelligence/predictive-parts"),
+  consumptionByModel: () => api.get("/intelligence/consumption-by-model"),
 };
 
 export const reportsApi = {
@@ -158,6 +165,7 @@ export const contractsApi = {
   templates: (area?: string) =>
     api.get("/contracts/templates", { params: area ? { area } : {} }),
   preview: (data: Record<string, unknown>) => api.post("/contracts/preview", data),
+  quote: (data: Record<string, unknown>) => api.post("/contracts/quote", data),
   create: (data: Record<string, unknown>) => api.post("/contracts", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/contracts/${id}`, data),
   send: (id: string) => api.post(`/contracts/${id}/send`),
@@ -177,4 +185,23 @@ export const maintenanceApi = {
   create: (data: Record<string, unknown>) => api.post("/maintenance", data),
   complete: (id: string) => api.patch(`/maintenance/${id}/complete`),
   alerts: () => api.get("/maintenance/alerts"),
+};
+
+export const marketplaceApi = {
+  list: () => api.get("/marketplace"),
+};
+
+export const telemetryApi = {
+  alerts: () => api.get("/telemetry/alerts"),
+  history: () => api.get("/telemetry/alerts/history"),
+  simulate: (data: { category: string; title: string; message: string; severity: string }) =>
+    api.post("/telemetry/alerts/simulate", data),
+};
+
+export const copilotApi = {
+  chat: (
+    messages: { role: string; text: string }[],
+    activeModule: string,
+    vehicleContext?: Record<string, unknown>
+  ) => api.post("/ai-chat", { messages, activeModule, vehicleContext }),
 };

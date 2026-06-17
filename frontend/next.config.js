@@ -11,6 +11,12 @@ const backendUrl = getBackendUrl();
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "quickchart.io" },
+      { protocol: "https", hostname: "api.qrserver.com" },
+    ],
+  },
   async rewrites() {
     const target = getBackendUrl();
     return [

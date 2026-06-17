@@ -7,13 +7,12 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    router.replace(token ? "/dashboard" : "/login");
+    router.replace("/login");
   }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <p className="text-on-surface-variant">Redirecionando...</p>
+      <p className="text-on-surface-variant">Redirecionando para login...</p>
     </div>
   );
 }

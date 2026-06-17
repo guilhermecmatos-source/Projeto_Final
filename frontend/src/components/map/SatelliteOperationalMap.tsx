@@ -5,7 +5,7 @@ import Icon from "@/components/ui/Icon";
 import { showToast } from "@/components/ui/Toast";
 import * as L from "leaflet";
 
-interface VehicleMarker {
+interface DriverMarker {
   id: string;
   plate: string;
   driverName: string;
@@ -131,8 +131,11 @@ export default function SatelliteOperationalMap() {
   const hasCentered = useRef(false);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState("");
-  const [vehicles, setVehicles] = useState(FLEET_VEHICLES);
   const [ready, setReady] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<DriverMarker | null>(null);
+
+  // Simulated movement offsets for drivers
+  const offsetsRef = useRef({ carlos: 0, ana: 0, roberto: 0 });
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
@@ -162,7 +165,7 @@ export default function SatelliteOperationalMap() {
         }
       ).addTo(map);
 
-      L.control.zoom({ position: "bottomright" }).addTo(map);
+      L.control.zoom({ position: "topleft" }).addTo(map);
 
       // Render support points on load
       // 1. Fuel stations (Green pins)

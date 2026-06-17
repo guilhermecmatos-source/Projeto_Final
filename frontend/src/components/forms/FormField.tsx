@@ -5,6 +5,9 @@ interface FormFieldProps {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
   options?: { value: string; label: string }[];
   as?: "input" | "textarea" | "select" | "checkbox";
   rows?: number;
@@ -20,6 +23,9 @@ export default function FormField({
   placeholder,
   required,
   disabled,
+  min,
+  max,
+  step,
   options,
   as,
   rows = 4,
