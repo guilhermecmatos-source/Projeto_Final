@@ -2,22 +2,61 @@
 
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
-import { geocodingApi } from "@/services/api";
-import * as L from 'leaflet';
 
-interface VehicleMarker {
+interface DriverMarker {
   id: string;
-  plate: string;
+  name: string;
+  shortName: string;
   lat: number;
   lng: number;
-  speed: number;
-  heading: string;
+  vehicle: string;
+  plate: string;
+  destination: string;
+  status: "EM ROTA" | "DISPONÍVEL" | "CONCLUÍDO";
+  color: string;
+  bgColor: string;
 }
 
-const FLEET_VEHICLES: VehicleMarker[] = [
-  { id: "1", plate: "ABC-1234", lat: -10.184, lng: -48.333, speed: 62, heading: "Palmas → Gurupi" },
-  { id: "2", plate: "DEF-5678", lat: -11.729, lng: -49.068, speed: 48, heading: "Gurupi → Palmas" },
-  { id: "3", plate: "GHI-9012", lat: -10.184, lng: -48.333, speed: 71, heading: "Palmas → Araguaína" },
+const PALMAS_DRIVERS: DriverMarker[] = [
+  {
+    id: "carlos",
+    name: "Carlos Silva",
+    shortName: "CARLOS",
+    lat: -10.184,
+    lng: -48.370,
+    vehicle: "Moto Honda CE",
+    plate: "ABC-1234",
+    destination: "Mercado São João",
+    status: "EM ROTA",
+    color: "#22c55e",
+    bgColor: "#16a34a",
+  },
+  {
+    id: "ana",
+    name: "Ana Lima",
+    shortName: "ANA",
+    lat: -10.161,
+    lng: -48.344,
+    vehicle: "Cargo Bike",
+    plate: "—",
+    destination: "Mercado Central",
+    status: "DISPONÍVEL",
+    color: "#f59e0b",
+    bgColor: "#d97706",
+  },
+  {
+    id: "roberto",
+    name: "Roberto Souza",
+    shortName: "ROBERTO",
+    lat: -10.215,
+    lng: -48.360,
+    vehicle: "Caminhão",
+    plate: "DEF-5678",
+    destination: "Entregue",
+    status: "CONCLUÍDO",
+    color: "#94a3b8",
+    bgColor: "#64748b",
+  },
 ];
 
 /** Guard: retorna true somente se lat/lng são números finitos e não-NaN */
@@ -31,44 +70,17 @@ function isValidCoord(lat: unknown, lng: unknown): boolean {
 
 export default function SatelliteOperationalMap() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
-  const userMarkerRef = useRef<L.CircleMarker | null>(null);
+  const mapInstance = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const userMarkerRef = useRef<any>(null);
   const hasCentered = useRef(false);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState("");
-  const [vehicles, setVehicles] = useState(FLEET_VEHICLES);
   const [ready, setReady] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<DriverMarker | null>(null);
 
-  // Estados para as rotas reais consumidas da API do backend
-  const [routePalmasGurupi, setRoutePalmasGurupi] = useState<{ lat: number; lng: number }[]>([]);
-  const [routePalmasAraguaina, setRoutePalmasAraguaina] = useState<{ lat: number; lng: number }[]>([]);
-
-  // Índices e direções da simulação
-  const indicesRef = useRef({ v1: 0, v2: 0, v3: 0 });
-  const dirsRef = useRef({ v1: 1, v2: -1, v3: 1 }); // 1 = ida, -1 = volta
-
-  // Carregar as rotas da API no mount
-  useEffect(() => {
-    Promise.all([
-      geocodingApi.routePoints("Palmas", "Gurupi"),
-      geocodingApi.routePoints("Palmas", "Araguaína")
-    ])
-      .then(([rgRes, raRes]) => {
-        if (rgRes.data?.points) {
-          setRoutePalmasGurupi(rgRes.data.points);
-          indicesRef.current.v1 = 0;
-          indicesRef.current.v2 = rgRes.data.points.length - 1; // Começa de Gurupi
-        }
-        if (raRes.data?.points) {
-          setRoutePalmasAraguaina(raRes.data.points);
-          indicesRef.current.v3 = 0;
-        }
-      })
-      .catch((err) => {
-        console.error("[map] Erro ao obter rotas geográficas do backend:", err);
-      });
-  }, []);
+  // Simulated movement offsets for drivers
+  const offsetsRef = useRef({ carlos: 0, ana: 0, roberto: 0 });
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
@@ -80,39 +92,85 @@ export default function SatelliteOperationalMap() {
 
       if (cancelled || !mapRef.current) return;
 
+      // Load leaflet CSS
+      if (typeof document !== "undefined" && !document.getElementById("leaflet-css")) {
+        const link = document.createElement("link");
+        link.id = "leaflet-css";
+        link.rel = "stylesheet";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
+      }
+
       const map = L.map(mapRef.current, {
-        center: [-10.184, -48.333],
-        zoom: 7, // zoom menor para ver Palmas, Gurupi e Araguaína
+        center: [-10.184, -48.355],
+        zoom: 13,
         zoomControl: false,
       });
 
       L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { 
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', 
-          maxZoom: 19 
+        {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19,
         }
       ).addTo(map);
 
-      L.control.zoom({ position: "bottomright" }).addTo(map);
+      L.control.zoom({ position: "topleft" }).addTo(map);
 
-      const truckIcon = L.divIcon({
-        className: "leaflet-truck-icon-container",
-        html: `<div style="background:#007194;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:all 0.3s ease;">
-          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-5h14v5zm-1.5-1.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-          </svg>
-        </div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      });
+      // Add driver markers
+      PALMAS_DRIVERS.forEach((d) => {
+        if (!isValidCoord(d.lat, d.lng)) return;
 
-      FLEET_VEHICLES.forEach((v) => {
-        if (!isValidCoord(v.lat, v.lng)) return; // guard: skip invalid coords
-        const m = L.marker([v.lat, v.lng], { icon: truckIcon })
-          .bindPopup(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`)
-          .addTo(map);
-        markersRef.current.push(m);
+        const markerHtml = `
+          <div style="
+            background: ${d.bgColor};
+            color: white;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 3px 7px;
+            border-radius: 12px;
+            border: 2px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+            white-space: nowrap;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            position: relative;
+          ">
+            ${d.shortName}
+            <div style="
+              position: absolute;
+              bottom: -6px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 5px solid transparent;
+              border-right: 5px solid transparent;
+              border-top: 6px solid ${d.bgColor};
+            "></div>
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          className: "",
+          html: markerHtml,
+          iconSize: [60, 26],
+          iconAnchor: [30, 32],
+        });
+
+        const marker = L.marker([d.lat, d.lng], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="font-family:sans-serif;min-width:180px;">
+              <p style="font-weight:800;font-size:11px;margin:0 0 4px">${d.name}</p>
+              <p style="font-size:10px;color:#666;margin:0 0 2px">${d.vehicle} • ${d.plate}</p>
+              <p style="font-size:10px;margin:0 0 4px">Destino: <b>${d.destination}</b></p>
+              <p style="font-size:9px;color:#999;margin:0">Lat: ${d.lat.toFixed(6)} | Lng: ${d.lng.toFixed(6)}</p>
+            </div>
+          `);
+
+        markersRef.current.push(marker);
       });
 
       mapInstance.current = map;
@@ -129,6 +187,7 @@ export default function SatelliteOperationalMap() {
     };
   }, []);
 
+  // GPS watch
   useEffect(() => {
     if (!navigator.geolocation) {
       setGpsError("Geolocalização não suportada");
@@ -137,16 +196,14 @@ export default function SatelliteOperationalMap() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        if (!isValidCoord(latitude, longitude)) return; // guard: skip bad GPS fix
+        if (!isValidCoord(latitude, longitude)) return;
         setGps({ lat: latitude, lng: longitude });
         setGpsError("");
-        if (mapInstance.current) {          
+        if (mapInstance.current && !hasCentered.current) {
+          // Don't re-center to user location — keep Palmas centered
+          hasCentered.current = true;
           import("leaflet").then(({ default: L }) => {
             if (!mapInstance.current) return;
-            if (!hasCentered.current) {
-              mapInstance.current.setView([latitude, longitude], 9);
-              hasCentered.current = true;
-            }
             if (userMarkerRef.current) {
               userMarkerRef.current.setLatLng([latitude, longitude]);
             } else {
@@ -169,107 +226,56 @@ export default function SatelliteOperationalMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [ready]);
 
-  // Simular movimentação fluida dos veículos baseada nos pontos da rota da API
+  // Simulate minor drift for Carlos and Ana to feel "live"
   useEffect(() => {
-    if (routePalmasGurupi.length === 0 || routePalmasAraguaina.length === 0) return;
+    if (!ready) return;
+    const interval = setInterval(() => {
+      import("leaflet").then(({ default: L }) => {
+        if (!mapInstance.current) return;
+        // Carlos drifts slightly
+        const carlosMarker = markersRef.current[0];
+        const anaMarker = markersRef.current[1];
 
-    const id = setInterval(() => {
-      setVehicles((prev) =>
-        prev.map((v) => {
-          let route = routePalmasGurupi;
-          let idxKey: "v1" | "v2" | "v3" = "v1";
-
-          if (v.id === "1") {
-            route = routePalmasGurupi;
-            idxKey = "v1";
-          } else if (v.id === "2") {
-            route = routePalmasGurupi;
-            idxKey = "v2";
-          } else if (v.id === "3") {
-            route = routePalmasAraguaina;
-            idxKey = "v3";
+        if (carlosMarker) {
+          const base = PALMAS_DRIVERS[0];
+          offsetsRef.current.carlos += 0.0001;
+          const newLat = base.lat + Math.sin(offsetsRef.current.carlos) * 0.002;
+          const newLng = base.lng + Math.cos(offsetsRef.current.carlos) * 0.002;
+          if (isValidCoord(newLat, newLng)) {
+            carlosMarker.setLatLng([newLat, newLng]);
           }
-
-          let idx = indicesRef.current[idxKey];
-          let dir = dirsRef.current[idxKey];
-
-          // Avança na direção correspondente
-          idx += dir;
-          
-          if (idx >= route.length) {
-            idx = route.length - 2;
-            dir = -1; // Volta na rota
-          } else if (idx < 0) {
-            idx = 1;
-            dir = 1; // Segue na rota novamente
+        }
+        if (anaMarker) {
+          const base = PALMAS_DRIVERS[1];
+          offsetsRef.current.ana += 0.00005;
+          const newLat = base.lat + Math.sin(offsetsRef.current.ana) * 0.001;
+          const newLng = base.lng + Math.cos(offsetsRef.current.ana) * 0.0015;
+          if (isValidCoord(newLat, newLng)) {
+            anaMarker.setLatLng([newLat, newLng]);
           }
+        }
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [ready]);
 
-          indicesRef.current[idxKey] = idx;
-          dirsRef.current[idxKey] = dir;
-
-          const nextPoint = route[idx];
-          
-          let heading = "";
-          if (v.id === "1") heading = dir === 1 ? "Palmas → Gurupi" : "Gurupi → Palmas";
-          if (v.id === "2") heading = dir === 1 ? "Palmas → Gurupi" : "Gurupi → Palmas";
-          if (v.id === "3") heading = dir === 1 ? "Palmas → Araguaína" : "Araguaína → Palmas";
-
-          return {
-            ...v,
-            lat: nextPoint.lat,
-            lng: nextPoint.lng,
-            heading,
-            speed: Math.round(Math.max(50, Math.min(90, v.speed + (Math.random() - 0.5) * 10))),
-          };
-        })
-      );
-    }, 4000);
-
-    return () => clearInterval(id);
-  }, [routePalmasGurupi, routePalmasAraguaina]);
-
-  // Atualizar marcadores no mapa Leaflet
-  useEffect(() => {
-    if (!mapInstance.current || !ready) return;
-    vehicles.forEach((v, i) => {
-      if (markersRef.current[i] && isValidCoord(v.lat, v.lng)) {
-        markersRef.current[i].setLatLng([v.lat, v.lng]);
-        markersRef.current[i].setPopupContent(`<b>${v.plate}</b><br/>${v.speed} km/h<br/>${v.heading}`);
-      }
-    });
-  }, [vehicles, ready]);
+  const statusColor = (s: DriverMarker["status"]) => {
+    if (s === "EM ROTA") return "text-green-400 bg-green-500/10 border-green-500/30";
+    if (s === "DISPONÍVEL") return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+    return "text-slate-400 bg-slate-500/10 border-slate-500/30";
+  };
 
   return (
     <div className="relative">
-      <div className="absolute left-3 top-3 z-[500] flex flex-col gap-1 rounded-lg bg-black/70 px-3 py-2 text-[10px] text-white backdrop-blur md:text-xs">
-        <span className="flex items-center gap-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-          SINAL GPS ATIVO
-        </span>
-        {gps ? (
-          <span>REF: LAT {gps.lat.toFixed(4)} | LNG {gps.lng.toFixed(4)}</span>
-        ) : (
-          <span>{gpsError || "Obtendo geolocalização..."}</span>
-        )}
+      {/* GPS Badge */}
+      <div className="absolute left-3 bottom-16 z-[500] flex flex-col gap-1 rounded-lg bg-black/75 px-3 py-2 text-[9px] text-white backdrop-blur shadow-lg">
+        <span className="font-bold text-slate-300 uppercase tracking-wider">RASTREAMENTO AUTOMATIZADO</span>
+        <span className="text-slate-400">Leitura abrange Palmas TO situadas</span>
+        <span className="text-slate-400">nos raios: Ok (ativo)</span>
       </div>
 
-      <div ref={mapRef} className="h-[280px] w-full md:h-[360px] rounded-b-xl overflow-hidden" />
-
-      <div className="flex flex-wrap gap-2 border-t border-outline-variant bg-surface-container-low p-3">
-        {vehicles.map((v) => (
-          <div
-            key={v.id}
-            className="flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-container-high px-2 py-1 text-[10px] md:text-xs"
-          >
-            <Icon name="local_shipping" className="text-primary text-sm" />
-            <span className="font-bold">{v.plate}</span>
-            <span className="text-on-surface-variant">{v.heading}</span>
-            <span className={v.speed > 0 ? "text-green-500" : "text-amber-500"}>
-              {v.speed > 0 ? `${v.speed} km/h` : "Parado"}
-            </span>
-          </div>
-        ))}
-      </div>
+      {/* Map canvas */}
+      <div ref={mapRef} className="h-[340px] w-full overflow-hidden" />
     </div>
   );
 }
