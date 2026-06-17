@@ -1,26 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 
 export default function PartnersPage() {
   const router = useRouter();
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [stats, setStats] = useState({
-    averageScore: 0,
-    activePartners: 0,
-    openTickets: 0,
-    totalPartners: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [partnerModalOpen, setPartnerModalOpen] = useState(false);
-  const [ticketModalOpen, setTicketModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   // Modal States
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -28,14 +14,6 @@ export default function PartnersPage() {
   
   // Tabs for Dossie
   const [dossieTab, setDossieTab] = useState<"visao" | "auditoria" | "avaliacoes">("visao");
-
-  function setSelectedPartnerDetails(arg0: null) {
-    throw new Error("Function not implemented.");
-  }
-
-  function setNavWarningOpen(arg0: boolean): void {
-    throw new Error("Function not implemented.");
-  }
 
   return (
     <AppShell>
@@ -498,49 +476,26 @@ export default function PartnersPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* Footer */}
+            <div className="p-4 border-t border-outline-variant/10 bg-[#0F172A] flex justify-between items-center gap-4">
+              <button className="rounded-lg border border-[#FCA311]/50 hover:bg-[#FCA311]/10 px-4 py-2.5 text-[9px] font-bold text-[#FCA311] uppercase tracking-widest flex items-center gap-2 transition">
+                <Icon name="download" className="text-[11px]" /> EXPORTAR DOSSIÊ PDF
+              </button>
               <div className="flex gap-2">
-                <button
-                  type="button"
+                <button 
                   onClick={() => {
-                    setSelectedId(setSelectedPartnerDetails.id);
-                    setSelectedPartnerDetails(null);
+                    setDossieModalOpen(false);
+                    router.push("/command-center");
                   }}
-                  className="btn-outline flex-1 border border-outline-variant py-3 text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-white/5 transition"
+                  className="rounded-lg border border-outline-variant/30 hover:bg-white/5 px-6 py-2.5 text-[9px] font-bold text-slate-300 uppercase tracking-widest transition"
                 >
-                  Ver Perfil & Chat
+                  LOCALIZAR NO MAPA CCO
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setNavWarningOpen(true)}
-                  className="btn-outline flex-1 border border-outline-variant py-3 text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-white/5 transition flex items-center justify-center gap-1"
+                <button 
+                  onClick={() => setDossieModalOpen(false)}
+                  className="rounded-lg bg-white text-[#0c132b] hover:bg-slate-200 px-6 py-2.5 text-[9px] font-black uppercase tracking-widest transition"
                 >
-                  <Icon name="navigation" className="text-sm" />
-                  Rota GPS
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPartnerDetails(null);
-                    router.push(`/dashboard?lat=${setSelectedPartnerDetails.lat}&lng=${setSelectedPartnerDetails.lng}&name=${encodeURIComponent(setSelectedPartnerDetails.name)}`);
-                  }}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider"
-                >
-                  <Icon name="map" />
-                  Localizar no Mapa CCO
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPartnerDetails(null);
-                    router.push(`/dashboard?lat=${setSelectedPartnerDetails.lat}&lng=${setSelectedPartnerDetails.lng}&name=${encodeURIComponent(setSelectedPartnerDetails.name)}`);
-                  }}
-                  className="btn-secondary flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider"
-                >
-                  <Icon name="explore" />
-                  Entrar no Maps
+                  FECHAR DOSSIÊ
                 </button>
               </div>
             </div>

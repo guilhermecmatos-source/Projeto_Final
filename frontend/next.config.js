@@ -27,17 +27,6 @@ const nextConfig = {
   logging: {
     fetches: { fullUrl: process.env.NODE_ENV === "development" },
   },
-  // Enables file polling inside Docker on Windows (WSL2 volume mounts don't
-  // propagate inotify events reliably, so webpack must poll for changes).
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,       // check every 1 s
-        aggregateTimeout: 300,
-      };
-    }
-    return config;
-  },
 };
 
 if (process.env.NODE_ENV === "development") {
