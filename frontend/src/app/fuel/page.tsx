@@ -277,29 +277,29 @@ export default function FuelPage() {
 
       {activeTab === "cards" ? (
         /* TAB 1: CARTÕES NFC & SALDOS */
-        <div className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
-            
-            {/* Column 1: Active cards list */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col h-full">
+        <div className="grid gap-6 lg:grid-cols-3">
+          
+          {/* Column 1: Active cards list & Emit Card */}
+          <div className="flex flex-col gap-6">
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
               <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">CARTÕES DE ABASTECIMENTO ATIVOS</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">CART�ES DE ABASTECIMENTO ATIVOS</h3>
                 <button
                   type="button"
-                  className="rounded-lg bg-blue-600 px-3 py-1 text-[10px] font-bold text-white uppercase hover:bg-blue-500 transition"
+                  className="rounded bg-blue-600 px-3 py-1.5 text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition flex items-center gap-1"
                 >
-                  + Emitir
+                  <Icon name="add" className="text-[14px]"/> EMITIR
                 </button>
               </div>
-              <div className="space-y-3 flex-1 overflow-y-auto">
+              <div className="space-y-3">
                 <div className="rounded-lg border border-outline-variant/30 bg-[#0F172A]/80 p-3 flex justify-between items-start">
                   <div>
                     <span className="inline-block rounded bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-[#FCA311] font-mono">BRA-2E19</span>
                     <p className="text-[10px] text-slate-300 mt-1.5">Scania R 450</p>
-                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: {formatBRL(cardBalance)}</p>
+                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 1.000,00</p>
                   </div>
                   <div className="text-right">
-                    <span className="chip-active text-[9px]">Ativo</span>
+                    <span className="chip-active text-[9px]">ATIVO</span>
                     <p className="text-[9px] text-slate-400 mt-2 font-mono">Jeovana Lopesvalente</p>
                   </div>
                 </div>
@@ -308,11 +308,11 @@ export default function FuelPage() {
                   <div>
                     <span className="inline-block rounded bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-[#FCA311] font-mono">BRA-2E19</span>
                     <p className="text-[10px] text-slate-300 mt-1.5">Scania R 450</p>
-                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 2.876,43</p>
+                    <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 2.876,92</p>
                   </div>
                   <div className="text-right">
-                    <span className="chip-active text-[9px]">Ativo</span>
-                    <p className="text-[9px] text-slate-400 mt-2 font-mono">Amanda Silveira</p>
+                    <span className="chip-active text-[9px]">ATIVO</span>
+                    <p className="text-[9px] text-slate-400 mt-2 font-mono">Bianca Silveira</p>
                   </div>
                 </div>
 
@@ -323,234 +323,225 @@ export default function FuelPage() {
                     <p className="text-[11px] font-bold text-[#FCA311] mt-0.5">Saldo: R$ 0,00</p>
                   </div>
                   <div className="text-right">
-                    <span className="chip-active text-[9px]">Ativo</span>
+                    <span className="chip-active text-[9px]">ATIVO</span>
                     <p className="text-[9px] text-slate-400 mt-2 font-mono">Carlos Silveira</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Column 2: Fleet Card details & Digital wallet */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3">CARTÃO FROTA</h3>
-                
-                {/* Physical Card Mockup */}
-                <div className="relative w-full aspect-[1.58/1] rounded-2xl bg-gradient-to-br from-[#1E293B] to-[#0b0f19] p-5 text-white shadow-xl overflow-hidden border border-white/5 select-none">
-                  {/* Top line */}
-                  <div className="flex justify-between items-start">
-                    <span className="text-[11px] font-bold tracking-widest font-mono text-slate-100">CARTÃO FROTA</span>
-                    <span className="rounded bg-green-500/20 border border-green-500/30 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-green-400 font-mono">
-                      PRE-PAG PAS
-                    </span>
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+               <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">EMITIR NOVO CART�O PR�-PAGO</h3>
+               <p className="text-[10px] text-slate-400 mb-4">Gere um cart�o f�sico/digital associado por seguran�a a uma placa da frota.</p>
+               
+               <form className="space-y-4">
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">VINCULAR A QUAL VE�CULO</label>
+                    <select className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white">
+                      <option>Selecione um ve�culo...</option>
+                    </select>
                   </div>
-                  {/* Chip and logo */}
-                  <div className="mt-4 flex items-center justify-between">
-                    {/* Visual Card Chip */}
-                    <div className="h-7 w-9 rounded bg-amber-500/20 border border-amber-500/40 relative overflow-hidden shrink-0">
-                      <div className="absolute inset-x-2 inset-y-1 border-r border-amber-500/30" />
-                      <div className="absolute inset-y-2 inset-x-1 border-b border-amber-500/30" />
-                    </div>
-                    {/* NFC Symbol */}
-                    <Icon name="contactless" className="text-slate-400 text-xl" />
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">CARGA INICIAL DE SALDO (R$)</label>
+                    <input type="text" defaultValue="500" readOnly className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none" />
                   </div>
-                  {/* Card number */}
-                  <p className="mt-4 text-lg font-mono font-semibold tracking-widest text-slate-100">•••• •••• •••• 5485</p>
-                  {/* Plate / Holder */}
-                  <div className="mt-4 flex justify-between items-end text-[9px] font-mono text-slate-300">
-                    <div>
-                      <span className="block text-[7px] text-slate-400 uppercase">Valido / Placa</span>
-                      <span className="font-bold text-slate-100 text-xs">BRA-2E19 (SCANIA)</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-[7px] text-slate-400 uppercase">Valido Div</span>
-                      <span className="font-bold text-slate-100">06/31 •••</span>
-                    </div>
+                  <div className="text-[9px] text-slate-400 mt-2">
+                    <span className="font-bold text-[#FCA311]">Detalhes do Portador:</span><br/>
+                    Criado pelo Usu�rio: <span className="text-slate-200">Administrador Fleet AI (Administrador)</span><br/>
+                    Criptografia PCI compliant. O cart�o de faturamento BaaS ser� gerado sob demanda.
                   </div>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <button type="button" className="w-full rounded border border-outline-variant/30 bg-[#0F172A] py-2.5 text-[10px] font-bold text-white uppercase hover:bg-white/5 transition">
+                      CANCELAR
+                    </button>
+                    <button type="button" className="w-full rounded bg-[#FCA311] py-2.5 text-[10px] font-bold text-black uppercase hover:bg-[#FCA311]/90 transition">
+                      PROCESSAR EMISS�O
+                    </button>
+                  </div>
+               </form>
+            </div>
+          </div>
 
-              {/* NFC Proximidade Wallet */}
-              <div className="mt-6 border-t border-outline-variant/20 pt-4">
-                <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="nfc" className="text-sm text-primary" /> CARTEIRA DIGITAL & APROXIMAÇÃO NFC</p>
-                <p className="text-[10px] text-slate-400 mt-1">Adicione o cartão à carteira para pagamentos por aproximação em maquininhas de postos sem precisar de cartão físico.</p>
-                <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-2">
-                  <button onClick={handleGoogleWalletClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
-                    <Icon name="google" className="text-sm text-primary" /> GOOGLE WALLET
-                  </button>
-                  <button onClick={handleApplePayClick} type="button" className="hidden sm:flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-xs font-bold hover:bg-white/5 transition text-white">
-                    <Icon name="phone_iphone" className="text-sm text-primary" /> APPLE PAY
-                  </button>
+          {/* Column 2: Fleet Card details & Digital wallet & Extrato Detalhado */}
+          <div className="flex flex-col gap-6">
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Icon name="credit_card" className="text-sm"/> CART�O FROTA</h3>
+                <span className="rounded bg-green-500/20 border border-green-500/30 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-green-400 font-mono">
+                  PREMIUM PASS
+                </span>
+              </div>
+              
+              {/* Physical Card Mockup */}
+              <div className="relative w-full aspect-[1.58/1] rounded-2xl bg-gradient-to-br from-[#1E293B] to-[#0b0f19] p-5 text-white shadow-xl overflow-hidden border border-white/5 select-none">
+                {/* Chip and logo */}
+                <div className="flex items-center justify-between">
+                  <div className="h-7 w-9 rounded bg-amber-500/20 border border-amber-500/40 relative overflow-hidden shrink-0">
+                    <div className="absolute inset-x-2 inset-y-1 border-r border-amber-500/30" />
+                    <div className="absolute inset-y-2 inset-x-1 border-b border-amber-500/30" />
+                  </div>
+                  <Icon name="contactless" className="text-slate-400 text-2xl" />
+                </div>
+                {/* Card number */}
+                <p className="mt-8 text-[18px] font-mono font-semibold tracking-widest text-slate-100 flex justify-between items-center">
+                  <span>4532 8598 9742 5485</span>
+                  <Icon name="visibility_off" className="text-slate-400 text-sm" />
+                </p>
+                {/* Plate / Holder */}
+                <div className="mt-6 flex justify-between items-end text-[9px] font-mono text-slate-300">
+                  <div>
+                    <span className="block text-[7px] text-slate-400 uppercase">VE�CULO / PLACA</span>
+                    <span className="font-bold text-slate-100 text-[10px]">BRA-2E19 (SCANIA)</span>
+                  </div>
+                  <div className="flex gap-4 text-right">
+                    <div>
+                      <span className="block text-[7px] text-slate-400 uppercase">V�LIDO</span>
+                      <span className="font-bold text-slate-100">06/31</span>
+                    </div>
+                    <div>
+                      <span className="block text-[7px] text-slate-400 uppercase">CVV</span>
+                      <span className="font-bold text-slate-100">033</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Column 3: Expense Metrics & Pix refund */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3">MÉTRICAS DE GASTOS</h3>
+            {/* NFC Proximidade Wallet */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <p className="text-[10px] font-bold text-slate-100 flex items-center gap-1.5 mb-1"><Icon name="smartphone" className="text-sm text-primary" /> CARTEIRA DIGITAL & APROXIMA��O NFC</p>
+              <p className="text-[10px] text-slate-400">Adicione o cart�o � carteira para pagamentos por aproxima��o em maquininhas de postos sem precisar de cart�o f�sico.</p>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button onClick={handleGoogleWalletClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-[10px] font-bold hover:bg-white/5 transition text-white">
+                  <Icon name="google" className="text-sm text-primary" /> GOOGLE WALLET
+                </button>
+                <button onClick={handleApplePayClick} type="button" className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] py-2 text-[10px] font-bold hover:bg-white/5 transition text-white">
+                  <Icon name="phone_iphone" className="text-sm text-primary" /> APPLE PAY
+                </button>
+              </div>
+            </div>
+
+            {/* Extrato Detalhado / Pix Carga */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <div className="flex justify-between items-center mb-1">
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Icon name="receipt" className="text-sm"/> EXTRATO DETALHADO DO CART�O</h3>
+                  <p className="text-[8px] text-slate-400 font-mono mt-0.5">Chave do Extrato: 087.251.382-83</p>
+                </div>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 bg-blue-600 px-3 py-1.5 rounded-lg text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition"
+                >
+                  <Icon name="add" className="text-[14px]" /> INJETAR CARGA
+                </button>
+              </div>
+
+              <div className="mt-4 border-t border-outline-variant/20 pt-4">
+                <h4 className="text-[10px] font-bold uppercase text-slate-100 mb-1">CARGA DE FATURAMENTO PIX BAAS</h4>
+                <p className="text-[9px] text-slate-400 mb-4">Para depositar, escaneie o c�digo din�mico ou copie a linha de pagamento digit�vel. O processamento compensar� em at� 2 segundos.</p>
                 
-                <div className="space-y-3 text-xs mb-6">
-                  <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
-                    <span className="text-slate-400">Total Depositado:</span>
-                    <span className="font-bold text-slate-200">R$ 1.730,00</span>
+                <div className="flex gap-4 items-center bg-[#0F172A] p-3 rounded-lg border border-outline-variant/30">
+                  <div className="bg-white p-2 rounded flex items-center justify-center shrink-0">
+                    <Icon name="qr_code_2" className="text-black text-5xl" />
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
-                    <span className="text-slate-400">Total Utilizado:</span>
-                    <span className="font-bold text-red-400">R$ 730,00</span>
-                  </div>
-                  <div className="rounded-lg bg-[#0F172A] p-3 border border-outline-variant/30 mt-3 text-center">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">SALDO DISPONÍVEL NO CARTÃO</span>
-                    <span className="text-2xl font-mono font-bold text-[#FCA311]">{formatBRL(cardBalance)}</span>
+                  <div className="flex-1 w-full overflow-hidden">
+                    <div className="flex gap-2">
+                       <input 
+                         type="text" 
+                         readOnly
+                         value="00020101021226820014br.gov.bcb.pix2561api.asaas.com/v3/cob/9525Card-17310435985"
+                         className="w-full text-[9px] h-8 bg-[#0b0e14]/80 border border-[#FCA311]/50 rounded px-2 text-[#FCA311] font-mono overflow-ellipsis focus:outline-none" 
+                       />
+                       <button className="rounded bg-transparent border border-outline-variant/30 px-3 py-1.5 text-[9px] font-bold text-slate-200 uppercase hover:bg-white/5 transition whitespace-nowrap shrink-0">COPIAR CHAVE</button>
+                    </div>
+                    <div className="flex gap-2 mt-3 justify-end">
+                       <button className="rounded bg-transparent border border-outline-variant/30 px-4 py-1.5 text-[9px] font-bold text-slate-300 uppercase hover:bg-white/5 transition">CANCELAR</button>
+                       <button className="rounded bg-blue-600 px-4 py-1.5 text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition">SIMULAR COMPENSA��O BAAS</button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Devolution Pix form */}
-              <div className="border-t border-outline-variant/20 pt-4">
-                <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5"><Icon name="reply" className="text-sm text-primary -rotate-90" /> DEVOLUÇÃO DE SALDO (ESTORNO PIX)</p>
-                <p className="text-[10px] text-slate-400 mt-1">Resgatar o valor restante do cartão direto para uma conta.</p>
-                
-                <form onSubmit={handleRefundSubmit} className="space-y-3.5 mt-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">TIPO DE CHAVE</label>
-                      <select 
-                        value={pixKeyType} 
-                        onChange={(e) => setPixKeyType(e.target.value)}
-                        className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2"
-                      >
-                        <option>CPF/CNPJ</option>
-                        <option>E-mail</option>
-                        <option>Telefone</option>
-                        <option>Chave Aleatória</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">CHAVE PIX DE DESTINO</label>
-                      <input 
-                        type="text" 
-                        placeholder="Digite a chave..." 
-                        value={pixKey}
-                        onChange={(e) => setPixKey(e.target.value)}
-                        required
-                        className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">NOME COMPLETO DO TITULAR</label>
-                    <input 
-                      type="text" 
-                      placeholder="Favorecido do estorno" 
-                      value={pixName}
-                      onChange={(e) => setPixName(e.target.value)}
-                      required
-                      className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white"
-                    />
-                  </div>
-                  
-                  {refundMessage && <p className="text-[10px] text-green-400">{refundMessage}</p>}
-
-                  <button 
-                    type="submit" 
-                    disabled={cardBalance <= 0 || !pixKey || !pixName}
-                    className="w-full rounded bg-green-500/20 hover:bg-green-500/35 border border-green-500/30 text-green-400 font-bold uppercase text-xs py-2.5 transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    SOLICITAR REEMBOLSO DE {formatBRL(cardBalance)}
-                  </button>
-                </form>
-              </div>
             </div>
 
           </div>
 
-          {/* Bottom Row: Faturamento/Auditoria and transactions detail */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            
-            {/* Audit panel */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3 flex items-center gap-1.5">
-                <Icon name="verified_user" /> PAINEL DE AUDITORIA & FATURAMENTO
-              </h3>
-              <p className="text-[10px] text-slate-400 mb-4">Portabilidade operacional BaaS. Rastreabilidade de utilização vinculada à placa e usuário que homologou.</p>
+          {/* Column 3: Expense Metrics & Pix refund */}
+          <div className="flex flex-col gap-6">
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary mb-4 border-b border-outline-variant/20 pb-3">M�TRICAS DE GASTOS</h3>
               
-              <div className="space-y-2 text-xs border-b border-outline-variant/10 pb-4">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Homologado por</span>
-                  <span className="font-bold text-slate-200">jeovanalopesvalente</span>
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
+                  <span className="text-slate-400">Total Depositado:</span>
+                  <span className="font-bold text-slate-200">R$ 1.000,00</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Placa do Veículo</span>
-                  <span className="font-bold text-[#FCA311] font-mono">BRA-2E19</span>
+                <div className="flex justify-between py-1.5 border-b border-outline-variant/10">
+                  <span className="text-slate-400">Total Utilizado:</span>
+                  <span className="font-bold text-red-400">R$ 0,00</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Modelo</span>
-                  <span className="font-bold text-slate-200">Scania R 450</span>
+                <div className="rounded-lg bg-[#0F172A] p-3 border border-outline-variant/30 mt-3 text-center">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">SALDO DISPON�VEL NO CART�O</span>
+                  <span className="text-2xl font-mono font-bold text-[#FCA311]">R$ 1.000,00</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Terminal Comercial</span>
-                  <span className="font-bold text-slate-200">Multipostos Credenciados (BaaS)</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 items-start text-[9px] text-[#FCA311] mt-4 bg-[#FCA311]/5 border border-[#FCA311]/10 rounded-lg p-3">
-                <Icon name="location_on" className="text-sm shrink-0" />
-                <p>Maquininhas capturadas via geolocalização IP no raio do veículo BRA-2E19.</p>
               </div>
             </div>
 
-            {/* Extrato detailed card */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-3">
+            {/* Devolution Pix form */}
+            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30 flex flex-col">
+              <p className="text-[10px] font-bold text-slate-100 flex items-center gap-1.5 mb-1"><Icon name="reply" className="text-sm text-primary -rotate-90" /> DEVOLU��O DE SALDO (ESTORNO PIX)</p>
+              <p className="text-[10px] text-slate-400 mb-4">Resgatar o valor restante do cart�o direto para uma conta.</p>
+              
+              <form onSubmit={handleRefundSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary">EXTRATO DETALHADO DO CARTÃO</h3>
-                    <p className="text-[8px] text-slate-400 font-mono mt-0.5">Chave do Extrato: 897.291.382-83</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText("00020126580014br.gov.bcb.pix013689729138283520400005303986540510.005802BR5925Jeovana Lopesvalente6009Sao Paulo62070503***6304E219");
-                      alert("Pix Copia-Cola copiado para a área de transferência!");
-                    }}
-                    className="flex items-center gap-1 bg-blue-600 px-3 py-1.5 rounded-lg text-[9px] font-bold text-white uppercase hover:bg-blue-500 transition"
-                  >
-                    <Icon name="qr_code_2" className="text-sm" /> + Injetar Carga (PIX COPIA-COLA)
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {transactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      onClick={() => {
-                        setSelectedTx(tx);
-                        setThermalReceiptOpen(true);
-                      }}
-                      className="rounded border border-outline-variant/30 bg-[#0F172A]/60 p-3 flex justify-between items-center cursor-pointer hover:bg-white/5 hover:border-primary/50 transition active:scale-[0.99]"
+                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">TIPO DE CHAVE</label>
+                    <select 
+                      value={pixKeyType} 
+                      onChange={(e) => setPixKeyType(e.target.value)}
+                      className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none"
                     >
-                      <div>
-                        <p className="text-xs font-bold text-white">
-                          {tx.title}
-                          <span className="text-[8px] text-blue-400 uppercase font-mono ml-2">Ver Comprovante</span>
-                        </p>
-                        <p className="text-[9px] text-slate-400 mt-1">
-                          Status: {tx.status} | Unidade: BaaS | Método: {tx.method}
-                        </p>
-                        <p className="text-[8px] text-slate-400 font-mono">
-                          ID: {tx.authCode} | Horário: {tx.date}
-                        </p>
-                      </div>
-                      <span className={`text-sm font-mono font-bold ${tx.type === "credit" ? "text-blue-400" : "text-[#FCA311]"}`}>
-                        {tx.type === "credit" ? "+" : "-"} {formatBRL(tx.amount)}
-                      </span>
-                    </div>
-                  ))}
+                      <option>CPF/CNPJ</option>
+                      <option>E-mail</option>
+                      <option>Telefone</option>
+                      <option>Chave Aleat�ria</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">CHAVE PIX DE DESTINO</label>
+                    <input 
+                      type="text" 
+                      placeholder="Digite a chave..." 
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      required
+                      className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block mb-1">NOME COMPLETO DO TITULAR</label>
+                  <input 
+                    type="text" 
+                    placeholder="Favorecido do estorno" 
+                    value={pixName}
+                    onChange={(e) => setPixName(e.target.value)}
+                    required
+                    className="w-full text-xs h-9 bg-[#0b0e14]/80 border border-outline-variant/30 rounded px-2 text-white focus:outline-none"
+                  />
+                </div>
+                
+                {refundMessage && <p className="text-[10px] text-green-400">{refundMessage}</p>}
 
+                <button 
+                  type="submit" 
+                  disabled={cardBalance <= 0 || !pixKey || !pixName}
+                  className="w-full rounded bg-green-500/20 hover:bg-green-500/35 border border-green-500/30 text-green-400 font-bold uppercase text-xs py-3 transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  SOLICITAR REEMBOLSO DE R$ 1.000,00
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       ) : (
