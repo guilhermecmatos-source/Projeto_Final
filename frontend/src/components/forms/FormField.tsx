@@ -10,6 +10,7 @@ interface FormFieldProps {
   rows?: number;
   className?: string;
   defaultValue?: string;
+  min?: number;
 }
 
 export default function FormField({
@@ -24,6 +25,7 @@ export default function FormField({
   rows = 4,
   className = "",
   defaultValue,
+  min,
 }: FormFieldProps) {
   const fieldAs = as ?? (options ? "select" : "input");
 
@@ -82,6 +84,7 @@ export default function FormField({
           defaultValue={defaultValue}
           required={required}
           disabled={disabled}
+          min={min}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -49,6 +50,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function PartnersPage() {
+  const router = useRouter();
   const [partners, setPartners] = useState<Partner[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [stats, setStats] = useState({
@@ -383,25 +385,51 @@ export default function PartnersPage() {
               ></iframe>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedId(selectedPartnerDetails.id);
-                  setSelectedPartnerDetails(null);
-                }}
-                className="btn-outline flex-1 border border-outline-variant py-3 text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-white/5 transition"
-              >
-                Ver Perfil & Chat
-              </button>
-              <button
-                type="button"
-                onClick={() => setNavWarningOpen(true)}
-                className="btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider"
-              >
-                <Icon name="navigation" />
-                Rota GPS
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(selectedPartnerDetails.id);
+                    setSelectedPartnerDetails(null);
+                  }}
+                  className="btn-outline flex-1 border border-outline-variant py-3 text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-white/5 transition"
+                >
+                  Ver Perfil & Chat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNavWarningOpen(true)}
+                  className="btn-outline flex-1 border border-outline-variant py-3 text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-white/5 transition flex items-center justify-center gap-1"
+                >
+                  <Icon name="navigation" className="text-sm" />
+                  Rota GPS
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPartnerDetails(null);
+                    router.push(`/dashboard?lat=${selectedPartnerDetails.lat}&lng=${selectedPartnerDetails.lng}&name=${encodeURIComponent(selectedPartnerDetails.name)}`);
+                  }}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider"
+                >
+                  <Icon name="map" />
+                  Localizar no Mapa CCO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPartnerDetails(null);
+                    router.push(`/dashboard?lat=${selectedPartnerDetails.lat}&lng=${selectedPartnerDetails.lng}&name=${encodeURIComponent(selectedPartnerDetails.name)}`);
+                  }}
+                  className="btn-secondary flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider"
+                >
+                  <Icon name="explore" />
+                  Entrar no Maps
+                </button>
+              </div>
             </div>
           </div>
         )}

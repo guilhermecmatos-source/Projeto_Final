@@ -11,6 +11,7 @@ import AccessDenied from "@/components/ui/AccessDenied";
 import { useAuth } from "@/hooks/useAuth";
 import { canAccessRoute } from "@/lib/permissions";
 import Icon from "@/components/ui/Icon";
+import ToastContainer from "@/components/ui/Toast";
 
 interface AppShellProps {
   children: ReactNode;
@@ -86,6 +87,7 @@ export default function AppShell({
       </div>
 
       <MobileBottomNav onOpenMenu={() => setSidebarOpen(true)} />
+      <ToastContainer />
     </div>
   );
 }

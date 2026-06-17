@@ -7,7 +7,11 @@ import { useRouter } from "next/navigation";
 export default function CockpitRedirectPage() {
   const router = useRouter();
   useEffect(() => {
-    router.replace("/dashboard");
+    if (typeof window !== "undefined") {
+      router.replace(`/dashboard${window.location.search}`);
+    } else {
+      router.replace("/dashboard");
+    }
   }, [router]);
   return (
     <div className="flex min-h-screen items-center justify-center">
