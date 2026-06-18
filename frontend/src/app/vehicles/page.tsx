@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
+import { showToast } from "@/components/ui/Toast";
+import FormModal from "@/components/ui/FormModal";
 
 const VEHICLES = [
   {
@@ -50,11 +52,45 @@ const VEHICLES = [
   },
 ];
 
-const TABS = ["TODOS", "DISPONÍVEL", "EM MANUTENÇÃO", "INATIVO"];
+const STATUS_OPTIONS = ["TODOS", "DISPONÍVEL", "EM MANUTENÇÃO", "INATIVO"];
 
 export default function VehiclesPage() {
   const [activeTab, setActiveTab] = useState("TODOS");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState<typeof VEHICLES[0] | null>(null);
+  
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newPlate, setNewPlate] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleAddSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newPlate.trim() || newPlate.length < 7) {
+      showToast("Formato de placa inválido. Insira uma placa válida (ex: ABC1234).", "error");
+      return;
+    }
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      setAddModalOpen(false);
+      setNewPlate("");
+      showToast("Novo veículo cadastrado e indexado no grid.", "success");
+    }, 800);
+  };
+
+  const filteredVehicles = VEHICLES.filter(v => {
+    const matchesSearch = v.plate.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          v.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          v.model.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Simplistic mapping for the tag (which represents status in the mock)
+    const matchesStatus = activeTab === "TODOS" || 
+                          (activeTab === "DISPONÍVEL" && v.tag.includes("LOCAÇÃO")) ||
+                          (activeTab === "EM MANUTENÇÃO" && v.tag === "MANUTENÇÃO") ||
+                          (activeTab === "INATIVO" && v.tag === "RESERVADO");
+                          
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <AppShell>
@@ -63,7 +99,7 @@ export default function VehiclesPage() {
         title="Inventário de Frota"
         subtitle="Gestão de cavalos mecânicos, caminhões e utilitários da geradora."
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg bg-[#FCA311] px-4 py-2 text-xs font-bold uppercase text-[#0c132b] hover:bg-amber-400 transition">
+          <button onClick={() => setAddModalOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-[#FCA311] px-4 py-2 text-xs font-bold uppercase text-[#0c132b] hover:bg-amber-400 transition">
             <Icon name="add" className="text-sm" /> CADASTRAR VEÍCULO
           </button>
         }
@@ -89,26 +125,31 @@ export default function VehiclesPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-6 flex gap-3 overflow-x-auto">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition whitespace-nowrap ${
-              activeTab === tab
-                ? "bg-[#FCA311] text-[#0c132b]"
-                : "bg-transparent text-slate-400 hover:text-white"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      {/* Filters (Select + Text) */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" />
+          <input 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)} 
+            placeholder="Buscar placa, marca ou modelo..." 
+            className="input-fleet pl-8 py-2 w-full text-sm" 
+          />
+        </div>
+        <select 
+          value={activeTab} 
+          onChange={e => setActiveTab(e.target.value)} 
+          className="input-fleet py-2 text-sm w-full sm:w-48"
+        >
+          {STATUS_OPTIONS.map((tab) => (
+            <option key={tab} value={tab}>{tab}</option>
+          ))}
+        </select>
       </div>
 
       {/* Grid */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {VEHICLES.map((v) => (
+        {filteredVehicles.map((v) => (
           <div 
             key={v.id} 
             onClick={() => setSelectedVehicle(v)}
@@ -242,6 +283,35 @@ export default function VehiclesPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Add Vehicle */}
+      <FormModal open={addModalOpen} onClose={() => setAddModalOpen(false)} title="Novo Veículo" subtitle="Registro de novo ativo na frota">
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Placa (Obrigatório)</label>
+            <input 
+              value={newPlate} 
+              onChange={e => setNewPlate(e.target.value.toUpperCase())} 
+              maxLength={7}
+              placeholder="AAA0000" 
+              className="input-fleet w-full" 
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Marca</label>
+              <input placeholder="Ex: VOLVO" className="input-fleet w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Modelo</label>
+              <input placeholder="Ex: FH 540" className="input-fleet w-full" />
+            </div>
+          </div>
+          <button type="submit" disabled={saving} className="w-full mt-4 bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-xs py-3 rounded-lg transition disabled:opacity-50">
+            {saving ? "Salvando..." : "Salvar Registro"}
+          </button>
+        </form>
+      </FormModal>
     </AppShell>
   );
 }

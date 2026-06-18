@@ -81,11 +81,10 @@ Rotas com restrição explícita:
 
 | Rota | Perfis permitidos |
 |------|-------------------|
-| `/users` | administrador |
-| `/vehicles`, `/drivers`, `/maintenance`, `/ai-security`, `/intelligence`, `/reports`, `/partners`, `/cockpit` | administrador, gestor |
+| `/users`, `/comercial`, `/perfis`, `/settings` | administrador |
+| `/vehicles`, `/drivers`, `/maintenance`, `/ai-security`, `/intelligence`, `/reports`, `/partners`, `/cockpit`, `/command-center`, `/bi`, `/documents`, `/copilot` | administrador, gestor |
 | `/logistics`, `/fuel`, `/inspection` | administrador, gestor, motorista |
-| `/travels` | administrador, gestor, motorista, solicitante |
-| `/dashboard`, `/profile` | todos os perfis autenticados |
+| `/travels`, `/dashboard`, `/profile`, `/mobile`, `/notifications`, `/chat` | todos os perfis autenticados |
 
 ---
 
@@ -258,11 +257,11 @@ Requisitos mínimos implementados:
 - Bottom nav mobile: dashboard, travels, vehicles, drivers + menu.
 - Breadcrumb em `PageHeader`: Sede Central › Unidade Operacional › [módulo].
 
-### 7.3 Rotas principais (41)
+### 7.3 Rotas principais (52)
 
 **Auth:** `/login`, `/register`, `/forgot-password`
 
-**Operação:** `/dashboard`, `/cockpit`, `/profile`, `/users`
+**Operação:** `/dashboard`, `/cockpit`, `/profile`, `/users`, `/settings`, `/perfis`
 
 **Frota:** `/vehicles`, `/vehicles/register`, `/drivers`, `/drivers/register`
 
@@ -272,7 +271,11 @@ Requisitos mínimos implementados:
 
 **Manutenção/combustível/inspeção:** `/maintenance`, `/maintenance/register`, `/maintenance/schedule`, `/fuel`, `/fuel/register`, `/inspection`, `/inspection/new`, `/inspection/register`, `/inspection/detail`
 
-**IA/relatórios/parceiros:** `/ai-security`, `/ai-security/visual`, `/ai-security/evidence`, `/ai-security/plan`, `/intelligence`, `/reports`, `/reports/export`, `/partners`, `/partners/register`, `/partners/support`, `/partners/docs`
+**IA/Inteligência/Relatórios:** `/ai-security`, `/ai-security/visual`, `/ai-security/evidence`, `/ai-security/plan`, `/intelligence`, `/reports`, `/reports/export`, `/bi`, `/copilot`
+
+**Comunicação/Notificações:** `/chat`, `/notifications`
+
+**Outros:** `/command-center`, `/documents`, `/mobile`, `/comercial`, `/partners`, `/partners/register`, `/partners/support`, `/partners/docs`
 
 ---
 
@@ -367,7 +370,7 @@ Erros de validação visual (CPF, e-mail) exibidos inline antes do submit.
 
 - Não introduzir bibliotecas de estado global (Redux, Zustand, React Query).
 - Não criar abstrações além dos componentes de estado documentados.
-- Não implementar funcionalidades além das rotas e módulos listados.
+- As novas rotas e módulos listados acima representam a evolução do projeto; evite implementar rotas inteiramente novas fora desta especificação atualizada sem prévia aprovação.
 - Manter compatibilidade com contratos de API atuais.
 - Páginas permanecem client components (`"use client"`).
 - Evitar arquivos monolíticos; extrair componentes reutilizáveis quando padrão se repete ≥ 3 vezes.

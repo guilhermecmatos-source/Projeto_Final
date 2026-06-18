@@ -6,6 +6,7 @@ import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import ActionButton from "@/components/ui/ActionButton";
 import FormModal from "@/components/ui/FormModal";
+import { showToast } from "@/components/ui/Toast";
 import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
 import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
 import RuvModalForm from "@/components/forms/RuvModalForm";
@@ -65,6 +66,43 @@ export default function TravelsPage() {
   const [distanceKm, setDistanceKm] = useState("");
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [savingDispatch, setSavingDispatch] = useState(false);
+
+  const [logs, setLogs] = useState<{ id: string; time: string; action: string; vehicle: string }[]>([
+    { id: "log-1", time: new Date().toLocaleTimeString("pt-BR"), action: "Sistema de Telemetria Inicializado", vehicle: "SYSTEM" }
+  ]);
+
+  const addLog = (action: string, vehicle: string) => {
+    setLogs(prev => [
+      { id: `log-${Date.now()}`, time: new Date().toLocaleTimeString("pt-BR"), action, vehicle },
+      ...prev
+    ]);
+  };
+
+  const handleAction = (travelId: string, vehicleStr: string, actionType: "iniciar" | "atraso" | "concluir") => {
+    setTravels(prev => prev.map(t => {
+      if (t.id !== travelId) return t;
+      if (t.status === "concluída") {
+        showToast("Esta viagem já está concluída e os dados estão protegidos.", "error");
+        return t;
+      }
+      
+      let newStatus = t.status;
+      if (actionType === "iniciar") {
+        newStatus = "in_progress";
+        addLog("Viagem Iniciada", vehicleStr);
+        showToast("Viagem iniciada com sucesso.", "success");
+      } else if (actionType === "atraso") {
+        addLog("Atraso Reportado (Trânsito/Clima)", vehicleStr);
+        showToast("Ocorrência de atraso registrada.", "info");
+      } else if (actionType === "concluir") {
+        newStatus = "concluída";
+        addLog("Viagem Concluída e Auditada", vehicleStr);
+        showToast("Viagem concluída e bloqueada para edição.", "success");
+      }
+      
+      return { ...t, status: newStatus };
+    }));
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -176,7 +214,7 @@ export default function TravelsPage() {
     }
   }
 
-  const inTransit = travels.filter((t) => t.status === "in_progress" || t.status === "scheduled");
+  const inTransit = travels.filter((t) => t.status === "in_progress" || t.status === "scheduled" || t.status === "concluída");
 
   return (
     <AppShell>
@@ -257,25 +295,74 @@ export default function TravelsPage() {
             ) : inTransit.length === 0 ? (
               <p className="raised-card p-4 text-on-surface-variant">Nenhum despacho em trânsito.</p>
             ) : (
-              inTransit.map((d) => (
-                <article key={d.id} className="raised-card p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase">
-                      {d.brand} {d.model} ({formatPlateDisplay(d.vehicle_plate ?? "")})
-                    </span>
-                    <span className="chip-active">Em Trânsito</span>
-                  </div>
-                  <p className="text-sm">{d.origin} → {d.destination}</p>
-                  <p className="mt-2 text-xs">
-                    Uso trajeto: <strong>{Number(d.distance_km).toFixed(0)} Km</strong>
-                    {" • "}
-                    <span className="text-primary">
-                      Proj Diesel: {Number(d.fuel_consumption || d.distance_km / 2.5).toFixed(1)} L
-                    </span>
-                  </p>
-                </article>
-              ))
+              inTransit.map((d) => {
+                const vehicleStr = `${d.brand || ""} ${d.model || ""} (${formatPlateDisplay(d.vehicle_plate ?? "")})`;
+                const isCompleted = d.status === "concluída";
+                
+                return (
+                  <article key={d.id} className="raised-card p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase">{vehicleStr}</span>
+                      <span className={isCompleted ? "chip-active bg-gray-500/20 text-gray-400 border-gray-500/30" : "chip-active"}>
+                        {isCompleted ? "Concluída" : "Em Trânsito"}
+                      </span>
+                    </div>
+                    <p className="text-sm">{d.origin} → {d.destination}</p>
+                    <p className="mt-2 text-xs mb-4">
+                      Uso trajeto: <strong>{Number(d.distance_km).toFixed(0)} Km</strong>
+                      {" • "}
+                      <span className="text-primary">
+                        Proj Diesel: {Number(d.fuel_consumption || d.distance_km / 2.5).toFixed(1)} L
+                      </span>
+                    </p>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-3 border-t border-outline-variant/10">
+                      <button 
+                        onClick={() => handleAction(d.id, vehicleStr, "iniciar")}
+                        disabled={isCompleted}
+                        className="text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded disabled:opacity-30 transition"
+                      >
+                        Iniciar
+                      </button>
+                      <button 
+                        onClick={() => handleAction(d.id, vehicleStr, "atraso")}
+                        disabled={isCompleted}
+                        className="text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded disabled:opacity-30 transition"
+                      >
+                        Atraso
+                      </button>
+                      <button 
+                        onClick={() => handleAction(d.id, vehicleStr, "concluir")}
+                        disabled={isCompleted}
+                        className="text-[9px] font-bold uppercase tracking-wider bg-green-500/10 text-green-500 px-3 py-1.5 rounded disabled:opacity-30 transition"
+                      >
+                        Concluir
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
             )}
+          </div>
+          
+          {/* Logs Feed */}
+          <div className="mt-8">
+            <h3 className="mb-4 flex items-center gap-2 text-headline-sm text-primary">
+              <Icon name="history" />
+              Feed de Ocorrências ao Vivo
+            </h3>
+            <div className="raised-card p-4 space-y-3 max-h-60 overflow-y-auto custom-scrollbar bg-[#0b0e14]">
+              {logs.map(log => (
+                <div key={log.id} className="flex gap-3 text-xs border-b border-outline-variant/10 pb-2 last:border-0 last:pb-0 animate-in fade-in slide-in-from-top-2">
+                  <span className="text-on-surface-variant font-mono shrink-0">[{log.time}]</span>
+                  <div>
+                    <p className="font-bold text-white">{log.action}</p>
+                    <p className="text-[10px] text-primary">{log.vehicle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>

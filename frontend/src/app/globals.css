@@ -377,6 +377,48 @@ html[data-theme="corporate-white"] {
 
 html[data-theme="corporate-yellow"] {
   color-scheme: dark;
+  --background: #000000;
+  --on-surface: #ffffff;
+  --on-surface-variant: #a1a1aa;
+  --surface: #0a0a0a;
+  --surface-low: #171717;
+  --surface-lowest: #000000;
+  --surface-high: #262626;
+  --surface-highest: #404040;
+  --outline: #52525b;
+  --outline-variant: #3f3f46;
+  --primary-fixed: #eab308;
+  --secondary-fixed: #1e293b;
+  --on-primary: #000000;
+  --calendar-filter: invert(1);
+}
+
+html[data-theme="corporate-yellow"] .text-primary {
+  color: #facc15;
+}
+html[data-theme="corporate-yellow"] .bg-primary {
+  background-color: #eab308;
+}
+html[data-theme="corporate-yellow"] .bg-primary-container {
+  background-color: #ca8a04;
+}
+html[data-theme="corporate-yellow"] .border-primary {
+  border-color: #facc15;
+}
+html[data-theme="corporate-yellow"] .btn-primary {
+  background-color: #eab308;
+  color: #000000;
+}
+html[data-theme="corporate-yellow"] .btn-primary:hover {
+  background-color: #facc15;
+}
+html[data-theme="corporate-yellow"] .nav-active {
+  background-color: #eab308;
+  color: #000000;
+}
+html[data-theme="corporate-yellow"] .chip-active {
+  background-color: rgba(250, 204, 21, 0.15);
+  color: #facc15;
 }
 
 input[type="date"],
