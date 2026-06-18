@@ -97,6 +97,8 @@ export default function CommandCenterPage() {
   useEffect(() => {
     let L: any;
     let mapObserver: ResizeObserver;
+    // Capture ref element at effect run time — not inside cleanup closure
+    const capturedMapEl = mapRef.current;
 
     const initMap = async () => {
       if (!document.getElementById("leaflet-cdn-css-dash")) {
@@ -129,7 +131,7 @@ export default function CommandCenterPage() {
       mapObserver = new ResizeObserver(() => {
         if (mapInstance.current) mapInstance.current.invalidateSize();
       });
-      if (mapRef.current) mapObserver.observe(mapRef.current);
+      if (capturedMapEl) mapObserver.observe(capturedMapEl);
       
       setTimeout(() => { map.invalidateSize(); }, 300);
     };
@@ -137,7 +139,7 @@ export default function CommandCenterPage() {
     initMap();
     
     return () => {
-      if (mapObserver && mapRef.current) mapObserver.unobserve(mapRef.current);
+      if (mapObserver && capturedMapEl) mapObserver.unobserve(capturedMapEl);
       if (mapInstance.current) {
         mapInstance.current.remove();
         mapInstance.current = null;
@@ -174,6 +176,7 @@ export default function CommandCenterPage() {
     setActiveLogs(prev => [{ time: new Date().toLocaleTimeString("pt-BR", { hour12: false }), severity: "CRITICAL", color: "text-error", msg: `Alerta: ${riskType} – Acionamento emergencial.` }, ...prev]);
   };
 
+  const dismissNotif = (id: number) => setDismissedNotifs(prev => [...prev, id]);
   const visibleNotifs = activeNotifications.filter(n => !dismissedNotifs.includes(n.id));
 
   return (

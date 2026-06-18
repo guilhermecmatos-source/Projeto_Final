@@ -12,6 +12,11 @@ import {
 
 const FILTERS = ["6 meses", "12 meses", "Este ano", "Personalizado"];
 
+// Typed recharts formatter helpers — ValueType accepts string|number|undefined
+const fmtCurrency = (v: unknown) => `R$ ${Number(v ?? 0).toLocaleString("pt-BR")}`;
+const fmtKmL     = (v: unknown) => `${Number(v ?? 0)} km/L`;
+const fmtPct     = (v: unknown) => `${Number(v ?? 0)}%`;
+
 export default function BiPage() {
   const [activeFilter, setActiveFilter] = useState("6 meses");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -189,7 +194,7 @@ export default function BiPage() {
                 <XAxis dataKey="mes" tick={{ fontSize: 10, fill: "#64748b" }} />
                 <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
                 <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#fff" }} itemStyle={{color: "#fff"}}
-                  formatter={(v: number) => `R$ ${v.toLocaleString()}`} />
+                  formatter={fmtCurrency} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 <Bar dataKey="combustivel" name="Combustível" fill="#EF4444" stackId="a" />
                 <Bar dataKey="manutencao" name="Manutenção" fill="#F59E0B" stackId="a" />
@@ -208,7 +213,7 @@ export default function BiPage() {
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#64748b" }} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fill: "#64748b" }} width={100} />
                 <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#fff" }} itemStyle={{color: "#fff"}}
-                  formatter={(v: number) => `${v} km/L`} />
+                  formatter={fmtKmL} />
                 <Bar dataKey="valor" name="Consumo (km/L)" radius={[0, 4, 4, 0]}>
                   {consumoData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>
@@ -237,7 +242,7 @@ export default function BiPage() {
                   {emissoes.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Pie>
                 <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#fff" }} itemStyle={{color: "#fff"}}
-                  formatter={(v: number) => `${v}%`} />
+                  formatter={fmtPct} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
               </PieChart>
             </ResponsiveContainer>

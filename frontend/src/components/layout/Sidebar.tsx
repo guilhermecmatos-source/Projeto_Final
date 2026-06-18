@@ -219,6 +219,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
 
         {/* User Info */}
         <div className="mb-3 flex items-center gap-3 rounded-lg bg-surface-container-high p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={IMAGES.userAvatar}
             alt=""

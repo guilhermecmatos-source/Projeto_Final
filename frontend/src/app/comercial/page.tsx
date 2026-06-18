@@ -246,6 +246,7 @@ export default function ComercialPage() {
             {/* Card 1 */}
             <div className="raised-card overflow-hidden group hover:border-primary/50 transition-colors flex flex-col h-full bg-[#0c132b]">
               <div className="relative h-48 bg-surface-container-low overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/scania.png" alt="Scania R450" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute top-3 left-3 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg">Locação</div>
                 <div className="absolute top-3 right-3 bg-primary text-on-primary text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg flex items-center gap-1">
@@ -295,6 +296,7 @@ export default function ComercialPage() {
             {/* Card 2 */}
             <div className="raised-card overflow-hidden group hover:border-primary/50 transition-colors flex flex-col h-full bg-[#0c132b]">
               <div className="relative h-48 bg-surface-container-low overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/volvo.png" alt="Volvo FH540" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute top-3 left-3 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg">Locação</div>
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0c132b] to-transparent h-20"></div>
