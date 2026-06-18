@@ -209,8 +209,7 @@ function RuvPageContent() {
 
           <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-headline-sm">Dados da requisição</h2>
-            <FormField label="Nome do(s) passageiro(s) por extenso" name="descricao" required className="md:col-span-2" />
-            <FormField label="Quantidade de passageiros" name="quantidade" type="number" required min={1} defaultValue="1" className="md:col-span-2" />
+            <FormField label="Nome do(s) passageiro(s)" name="descricao" required className="md:col-span-2" />
             <div>
               <label htmlFor="destination" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
                 Destino
@@ -305,6 +304,10 @@ function RuvPageContent() {
               onSyncNow={handleSync}
               onExportPdf={handleExportPdf}
               syncDisabled={!online}
+              submitClassName="flex items-center justify-center gap-2 rounded-lg bg-[#0B3C95] hover:bg-[#09327a] px-6 py-3 font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
+              exportClassName="flex items-center justify-center gap-2 rounded-lg bg-[#FCA311] hover:bg-[#e5940f] px-6 py-3 font-semibold text-black transition active:scale-[0.98] disabled:opacity-50"
+              saveLocalClassName="flex items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white text-black hover:bg-slate-100 px-6 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-50"
+              syncClassName="flex items-center justify-center gap-2 rounded-lg border border-[#0B3C95] bg-transparent text-[#0B3C95] hover:bg-blue-50/10 px-6 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-50"
             />
           </div>
         </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -79,7 +80,7 @@ const INITIAL_TRIPS: LocalTrip[] = [
 ];
 
 const INITIAL_LOGS: LogEvent[] = [
-  { id: "log-0", time: "21:05:14", message: "Monitoramento de fadiga ativo para TRIP-101.", type: "info" },
+  { id: "log-0", time: "21:05:14", message: "Monitoramento de fadiga active para TRIP-101.", type: "info" },
   { id: "log-1", time: "18:40:22", message: "Checklist de saída aprovado sem ressalvas para TRIP-102.", type: "success" },
 ];
 
@@ -93,6 +94,7 @@ function formToObject(form: FormData): Record<string, unknown> {
 
 export default function LogisticsPage() {
   const movementFormRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   // API-backed state
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -219,6 +221,9 @@ export default function LogisticsPage() {
           subtitle="Manifesto de carga, despachos assistidos por IA e monitoramento de ocorrências em tempo real."
           actions={
             <>
+              <ActionButton variant="outline" onClick={() => router.push("/travels/ruv")}>
+                <Icon name="description" /> RUV
+              </ActionButton>
               <ActionButton variant="outline" onClick={() => setMovementModalOpen(true)}>
                 <Icon name="edit_road" /> Registrar Movimentação
               </ActionButton>
