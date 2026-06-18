@@ -152,7 +152,7 @@ export default function PartnersPage() {
   });
 
   // Action Handlers
-  const handleSaveObservations = (partnerId: number) => {
+  const handleSaveObservations = (_partnerId: number) => {
     setObsSavedStatus("Salvando...");
     setTimeout(() => {
       setObsSavedStatus("Salvo com sucesso!");
