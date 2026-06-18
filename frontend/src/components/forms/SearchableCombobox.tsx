@@ -94,7 +94,9 @@ export default function SearchableCombobox({
           type="text"
           role="combobox"
           aria-expanded={open}
+          aria-controls={`${listId}-listbox`}
           aria-autocomplete="list"
+          aria-haspopup="listbox"
           className="input-fleet pl-10"
           placeholder={placeholder}
           value={query}
@@ -106,6 +108,7 @@ export default function SearchableCombobox({
       </div>
       {open && filtered.length > 0 && (
         <ul
+          id={`${listId}-listbox`}
           className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-outline-variant bg-white shadow-lg"
           role="listbox"
         >

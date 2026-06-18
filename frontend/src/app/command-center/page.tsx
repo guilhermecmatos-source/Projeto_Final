@@ -4,63 +4,12 @@ import { useEffect, useState, useRef } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 
-/* ── Driver mock data ── */
-const DRIVERS = [
-  {
-    id: "d1",
-    name: "Carlos Silva",
-    vehicle: "Moto Honda CG • ABC-1234",
-    destination: "Mercado São João",
-    lat: -10.174545,
-    lng: -48.330296,
-    status: "EM ROTA" as const,
-    avatar: "C",
-    color: "#3B82F6",
-    progress: 100,
-  },
-  {
-    id: "d2",
-    name: "Ana Lima",
-    vehicle: "Cargo Bike • ---",
-    destination: "Mercado Central",
-    lat: -10.198121,
-    lng: -48.349228,
-    status: "DISPONÍVEL" as const,
-    avatar: "A",
-    color: "#F59E0B",
-    progress: 0,
-  },
-  {
-    id: "d3",
-    name: "Roberto Santos",
-    vehicle: "Fiat Uno • DEF-5678",
-    destination: "",
-    lat: -10.195000,
-    lng: -48.325000,
-    status: "CONCLUÍDO" as const,
-    avatar: "R",
-    color: "#10B981",
-    progress: 0,
-  },
-];
-
-const STATUS_STYLES: Record<string, string> = {
-  "EM ROTA": "bg-green-500/20 text-green-400 border-green-500/30",
-  "DISPONÍVEL": "bg-green-500/20 text-green-400 border-green-500/30",
-  "CONCLUÍDO": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-};
-
 /* ── Feed log data ── */
-const FEED_LOGS = [
+const INITIAL_FEED_LOGS = [
   { time: "23:46:54", severity: "SUCCESS", color: "text-green-400", msg: "Pacote de telemetria de precisão Palmas, TO recebido sem perdas." },
   { time: "23:46:37", severity: "SUCCESS", color: "text-green-400", msg: "Ana Lima check-in concluído via APP Simulado." },
   { time: "23:46:24", severity: "INFO", color: "text-blue-400", msg: "Atualização de coordenadas GPS [Carlos Silva] registrada – Av. MS-15." },
   { time: "23:46:20", severity: "CRITICAL", color: "text-error", msg: "Alerta Contrato Vencendo – Aviso de expiração do plano de seguros de frota co..." },
-  { time: "23:46:19", severity: "CRITICAL", color: "text-error", msg: "Revisão Preventiva Ultrapassada – Prazo de troca de óleo preventiva ultrapas..." },
-  { time: "23:46:19", severity: "CRITICAL", color: "text-error", msg: "Desperdício: Consumo Elevado – Média de consumo caiu instantaneamente para 1..." },
-  { time: "23:46:18", severity: "CRITICAL", color: "text-error", msg: "Alerta Telemetria: Carlos Ocioso – Carlos Silva estacionado em rodovia com mo..." },
-  { time: "23:45:57", severity: "SUCCESS", color: "text-green-400", msg: "Ana Lima check-in concluído via APP Simulado." },
-  { time: "23:45:54", severity: "SUCCESS", color: "text-green-400", msg: "Pacote de telemetria de precisão Palmas, TO recebido sem perdas." },
 ];
 
 /* ── Alert pills ── */
@@ -71,168 +20,226 @@ const ALERT_TYPES = [
   { label: "DESVIO", color: "bg-green-600 text-white" },
 ];
 
-/* ── RUV pending ── */
-const RUVS = [
-  { id: "RUV-0412", route: "Rota São Paulo (SP) – São José dos Campos (SP)", date: "" },
+/* ── CCO Notifications ── */
+const INITIAL_NOTIFICATIONS = [
+  { id: 1, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para AIK-12340 O evento foi listado no log geral." },
 ];
 
-/* ── CCO Notifications ── */
-const NOTIFICATIONS = [
-  { id: 1, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para AIK-12340 O evento foi listado no log geral." },
-  { id: 2, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para ABC-1234! O evento foi listado no log geral." },
-  { id: 3, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para DEF-5678! O evento foi listado no log geral." },
-  { id: 4, msg: "[FleetAI Intelligence] Alerta Preditivo de Segurança disparado para v-31 O evento foi listado no log geral." },
+const INITIAL_DRIVERS = [
+  { id: "d1", name: "Carlos Silva", vehicle: "Moto Honda CG • ABC-1234", destination: "Mercado São João", lat: -10.174545, lng: -48.330296, status: "EM ROTA", avatar: "C", color: "#3B82F6", progress: 65 },
+  { id: "d2", name: "Ana Lima", vehicle: "Cargo Bike • ---", destination: "Mercado Central", lat: -10.198121, lng: -48.349228, status: "DISPONÍVEL", avatar: "A", color: "#F59E0B", progress: 0 },
+  { id: "d3", name: "Roberto Santos", vehicle: "Fiat Uno • DEF-5678", destination: "", lat: -10.195000, lng: -48.325000, status: "CONCLUÍDO", avatar: "R", color: "#10B981", progress: 0 },
 ];
+
+const STATUS_STYLES: Record<string, string> = {
+  "EM ROTA": "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "DISPONÍVEL": "bg-green-500/20 text-green-400 border-green-500/30",
+  "CONCLUÍDO": "bg-slate-500/20 text-slate-400 border-slate-500/30",
+};
 
 export default function CommandCenterPage() {
   const [appTab, setAppTab] = useState<"cargas" | "gestor">("cargas");
   const [showNotifs, setShowNotifs] = useState(true);
   const [dismissedNotifs, setDismissedNotifs] = useState<number[]>([]);
-  const [selectedDriver, setSelectedDriver] = useState(DRIVERS[0]);
+  
+  const [drivers, setDrivers] = useState(INITIAL_DRIVERS);
+  const [selectedDriver, setSelectedDriver] = useState(INITIAL_DRIVERS[0]);
+  
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<any>(null);
+  const markersRef = useRef<Record<string, any>>({});
 
-  // Simulated PING messages
+  const [activeNotifications, setActiveNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [activeLogs, setActiveLogs] = useState(INITIAL_FEED_LOGS);
+
   const [pings, setPings] = useState<string[]>([
-    "PING packet recebido! Palmas nodes [23...",
     "PING packet recebido! Palmas nodes [23...",
     "PING packet recebido! Palmas nodes [23...",
   ]);
 
+  // Simulate Telemetry PINGs
   useEffect(() => {
     const interval = setInterval(() => {
-      setPings(prev => {
-        const newPing = `PING packet recebido! Palmas nodes [${Math.floor(Math.random() * 99)}...`;
-        return [newPing, ...prev.slice(0, 2)];
-      });
+      setPings(prev => [`PING packet recebido! Palmas nodes [${Math.floor(Math.random() * 99)}...`, ...prev.slice(0, 2)]);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const dismissNotif = (id: number) => {
-    setDismissedNotifs(prev => [...prev, id]);
+  // Simulate Driver Movement
+  useEffect(() => {
+    const moveInterval = setInterval(() => {
+      setDrivers(prev => prev.map(d => {
+        if (d.status === "EM ROTA") {
+          const latJitter = (Math.random() - 0.5) * 0.0005;
+          const lngJitter = (Math.random() - 0.5) * 0.0005;
+          const newLat = d.lat + latJitter;
+          const newLng = d.lng + lngJitter;
+          const newProg = Math.min(100, d.progress + Math.random() * 2);
+          
+          // Update Marker physically
+          if (markersRef.current[d.id]) {
+            markersRef.current[d.id].setLatLng([newLat, newLng]);
+          }
+
+          if (selectedDriver.id === d.id) {
+            setSelectedDriver(prevSel => ({...prevSel, lat: newLat, lng: newLng, progress: newProg}));
+          }
+
+          return { ...d, lat: newLat, lng: newLng, progress: newProg };
+        }
+        return d;
+      }));
+    }, 3000);
+    return () => clearInterval(moveInterval);
+  }, [selectedDriver.id]);
+
+  // LEAFLET INITIALIZATION
+  useEffect(() => {
+    let L: any;
+    let mapObserver: ResizeObserver;
+    // Capture ref element at effect run time — not inside cleanup closure
+    const capturedMapEl = mapRef.current;
+
+    const initMap = async () => {
+      if (!document.getElementById("leaflet-cdn-css-dash")) {
+        const link = document.createElement("link");
+        link.id = "leaflet-cdn-css-dash";
+        link.rel = "stylesheet";
+        link.href = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
+      }
+
+      L = (await import("leaflet")).default;
+      if (!mapRef.current || mapInstance.current) return;
+      
+      const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView([-10.1843, -48.3338], 13);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(map);
+      mapInstance.current = map;
+
+      // Add driver markers
+      drivers.forEach(dr => {
+        const icon = L.divIcon({
+          html: `<div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="background-color: ${dr.color}">${dr.avatar}</div>`,
+          className: "", iconSize: [32, 32], iconAnchor: [16, 16],
+        });
+        const marker = L.marker([dr.lat, dr.lng], { icon }).addTo(map);
+        marker.bindPopup(`<div class="p-2 bg-[#111827] text-white rounded"><b class="text-sm">${dr.name}</b><br/><span class="text-[10px] text-slate-300">${dr.vehicle}</span></div>`);
+        markersRef.current[dr.id] = marker;
+      });
+
+      // Resize observer to auto-invalidate size
+      mapObserver = new ResizeObserver(() => {
+        if (mapInstance.current) mapInstance.current.invalidateSize();
+      });
+      if (capturedMapEl) mapObserver.observe(capturedMapEl);
+      
+      setTimeout(() => { map.invalidateSize(); }, 300);
+    };
+
+    initMap();
+    
+    return () => {
+      if (mapObserver && capturedMapEl) mapObserver.unobserve(capturedMapEl);
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSyncDeviceCoords = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const L = (await import("leaflet")).default;
+          if (mapInstance.current) {
+            const managerIcon = L.divIcon({
+              html: `<div class="w-8 h-8 rounded-full bg-error border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="animation: pulse 2s infinite;">★</div>`,
+              className: "", iconSize: [32, 32], iconAnchor: [16, 16],
+            });
+            const marker = L.marker([latitude, longitude], { icon: managerIcon }).addTo(mapInstance.current);
+            marker.bindPopup(`<div class="p-2 bg-slate-900 text-white rounded text-[10px] font-bold"><b class="text-error">📍 Seu Local</b></div>`).openPopup();
+            mapInstance.current.flyTo([latitude, longitude], 15, { duration: 1.5 });
+          }
+        },
+        (err) => console.error("Geolocation error:", err),
+        { enableHighAccuracy: true }
+      );
+    }
   };
 
-  const visibleNotifs = NOTIFICATIONS.filter(n => !dismissedNotifs.includes(n.id));
+  const dispatchOperationalAlert = (riskType: string) => {
+    const alertId = Date.now();
+    setActiveNotifications(prev => [{ id: alertId, msg: `[Intelligence] Alerta de Segurança (${riskType}) disparado em área crítica.` }, ...prev]);
+    setActiveLogs(prev => [{ time: new Date().toLocaleTimeString("pt-BR", { hour12: false }), severity: "CRITICAL", color: "text-error", msg: `Alerta: ${riskType} – Acionamento emergencial.` }, ...prev]);
+  };
+
+  const dismissNotif = (id: number) => setDismissedNotifs(prev => [...prev, id]);
+  const visibleNotifs = activeNotifications.filter(n => !dismissedNotifs.includes(n.id));
 
   return (
     <AppShell>
-      {/* Header */}
-      <header className="mb-6">
-        <p className="text-[9px] font-bold uppercase text-[#FCA311] tracking-widest mb-2 flex items-center gap-2">
-          SEDE CENTRAL / UNIDADE OPERACIONAL / <span className="text-white">COMMAND-CENTER</span>
-        </p>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-wide">GPS ao Vivo</h1>
-            <p className="text-[11px] text-slate-400 font-medium">
-              OpenStreetMap real — Palmas, TO — atualiza a cada 3s
-            </p>
-          </div>
-          <button className="flex items-center gap-2 rounded-full bg-error/20 border border-error/30 hover:bg-error/30 px-4 py-2 text-[10px] font-bold text-error transition">
-            <Icon name="my_location" className="text-sm" /> Usar Meu GPS
-          </button>
+      <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <p className="text-[9px] font-bold uppercase text-[#FCA311] tracking-widest mb-1">
+            SEDE CENTRAL / UNIDADE OPERACIONAL
+          </p>
+          <h1 className="text-2xl font-black text-white tracking-wide">Command Center</h1>
+          <p className="text-[11px] text-slate-400 font-medium">GPS OpenStreetMap — Atualiza a cada 3s</p>
         </div>
+        <button 
+          onClick={handleSyncDeviceCoords}
+          className="flex items-center gap-2 rounded-full bg-error/20 border border-error/30 hover:bg-error/30 px-4 py-2 text-[10px] font-bold text-error transition"
+        >
+          <Icon name="my_location" className="text-sm" /> Usar Meu GPS
+        </button>
       </header>
 
-      {/* ──────── MAP + DRIVER SIDEBAR ──────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-        {/* Map Area */}
-        <div className="lg:col-span-3 relative rounded-2xl overflow-hidden border border-outline-variant/20 bg-[#0c132b]" style={{ minHeight: 380 }} ref={mapRef}>
-          {/* Embed an OSM tile map */}
-          <iframe
-            src="https://www.openstreetmap.org/export/embed.html?bbox=-48.39,-10.22,-48.28,-10.16&layer=mapnik"
-            width="100%"
-            height="100%"
-            style={{ border: 0, position: "absolute", inset: 0 }}
-            loading="lazy"
-          ></iframe>
-
-          {/* Zoom Controls */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
+        <div className="xl:col-span-3 relative rounded-2xl overflow-hidden border border-outline-variant/20 bg-[#0c132b] h-[450px]">
+          <div ref={mapRef} style={{ width: "100%", height: "100%", position: "absolute", zIndex: 0 }} />
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-1">
-            <button className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white transition">+</button>
-            <button className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white transition">−</button>
+            <button onClick={() => mapInstance.current?.zoomIn()} className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white">+</button>
+            <button onClick={() => mapInstance.current?.zoomOut()} className="w-8 h-8 rounded bg-white/90 text-slate-700 shadow font-bold text-lg flex items-center justify-center hover:bg-white">−</button>
           </div>
-
-          {/* Map overlay — Carlos tooltip */}
-          <div className="absolute top-[15%] left-[35%] z-10 bg-[#111827]/95 border border-outline-variant/30 rounded-xl shadow-2xl p-4 min-w-[200px] backdrop-blur-sm">
-            <h4 className="text-sm font-black text-white mb-1">Carlos Silva</h4>
-            <p className="text-[10px] font-bold text-white">Moto Honda CG • ABC-1234</p>
-            <p className="text-[10px] font-bold text-blue-400 mt-1">Destino: Mercado São João</p>
-            <p className="text-[8px] font-mono text-slate-500 mt-2">Lat: -10.174545 | Lng: -48.330296</p>
-          </div>
-
-          {/* Map labels */}
-          <div className="absolute bottom-[55%] left-[50%] z-10">
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full uppercase tracking-wider">PRAÇA DOS GIRASSÓIS</span>
-          </div>
-          <div className="absolute bottom-[35%] left-[45%] z-10">
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full uppercase tracking-wider">MERCADO CENTRAL</span>
-          </div>
-
-          {/* Map driver icons */}
-          <div className="absolute bottom-[25%] left-[40%] z-10 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#F59E0B] border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-[#0c132b]">A</div>
-          </div>
-          <div className="absolute bottom-[15%] right-[30%] z-10 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#10B981] border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white">R</div>
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full mt-1 uppercase">ROBERTO</span>
-          </div>
-          <div className="absolute top-[30%] left-[32%] z-10 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#3B82F6] border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white">C</div>
-            <span className="text-[8px] font-black text-white bg-[#0c132b]/80 px-2 py-0.5 rounded-full mt-1 uppercase">CARLOS</span>
-          </div>
-
-          {/* PING overlay */}
-          <div className="absolute bottom-4 left-4 z-10 bg-error/10 border border-error/30 rounded-lg p-3 max-w-[260px]">
+          <div className="absolute bottom-4 left-4 z-10 bg-error/10 border border-error/30 rounded-lg p-3 max-w-[260px] backdrop-blur-sm">
             <p className="text-[8px] font-bold text-error uppercase tracking-widest mb-1">RASTREAMENTO EM TRANSMISSÃO</p>
-            {pings.map((p, i) => (
-              <p key={i} className="text-[8px] font-mono text-slate-400 truncate">{p}</p>
-            ))}
+            {pings.map((p, i) => <p key={i} className="text-[8px] font-mono text-slate-400 truncate">{p}</p>)}
           </div>
         </div>
 
-        {/* Driver Sidebar */}
-        <div className="space-y-3 overflow-y-auto max-h-[380px] custom-scrollbar">
-          {DRIVERS.map((d) => (
+        <div className="space-y-3 overflow-y-auto max-h-[450px] custom-scrollbar pr-2">
+          {drivers.map((d) => (
             <div 
               key={d.id} 
-              className={`rounded-xl border p-4 cursor-pointer transition ${
-                selectedDriver?.id === d.id 
-                  ? "bg-[#0c132b] border-[#FCA311]/50" 
-                  : "bg-[#0c132b]/80 border-outline-variant/20 hover:border-[#FCA311]/30"
-              }`}
-              onClick={() => setSelectedDriver(d)}
+              className={`rounded-xl border p-4 cursor-pointer transition ${selectedDriver?.id === d.id ? "bg-[#0c132b] border-primary/50 shadow-[0_0_15px_rgba(255,159,0,0.1)]" : "bg-[#0c132b]/80 border-outline-variant/20 hover:border-primary/30"}`}
+              onClick={() => {
+                setSelectedDriver(d);
+                if (mapInstance.current) mapInstance.current.flyTo([d.lat, d.lng], 15, { duration: 1.2 });
+              }}
             >
               <div className="flex items-start gap-3 mb-3">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-white shrink-0 border-2 border-white/20"
-                  style={{ backgroundColor: d.color }}
-                >
-                  {d.avatar}
-                </div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-white shrink-0 border-2 border-white/20" style={{ backgroundColor: d.color }}>{d.avatar}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[11px] font-bold text-white truncate">{d.name}</h4>
-                    <span className={`text-[7px] font-black px-2 py-0.5 rounded-full border ${STATUS_STYLES[d.status]}`}>
-                      {d.status}
-                    </span>
+                    <span className={`text-[7px] font-black px-2 py-0.5 rounded-full border ${STATUS_STYLES[d.status]}`}>{d.status}</span>
                   </div>
                   <p className="text-[9px] text-slate-400">{d.vehicle}</p>
                 </div>
               </div>
-              {d.destination && (
-                <p className="text-[9px] text-slate-400 mb-2">→ {d.destination}</p>
-              )}
-              <div className="space-y-1">
-                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">COORDENADAS REAIS</p>
-                <p className="text-[10px] font-mono text-slate-300">{d.lat}°, {d.lng}°</p>
+              <div className="space-y-1 bg-[#0F172A] p-2 rounded-lg mb-2">
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">COORDENADAS</p>
+                <p className="text-[10px] font-mono text-slate-300">{d.lat.toFixed(5)}°, {d.lng.toFixed(5)}°</p>
               </div>
               {d.progress > 0 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1 bg-[#0F172A] rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${d.progress}%` }}></div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-[#0F172A] rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${d.progress}%` }}></div>
                   </div>
-                  <span className="text-[9px] font-black text-blue-400">{d.progress} m</span>
+                  <span className="text-[9px] font-black text-blue-400">{Math.round(d.progress)}%</span>
                 </div>
               )}
             </div>
@@ -240,137 +247,78 @@ export default function CommandCenterPage() {
         </div>
       </div>
 
-      {/* ──────── TELEMETRY PANEL ──────── */}
       <div className="raised-card bg-[#0c132b]/80 border-outline-variant/30 rounded-2xl p-6 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Icon name="settings" className="text-[#FCA311] text-lg" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><Icon name="settings" className="text-primary text-xl" /></div>
             <div>
-              <h3 className="text-[11px] font-bold text-[#FCA311] uppercase tracking-widest">PAINEL INTEGRADO DE TELEMETRIA & GÊMEOS DIGITAIS</h3>
-              <p className="text-[9px] text-slate-400 font-medium">Dispare alarmes analíticos preditivos para testar regras automatizadas de fadiga ou redundância</p>
+              <h3 className="text-[11px] font-bold text-primary uppercase tracking-widest">PAINEL INTEGRADO DE TELEMETRIA</h3>
+              <p className="text-[9px] text-slate-400 font-medium">Dispare alarmes analíticos preditivos para testar redundâncias de segurança.</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mr-1">SIMULAR ALERTA DE RISCO:</span>
+          <div className="flex items-center gap-2 bg-[#0F172A] p-2 rounded-xl border border-outline-variant/10">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mx-2">SIMULAR ALERTA:</span>
             {ALERT_TYPES.map(a => (
-              <button 
-                key={a.label} 
-                className={`${a.color} text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-wider hover:opacity-80 transition`}
-              >
+              <button key={a.label} onClick={() => dispatchOperationalAlert(a.label)} className={`${a.color} text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-wider hover:opacity-80 transition`}>
                 {a.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4">
-            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">FROTA ATIVA</p>
-            <h4 className="text-2xl font-black text-white">94.8%</h4>
-            <p className="text-[9px] font-bold text-green-400 mt-1">▲ +1.2% este mês</p>
-          </div>
-          <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4">
-            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">UTILIZAÇÃO ATIVA</p>
-            <h4 className="text-2xl font-black text-white">92.0%</h4>
-            <p className="text-[9px] text-slate-400 mt-1">3/3 ativos em rota</p>
-          </div>
-          <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4">
-            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">TEMPO MÉDIO / ESCALA</p>
-            <h4 className="text-2xl font-black text-white">115 <span className="text-sm">h/mês</span></h4>
-            <p className="text-[9px] text-slate-400 mt-1">Por veículo ativo</p>
-          </div>
-          <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4">
-            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">RASTREAMENTO EFICIÊNCIA</p>
-            <h4 className="text-2xl font-black text-white">2.93 <span className="text-sm">km/L</span></h4>
-            <p className="text-[9px] font-bold text-green-400 mt-1">▲ +10.1 km/l otimizado</p>
-          </div>
-        </div>
-
-        {/* Feed + App Motorista */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Feed Log */}
-          <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4 max-h-[300px] overflow-hidden">
-            <h4 className="text-[9px] font-bold text-[#FCA311] uppercase tracking-widest mb-3 flex items-center gap-1">
-              <Icon name="terminal" className="text-[11px]" /> FEED LOGÍSTICO EM TEMPO REAL (MDE LOGS)
+          <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4 max-h-[300px] flex flex-col">
+            <h4 className="text-[9px] font-bold text-primary uppercase tracking-widest mb-3 flex items-center gap-1">
+              <Icon name="terminal" className="text-[11px]" /> FEED LOGÍSTICO EM TEMPO REAL
             </h4>
-            <div className="space-y-1 overflow-y-auto max-h-[230px] custom-scrollbar">
-              {FEED_LOGS.map((log, i) => (
-                <div key={i} className="flex items-start gap-2 text-[9px]">
+            <div className="space-y-1 overflow-y-auto flex-1 custom-scrollbar pr-2">
+              {activeLogs.map((log, i) => (
+                <div key={i} className="flex items-start gap-2 text-[9px] py-1 border-b border-white/5 last:border-0">
                   <span className="text-slate-500 font-mono shrink-0">[{log.time}]</span>
-                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded shrink-0 ${
-                    log.severity === "CRITICAL" ? "bg-error/20 text-error" :
-                    log.severity === "SUCCESS" ? "bg-green-500/20 text-green-400" :
-                    "bg-blue-500/20 text-blue-400"
-                  }`}>{log.severity}</span>
-                  <span className="text-slate-300 truncate">{log.msg}</span>
+                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded shrink-0 ${log.severity === "CRITICAL" ? "bg-error/20 text-error" : log.severity === "SUCCESS" ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"}`}>{log.severity}</span>
+                  <span className="text-slate-300">{log.msg}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* App Motorista */}
           <div className="bg-[#0F172A] border border-outline-variant/10 rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                <Icon name="smartphone" className="text-[11px]" /> APP MOTORISTA (PALMAS)
+                <Icon name="smartphone" className="text-[11px]" /> APP MOTORISTA EMULADO
               </h4>
-              <div className="flex rounded-lg overflow-hidden border border-outline-variant/20">
-                <button 
-                  onClick={() => setAppTab("cargas")}
-                  className={`px-3 py-1 text-[8px] font-bold uppercase tracking-wider transition ${
-                    appTab === "cargas" ? "bg-[#FCA311] text-[#0c132b]" : "bg-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  CARGAS
-                </button>
-                <button 
-                  onClick={() => setAppTab("gestor")}
-                  className={`px-3 py-1 text-[8px] font-bold uppercase tracking-wider transition ${
-                    appTab === "gestor" ? "bg-[#FCA311] text-[#0c132b]" : "bg-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  GESTOR
-                </button>
+              <div className="flex rounded-lg overflow-hidden border border-outline-variant/20 bg-[#0c132b]">
+                <button onClick={() => setAppTab("cargas")} className={`px-3 py-1 text-[8px] font-bold uppercase tracking-wider transition ${appTab === "cargas" ? "bg-primary text-on-primary" : "text-slate-400 hover:text-white"}`}>CARGAS</button>
+                <button onClick={() => setAppTab("gestor")} className={`px-3 py-1 text-[8px] font-bold uppercase tracking-wider transition ${appTab === "gestor" ? "bg-primary text-on-primary" : "text-slate-400 hover:text-white"}`}>GESTOR</button>
               </div>
             </div>
-
-            {appTab === "cargas" && (
-              <div className="space-y-4">
-                <div className="bg-[#0c132b] border border-outline-variant/10 rounded-lg p-3">
-                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">CALL BOX VIRTUAL</p>
-                  <h4 className="text-[11px] font-bold text-white mb-3">Viagem ativa Palmas p/ Mercado São João</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-300">1. Checklist de Partida</span>
-                      <button className="bg-[#FCA311] text-[#0c132b] text-[8px] font-black px-3 py-1 rounded uppercase hover:bg-yellow-500 transition">ENVIAR</button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-300">2. Assinatura Teórica RUV</span>
-                      <button className="bg-blue-600 text-white text-[8px] font-black px-3 py-1 rounded uppercase hover:bg-blue-500 transition">ASSINAR</button>
-                    </div>
+            
+            {appTab === "cargas" ? (
+              <div className="bg-[#0c132b] border border-outline-variant/10 rounded-lg p-4">
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">CALL BOX VIRTUAL</p>
+                <h4 className="text-[11px] font-bold text-white mb-4">Viagem ativa Palmas p/ Mercado São João</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-surface-container-high p-2 rounded">
+                    <span className="text-[10px] text-slate-300 font-bold">1. Checklist de Partida</span>
+                    <button className="bg-primary text-on-primary text-[8px] font-black px-3 py-1 rounded hover:opacity-90 transition">ENVIAR</button>
+                  </div>
+                  <div className="flex items-center justify-between bg-surface-container-high p-2 rounded">
+                    <span className="text-[10px] text-slate-300 font-bold">2. Assinatura Teórica RUV</span>
+                    <button className="bg-blue-600 text-white text-[8px] font-black px-3 py-1 rounded hover:opacity-90 transition">ASSINAR</button>
                   </div>
                 </div>
               </div>
-            )}
-
-            {appTab === "gestor" && (
-              <div className="space-y-4">
-                <div className="bg-[#0c132b] border border-outline-variant/10 rounded-lg p-3">
-                  <p className="text-[8px] font-bold text-[#FCA311] uppercase tracking-widest mb-2">RUV PENDENTES ONLINE</p>
-                  <h4 className="text-[11px] font-bold text-[#FCA311] mb-3">RUV Pendentes para aprovação:</h4>
-                  {RUVS.map(ruv => (
-                    <div key={ruv.id} className="bg-[#0F172A] border border-outline-variant/10 rounded-lg p-3 mb-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-[10px] font-bold text-white">{ruv.id}</p>
-                          <p className="text-[9px] text-slate-400">{ruv.route}</p>
-                          <p className="text-[8px] text-slate-500 font-mono">(SP)</p>
-                        </div>
-                        <button className="bg-[#FCA311] text-[#0c132b] text-[8px] font-black px-4 py-1.5 rounded uppercase hover:bg-yellow-500 transition">APROVAR</button>
-                      </div>
+            ) : (
+              <div className="bg-[#0c132b] border border-outline-variant/10 rounded-lg p-4">
+                <p className="text-[8px] font-bold text-primary uppercase tracking-widest mb-2">RUV PENDENTES</p>
+                <div className="bg-[#0F172A] border border-outline-variant/10 rounded-lg p-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-white">RUV-0412</p>
+                      <p className="text-[9px] text-slate-400">Rota SP – SJC</p>
                     </div>
-                  ))}
+                    <button className="bg-primary text-on-primary text-[8px] font-black px-4 py-1.5 rounded hover:opacity-90 transition">APROVAR</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -378,15 +326,11 @@ export default function CommandCenterPage() {
         </div>
       </div>
 
-      {/* ──────── CCO Notification Toasts ──────── */}
       {showNotifs && visibleNotifs.length > 0 && (
         <div className="fixed top-20 right-4 z-50 space-y-2 max-w-[320px]">
           {visibleNotifs.map(n => (
             <div key={n.id} className="bg-[#111827] border border-outline-variant/20 rounded-xl p-4 shadow-2xl relative animate-in slide-in-from-right">
-              <button 
-                onClick={() => dismissNotif(n.id)}
-                className="absolute top-2 right-2 text-slate-500 hover:text-white transition"
-              >
+              <button onClick={() => dismissNotif(n.id)} className="absolute top-2 right-2 text-slate-500 hover:text-white transition">
                 <Icon name="close" className="text-xs" />
               </button>
               <p className="text-[9px] font-black text-error uppercase tracking-widest mb-1">AVISO DO CCO</p>

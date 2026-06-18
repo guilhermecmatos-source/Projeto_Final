@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
@@ -43,10 +43,9 @@ export default function AdminSolicitacoesPage() {
   const [actionError, setActionError] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    // list all or filter
     ruvApi
       .list(TAB_STATUS[activeTab])
       .then((res) => {
@@ -57,11 +56,11 @@ export default function AdminSolicitacoesPage() {
         setError(extractApiError(err, "Não foi possível carregar as solicitações RUV."));
       })
       .finally(() => setLoading(false));
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     load();
-  }, [activeTab]);
+  }, [load]);
 
   const handleAction = async (approve: boolean) => {
     if (!selectedRuv) return;

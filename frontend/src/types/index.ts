@@ -2,22 +2,108 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role:
-    | "administrador"
-    | "gestor"
-    | "motorista"
-    | "solicitante"
-    | "admin"
-    | "attendant"
-    | "client";
   cpf?: string | null;
   rg?: string | null;
+  role: "administrador" | "gestor" | "solicitante" | "motorista" | "admin" | "attendant" | "client";
   cargo?: string | null;
   unidade?: string | null;
-  status?: string | null;
+  status: "ativo" | "inativo";
+  avatar?: string | null;
   acceptedTerms?: boolean;
 }
 
+export interface Driver {
+  id: string;
+  name: string;
+  cpf: string;
+  rg: string;
+  phone: string;
+  cnh: string;
+  cnhCategory: string;
+  cnhExpiration: string;
+  linkedVehicleId?: string | null;
+  status: "disponivel" | "em_rota" | "inativo" | "ferias";
+  expenses: number;
+  occurrences: number;
+}
+
+export interface Vehicle {
+  id: string;
+  plate: string;
+  brand: string;
+  model: string;
+  year: number;
+  status: "disponivel" | "em_uso" | "manutencao" | "inativo";
+  km: number;
+  avgConsumption: number;
+  autonomy: number;
+}
+
+export interface Dispatch {
+  id: string;
+  vehicleId: string;
+  driverId: string;
+  origin: string;
+  destination: string;
+  distance: number;
+  estimatedConsumption: number;
+  status: "pendente" | "em_andamento" | "concluido" | "cancelado";
+}
+
+export interface Supply {
+  id: string;
+  vehicleId: string;
+  driverId: string;
+  date: string;
+  value: number;
+  liters: number;
+  odometer: number;
+  status: "aprovado" | "pendente" | "rejeitado" | "divergente";
+}
+
+export interface Inspection {
+  id: string;
+  vehicleId: string;
+  driverId: string;
+  date: string;
+  items: {
+    freios: "ok" | "alerta" | "critico";
+    pneus: "ok" | "alerta" | "critico";
+    luzes: "ok" | "alerta" | "critico";
+    oleo: "ok" | "alerta" | "critico";
+    suspensao: "ok" | "alerta" | "critico";
+  };
+  status: "aprovado" | "alerta" | "critico";
+}
+
+export interface Maintenance {
+  id: string;
+  vehicleId: string;
+  description: string;
+  type: "preventiva" | "corretiva" | "preditiva";
+  status: "agendada" | "em_execucao" | "finalizada";
+  cost: number;
+  date: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  read: boolean;
+  category: "critico" | "alto" | "medio" | "baixo";
+  type: "system" | "maintenance" | "security" | "logistics";
+  status: "ativo" | "resolvido";
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "bot" | "agent";
+  text: string;
+  timestamp: string;
+}
+
+// ── Shared Dashboard & BI Types (Preserving older required types) ──
 export interface Kpis {
   vehicles: { total: number; active: number };
   drivers: number;
@@ -55,8 +141,6 @@ export interface DashboardData {
   evolution?: { label: string; viagens: number; combustivel: number }[];
 }
 
-// ── Analytics ──────────────────────────────────────────────────────────────
-
 export interface RegionStat {
   region: string;
   totalTrips: number;
@@ -90,8 +174,6 @@ export interface AnalyticsData {
   funnel: FunnelStage[];
   revenueEvolution: RevenuePoint[];
 }
-
-// ── Intelligence ───────────────────────────────────────────────────────────
 
 export interface DriverScore {
   id: string;
@@ -132,8 +214,6 @@ export interface ConsumptionByModel {
   vehicleCount: number;
 }
 
-// ── Marketplace ────────────────────────────────────────────────────────────
-
 export interface MarketplaceVehicle {
   id: string;
   plate: string;
@@ -154,8 +234,6 @@ export interface ContractQuote {
   pricing: { pricePerDay: number; totalValue: number };
   payment: { pixKey: string; pixPayload: string; description: string };
 }
-
-// ── Telemetria ─────────────────────────────────────────────────────────────
 
 export interface TelemetryAlert {
   id: string;

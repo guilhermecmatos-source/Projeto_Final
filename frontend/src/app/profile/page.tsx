@@ -38,7 +38,8 @@ export default function ProfilePage() {
       id: `local-${Date.now()}`,
       name: name.trim(),
       email,
-      role: ["admin", "attendant", "client"].includes(role) ? role : "attendant",
+      role: ["admin", "attendant", "client", "administrador", "gestor", "motorista", "solicitante"].includes(role) ? role : "attendant",
+      status: "ativo",
     });
     refresh();
     setUser(p);

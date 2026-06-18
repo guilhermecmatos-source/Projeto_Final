@@ -35,6 +35,7 @@ export default function ProfileSwitcher({ user, onProfileChange }: ProfileSwitch
       name: name.trim(),
       email,
       role: user.role,
+      status: "ativo",
     });
     onProfileChange(newProfile);
     setOpen(false);
