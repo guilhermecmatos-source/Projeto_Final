@@ -11,12 +11,14 @@ interface TopHeaderProps {
   title?: string;
   searchPlaceholder?: string;
   action?: ReactNode;
+  className?: string;
 }
 
 export default function TopHeader({
   title,
   searchPlaceholder = "Buscar no ecossistema...",
   action,
+  className = "",
 }: TopHeaderProps) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -47,7 +49,7 @@ export default function TopHeader({
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-outline-variant bg-surface/90 backdrop-blur-md safe-area-top"
+      className={`sticky top-0 z-40 border-b border-outline-variant bg-surface/90 backdrop-blur-md safe-area-top ${className}`}
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2 sm:min-h-16 sm:gap-3 sm:px-6">

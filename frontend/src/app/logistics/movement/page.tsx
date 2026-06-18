@@ -143,6 +143,7 @@ export default function LogisticsMovementPage() {
 
         <FormActions
           loading={loading}
+          submitLabel="Salvar Movimentação"
           onSaveLocal={handleSaveLocal}
           onSyncNow={async () => {
             if (!isOnline()) {
@@ -154,6 +155,10 @@ export default function LogisticsMovementPage() {
           }}
           onExportPdf={() => window.print()}
           syncDisabled={!online}
+          submitClassName="flex items-center justify-center gap-2 rounded-lg bg-[#0B3C95] hover:bg-[#09327a] px-6 py-3 font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
+          exportClassName="flex items-center justify-center gap-2 rounded-lg bg-[#FCA311] hover:bg-[#e5940f] px-6 py-3 font-semibold text-black transition active:scale-[0.98] disabled:opacity-50"
+          saveLocalClassName="flex items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white text-black hover:bg-slate-100 px-6 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-50"
+          syncClassName="flex items-center justify-center gap-2 rounded-lg border border-[#0B3C95] bg-transparent text-[#0B3C95] hover:bg-blue-50/10 px-6 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-50"
         />
       </form>
 
