@@ -1263,15 +1263,15 @@ export default function FuelPage() {
                 <span>TOTAL</span>
               </div>
               <div className="flex justify-between text-[11px]">
-                <span>DIESEL S10 ({selectedRecord?.liters || 0} L x R$ {((selectedRecord?.cost || 0) / (selectedRecord?.liters || 1)).toFixed(2)})</span>
-                <span>R$ {selectedRecord?.cost?.toFixed(2).replace('.', ',')}</span>
+                <span>DIESEL S10 ({selectedRecord?.liters || 0} L x R$ {(Number(selectedRecord?.cost || 0) / (selectedRecord?.liters || 1)).toFixed(2)})</span>
+                <span>R$ {Number(selectedRecord?.cost || 0).toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
 
             <div className="pt-3 space-y-2 text-right">
               <div className="flex justify-between font-bold text-sm">
                 <span>VALOR TOTAL:</span>
-                <span>R$ {selectedRecord?.cost?.toFixed(2).replace('.', ',')}</span>
+                <span>R$ {Number(selectedRecord?.cost || 0).toFixed(2).replace('.', ',')}</span>
               </div>
               <div className="flex justify-between text-[10px] text-slate-600">
                 <span>FORMA PGTO:</span>
