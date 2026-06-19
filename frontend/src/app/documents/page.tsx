@@ -36,17 +36,87 @@ function handleVerifySHA256(doc: Doc) {
 }
 
 function simulateSecureDownload(doc: Doc) {
-  const content = `FleetAI - Documento Seguro\n\nArquivo: ${doc.name}\nCategoria: ${doc.category}\nEntidade: ${doc.entity}\nData: ${doc.date}\nHash SHA-256: sha256:${doc.hash}\nStatus: ${doc.status}\n\nEste é um documento simulado gerado pela plataforma FleetAI.`;
-  const blob = new Blob([content], { type: "application/octet-stream" });
+  const now = new Date().toLocaleString("pt-BR");
+  const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório de Auditoria Criptográfica - ${doc.name}</title>
+    <style>
+      body{font-family:'Segoe UI',Arial,sans-serif;margin:40px;color:#0f172a;background:#fff;}
+      .header{border-bottom:3px solid #1e3a8a;padding-bottom:12px;margin-bottom:24px;}
+      .title{font-size:22px;font-weight:bold;color:#1e3a8a;text-transform:uppercase;margin:0;}
+      .subtitle{font-size:12px;color:#64748b;margin:4px 0 0 0;}
+      .status-badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;font-weight:bold;text-transform:uppercase;margin-top:10px;}
+      .status-valido{background:#dcfce7;color:#15803d;}
+      .status-vencido{background:#fee2e2;color:#b91c1c;}
+      .status-pendente{background:#fef3c7;color:#b45309;}
+      .section-title{font-size:14px;color:#1e3a8a;font-weight:bold;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-top:24px;text-transform:uppercase;}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+      .field{font-size:12px;}
+      .field-label{font-weight:bold;color:#475569;display:block;text-transform:uppercase;font-size:10px;margin-bottom:2px;}
+      .field-value{color:#0f172a;font-size:12px;}
+      .hash-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-family:monospace;font-size:11px;color:#0f172a;margin-top:12px;word-break:break-all;}
+      .footer{margin-top:40px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#64748b;text-align:center;}
+      @media print{body{margin:20px;} @page{size:A4;margin:15mm;}}
+    </style></head>
+    <body>
+      <div class="header">
+        <h1 class="title">📄 Relatório de Auditoria Criptográfica</h1>
+        <p class="subtitle">FleetAI Document Integrity System — Autenticidade Garantida</p>
+        <span class="status-badge status-${doc.status}">${doc.status}</span>
+      </div>
+
+      <div class="section-title">Metadados do Arquivo</div>
+      <div class="grid">
+        <div class="field">
+          <span class="field-label">Nome do Arquivo</span>
+          <span class="field-value">${doc.name}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Categoria</span>
+          <span class="field-value">${doc.category}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Tamanho do Arquivo</span>
+          <span class="field-value">${doc.size}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Data de Registro</span>
+          <span class="field-value">${doc.date}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Entidade Proprietária</span>
+          <span class="field-value">${doc.entity}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">ID do Documento</span>
+          <span class="field-value">${doc.id}</span>
+        </div>
+      </div>
+
+      <div class="section-title">Validação de Integridade</div>
+      <div class="field" style="margin-top:12px;">
+        <span class="field-label">Algoritmo de Hash</span>
+        <span class="field-value">SHA-256 (Criptografia Avançada)</span>
+      </div>
+      <div class="hash-box">
+        <strong>FINGERPRINT SHA-256:</strong><br/>
+        sha256:${doc.hash}
+      </div>
+
+      <div class="section-title">Assinatura de Conformidade LGPD</div>
+      <p style="font-size:11px;color:#475569;line-height:1.5;margin-top:8px;">
+        O presente documento foi homologado digitalmente na blockchain operacional da TransLógica S.A., garantindo a imutabilidade temporal e integridade original do arquivo conforme as diretrizes da Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+      </p>
+
+      <div class="footer">
+        Gerado em ${now} | TransLógica S.A. | Validação Eletrônica FleetAI ID ${doc.id}
+      </div>
+      
+      <script>window.onload=function(){window.print();}</script>
+    </body></html>`;
+
+  const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", doc.name);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  showToast(`🔒 Download seguro iniciado: ${doc.name}`, "info");
+  window.open(url, "_blank");
+  showToast(`🔒 Relatório seguro PDF gerado para: ${doc.name}`, "success");
 }
 
 export default function DocumentsPage() {

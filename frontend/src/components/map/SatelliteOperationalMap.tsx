@@ -83,34 +83,43 @@ export default function SatelliteOperationalMap() {
   const offsetsRef = useRef({ carlos: 0, ana: 0, roberto: 0 });
 
   useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return;
-
     let cancelled = false;
+    let mapObserver: ResizeObserver;
+    const capturedMapEl = mapRef.current;
+
+    const ensureCss = (): Promise<void> => {
+      return new Promise((resolve) => {
+        const existing = document.getElementById("leaflet-cdn-css-dash") as HTMLLinkElement | null;
+        if (existing) {
+          if (existing.sheet) { resolve(); return; }
+          existing.addEventListener("load", () => resolve(), { once: true });
+          return;
+        }
+        const link = document.createElement("link");
+        link.id = "leaflet-cdn-css-dash";
+        link.rel = "stylesheet";
+        link.href = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+        link.onload = () => resolve();
+        document.head.appendChild(link);
+      });
+    };
 
     async function initMap() {
+      await ensureCss();
       const L = (await import("leaflet")).default;
 
       if (cancelled || !mapRef.current) return;
-
-      // Load leaflet CSS
-      if (typeof document !== "undefined" && !document.getElementById("leaflet-css")) {
-        const link = document.createElement("link");
-        link.id = "leaflet-css";
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        document.head.appendChild(link);
-      }
 
       const map = L.map(mapRef.current, {
         center: [-10.184, -48.355],
         zoom: 13,
         zoomControl: false,
+        attributionControl: false,
       });
 
       L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
         {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19,
         }
       ).addTo(map);
@@ -162,7 +171,7 @@ export default function SatelliteOperationalMap() {
         const marker = L.marker([d.lat, d.lng], { icon })
           .addTo(map)
           .bindPopup(`
-            <div style="font-family:sans-serif;min-width:180px;">
+            <div style="font-family:sans-serif;min-width:180px;color:#1e293b;">
               <p style="font-weight:800;font-size:11px;margin:0 0 4px">${d.name}</p>
               <p style="font-size:10px;color:#666;margin:0 0 2px">${d.vehicle} • ${d.plate}</p>
               <p style="font-size:10px;margin:0 0 4px">Destino: <b>${d.destination}</b></p>
@@ -173,16 +182,29 @@ export default function SatelliteOperationalMap() {
         markersRef.current.push(marker);
       });
 
+      mapObserver = new ResizeObserver(() => {
+        if (mapInstance.current) mapInstance.current.invalidateSize();
+      });
+      if (capturedMapEl) mapObserver.observe(capturedMapEl);
+
       mapInstance.current = map;
       setReady(true);
+
+      requestAnimationFrame(() => map.invalidateSize());
+      setTimeout(() => map.invalidateSize(), 200);
+      setTimeout(() => map.invalidateSize(), 600);
+      setTimeout(() => map.invalidateSize(), 1500);
     }
 
     initMap();
 
     return () => {
       cancelled = true;
-      mapInstance.current?.remove();
-      mapInstance.current = null;
+      if (mapObserver && capturedMapEl) mapObserver.unobserve(capturedMapEl);
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
       markersRef.current = [];
     };
   }, []);
