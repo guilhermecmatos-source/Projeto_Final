@@ -42,6 +42,7 @@ export default function AppShell({
   const [lgpdDoc, setLgpdDoc] = useState("");
   const [lgpdChecked, setLgpdChecked] = useState(false);
   const [lgpdError, setLgpdError] = useState("");
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(true);
 
   // Estados do Toast de Sincronização
   const [showSyncToast, setShowSyncToast] = useState(false);
@@ -129,6 +130,14 @@ export default function AppShell({
     }
   }, [user, ready, pathname, router]);
 
+  // Primeiro acesso / Verificação de LGPD
+  useEffect(() => {
+    if (ready && user) {
+      const alreadyAccepted = (user as any).acceptedTerms || localStorage.getItem(`lgpd_accepted_${user.id}`) === "true";
+      setHasAcceptedTerms(!!alreadyAccepted);
+    }
+  }, [ready, user]);
+
   // Listener para o Sync Toast
   useEffect(() => {
     const handleSync = (e: Event) => {
@@ -159,9 +168,34 @@ export default function AppShell({
     }
 
     if (user) {
+      const consentInfo = {
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        signerName: lgpdName.trim(),
+        signerDoc: lgpdDoc.trim(),
+        acceptedAt: new Date().toISOString(),
+        ipSimulated: "192.168.100.45",
+        status: "HOMOLOGADO"
+      };
+
+      // Save to localStorage as a record of the homologation
+      localStorage.setItem(`lgpd_consent_info_${user.id}`, JSON.stringify(consentInfo));
+      localStorage.setItem(`lgpd_accepted_${user.id}`, "true");
+
       const updatedUser = { ...user, acceptedTerms: true };
       setUser(updatedUser);
+      setHasAcceptedTerms(true);
       setLgpdError("");
+      
+      // Dispatch alert to CCO feed log as well
+      window.dispatchEvent(new CustomEvent("new-toast", {
+        detail: {
+          title: "Termos Aceitos",
+          message: `Assinatura de ${lgpdName.trim()} homologada com sucesso!`,
+          severity: "success"
+        }
+      }));
     }
   };
 
@@ -198,7 +232,7 @@ export default function AppShell({
       )}
 
       {/* Modal LGPD — Primeiro Acesso com Assinatura Digital */}
-      {ready && user && !(user as any).acceptedTerms && (
+      {ready && user && !hasAcceptedTerms && (
         <div
           className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
           role="dialog"

@@ -14,6 +14,9 @@ import { ACTION_ROUTES } from "@/lib/action-routes";
 import { formatBRL } from "@/lib/currency";
 import { reportsApi } from "@/services/api";
 import { formatPlateDisplay } from "@/lib/validators";
+import {
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie
+} from "recharts";
 
 interface ReportData {
   vehicleRows: { plate: string; km: number; cost: number; efficiency: number }[];
@@ -213,15 +216,81 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {chartBars.length > 0 && (
-              <div className="mt-6">
-                <h3 className="mb-3 text-sm font-bold text-slate-400">Eficiência por veículo</h3>
-                <div className="flex h-32 items-end gap-2">
-                  {chartBars.map((h, i) => (
-                    <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                      <div className="w-full rounded-t bg-primary-container/80" style={{ height: `${h}%` }} />
-                    </div>
-                  ))}
+            {data?.vehicleRows && data.vehicleRows.length > 0 && (
+              <div className="mt-8 grid gap-6 lg:grid-cols-2">
+                <div className="rounded-xl border border-outline-variant bg-[#0b132b]/80 p-5 shadow-xl">
+                  <h3 className="mb-4 text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <Icon name="bar_chart" className="text-sm text-primary" />
+                    EFICIÊNCIA OPERACIONAL POR VEÍCULO (%)
+                  </h3>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={data.vehicleRows.slice(0, 10).map(v => ({
+                          plate: formatPlateDisplay(v.plate),
+                          "Eficiência (%)": Number(v.efficiency)
+                        }))}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="plate" stroke="#94a3b8" fontSize={9} tickLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} domain={[0, 100]} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#1e293b", borderColor: "rgba(255,255,255,0.1)", borderRadius: "8px" }}
+                          labelStyle={{ color: "#fff", fontWeight: "bold", fontSize: "10px" }}
+                          itemStyle={{ color: "#60a5fa", fontSize: "10px" }}
+                        />
+                        <Bar dataKey="Eficiência (%)" radius={[4, 4, 0, 0]}>
+                          {data.vehicleRows.slice(0, 10).map((v, index) => (
+                            <Cell key={`cell-${index}`} fill={Number(v.efficiency) >= 85 ? "#10B981" : "#F59E0B"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-outline-variant bg-[#0b132b]/80 p-5 shadow-xl">
+                  <h3 className="mb-4 text-xs font-bold text-[#EF4444] uppercase tracking-wider flex items-center gap-2">
+                    <Icon name="pie_chart" className="text-sm text-red-500" />
+                    DISTRIBUIÇÃO PERCENTUAL DE CUSTOS
+                  </h3>
+                  <div className="h-64 w-full flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={data.costBreakdown.map(g => ({
+                            name: g.label,
+                            value: g.amount
+                          }))}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {data.costBreakdown.map((entry, index) => {
+                            const colors = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6"];
+                            return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                          })}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value) => formatBRL(Number(value))}
+                          contentStyle={{ backgroundColor: "#1e293b", borderColor: "rgba(255,255,255,0.1)", borderRadius: "8px" }}
+                          itemStyle={{ fontSize: "10px" }}
+                        />
+                        <Legend
+                          verticalAlign="bottom"
+                          iconSize={10}
+                          formatter={(value) => {
+                            const item = data.costBreakdown.find(g => g.label === value);
+                            return <span className="text-[10px] text-slate-300 font-medium">{value} ({item ? item.pct : 0}%)</span>;
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             )}

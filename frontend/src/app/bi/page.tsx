@@ -96,18 +96,62 @@ export default function BiPage() {
   }
 
   function exportReport(type: "PDF" | "Excel" | "CSV") {
-    const data = desempenhoData.map(d => `${d.mes},${d.km},${d.viagens},${d.eficiencia}`).join("\n");
+    const csvRows = desempenhoData.map(d => `${d.mes},${d.km},${d.viagens},${d.eficiencia}`).join("\n");
+    const custoRows = custosData.map(c => `${c.mes},${c.combustivel},${c.manutencao},${c.outros}`).join("\n");
+    const now = new Date().toLocaleDateString("pt-BR");
+
     if (type === "CSV") {
-      const blob = new Blob([`Mês,KM,Viagens,Eficiência\n${data}`], { type: "text/csv" });
+      const blob = new Blob([`Mês,KM,Viagens,Eficiência\n${csvRows}`], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "relatorio_frota.csv";
-      a.click();
+      a.href = url; a.download = "relatorio_frota.csv"; a.click();
       URL.revokeObjectURL(url);
       showToast("CSV exportado com sucesso!", "success");
-    } else {
-      showToast(`Exportação ${type} simulada — arquivo gerado no servidor.`, "info");
+    } else if (type === "PDF") {
+      const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório BI Frota - ${now}</title>
+        <style>body{font-family:Arial,sans-serif;margin:40px;color:#222;}
+        h1{font-size:22px;border-bottom:2px solid #3B82F6;padding-bottom:8px;}
+        h2{font-size:16px;color:#3B82F6;margin-top:24px;}
+        table{border-collapse:collapse;width:100%;margin-top:12px;}
+        th,td{border:1px solid #ddd;padding:8px 12px;text-align:left;font-size:13px;}
+        th{background:#1E3A5F;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+        .meta{font-size:12px;color:#666;margin-bottom:20px;}
+        .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0;}
+        .kpi{border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center;}
+        .kpi .value{font-size:20px;font-weight:700;color:#1E3A5F;}
+        .kpi .label{font-size:11px;color:#64748b;text-transform:uppercase;}
+        @media print{body{margin:20px;} @page{size:A4;margin:15mm;}}</style></head>
+        <body>
+        <h1>📊 Relatório Business Intelligence & Analytics</h1>
+        <p class="meta">Período: ${activeFilter} | Gerado em: ${now} | TransLógica Transportes S.A.</p>
+        <div class="kpi-grid">${KPI_DATA.map(k => `<div class="kpi"><div class="value">${k.value}</div><div class="label">${k.label}</div></div>`).join("")}</div>
+        <h2>Desempenho da Frota</h2>
+        <table><tr><th>Mês</th><th>KM Rodados</th><th>Viagens</th><th>Eficiência (%)</th></tr>${desempenhoData.map(d => `<tr><td>${d.mes}</td><td>${d.km.toLocaleString("pt-BR")}</td><td>${d.viagens}</td><td>${d.eficiencia}%</td></tr>`).join("")}</table>
+        <h2>Custos Operacionais</h2>
+        <table><tr><th>Mês</th><th>Combustível (R$)</th><th>Manutenção (R$)</th><th>Outros (R$)</th></tr>${custosData.map(c => `<tr><td>${c.mes}</td><td>${c.combustivel.toLocaleString("pt-BR")}</td><td>${c.manutencao.toLocaleString("pt-BR")}</td><td>${c.outros.toLocaleString("pt-BR")}</td></tr>`).join("")}</table>
+        <h2>Consumo por Veículo (km/L)</h2>
+        <table><tr><th>Veículo</th><th>Consumo (km/L)</th></tr>${consumoData.map(c => `<tr><td>${c.name}</td><td>${c.valor}</td></tr>`).join("")}</table>
+        <script>window.onload=function(){window.print();}</script></body></html>`;
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      showToast("Relatório PDF aberto para impressão/salvamento.", "success");
+    } else if (type === "Excel") {
+      const xlsContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"><style>th{background:#1E3A5F;color:#fff;font-weight:bold;padding:6px 10px;} td{padding:5px 10px;border:1px solid #ccc;} table{border-collapse:collapse;}</style></head>
+        <body>
+        <h2>Relatório BI Frota - ${now}</h2>
+        <h3>KPIs</h3><table><tr><th>Indicador</th><th>Valor</th></tr>${KPI_DATA.map(k => `<tr><td>${k.label}</td><td>${k.value} ${k.unit}</td></tr>`).join("")}</table>
+        <h3>Desempenho da Frota</h3><table><tr><th>Mês</th><th>KM</th><th>Viagens</th><th>Eficiência (%)</th></tr>${desempenhoData.map(d => `<tr><td>${d.mes}</td><td>${d.km}</td><td>${d.viagens}</td><td>${d.eficiencia}%</td></tr>`).join("")}</table>
+        <h3>Custos Operacionais</h3><table><tr><th>Mês</th><th>Combustível</th><th>Manutenção</th><th>Outros</th></tr>${custosData.map(c => `<tr><td>${c.mes}</td><td>${c.combustivel}</td><td>${c.manutencao}</td><td>${c.outros}</td></tr>`).join("")}</table>
+        <h3>Consumo por Veículo</h3><table><tr><th>Veículo</th><th>km/L</th></tr>${consumoData.map(c => `<tr><td>${c.name}</td><td>${c.valor}</td></tr>`).join("")}</table>
+        </body></html>`;
+      const blob = new Blob([xlsContent], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `relatorio_bi_frota_${now.replace(/\//g, "-")}.xls`; a.click();
+      URL.revokeObjectURL(url);
+      showToast("Excel exportado com sucesso!", "success");
     }
   }
 

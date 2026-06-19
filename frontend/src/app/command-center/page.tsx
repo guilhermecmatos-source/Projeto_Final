@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
+import { showToast } from "@/components/ui/Toast";
 
 /* ── Feed log data ── */
 const INITIAL_FEED_LOGS = [
@@ -97,18 +98,27 @@ export default function CommandCenterPage() {
   useEffect(() => {
     let L: any;
     let mapObserver: ResizeObserver;
-    // Capture ref element at effect run time — not inside cleanup closure
     const capturedMapEl = mapRef.current;
 
-    const initMap = async () => {
-      if (!document.getElementById("leaflet-cdn-css-dash")) {
+    const ensureCss = (): Promise<void> => {
+      return new Promise((resolve) => {
+        const existing = document.getElementById("leaflet-cdn-css-dash") as HTMLLinkElement | null;
+        if (existing) {
+          if (existing.sheet) { resolve(); return; }
+          existing.addEventListener("load", () => resolve(), { once: true });
+          return;
+        }
         const link = document.createElement("link");
         link.id = "leaflet-cdn-css-dash";
         link.rel = "stylesheet";
         link.href = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+        link.onload = () => resolve();
         document.head.appendChild(link);
-      }
+      });
+    };
 
+    const initMap = async () => {
+      await ensureCss();
       L = (await import("leaflet")).default;
       if (!mapRef.current || mapInstance.current) return;
       
@@ -116,7 +126,6 @@ export default function CommandCenterPage() {
       L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(map);
       mapInstance.current = map;
 
-      // Add driver markers
       drivers.forEach(dr => {
         const icon = L.divIcon({
           html: `<div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="background-color: ${dr.color}">${dr.avatar}</div>`,
@@ -127,13 +136,16 @@ export default function CommandCenterPage() {
         markersRef.current[dr.id] = marker;
       });
 
-      // Resize observer to auto-invalidate size
       mapObserver = new ResizeObserver(() => {
         if (mapInstance.current) mapInstance.current.invalidateSize();
       });
       if (capturedMapEl) mapObserver.observe(capturedMapEl);
       
-      setTimeout(() => { map.invalidateSize(); }, 300);
+      // Multiple invalidateSize calls to handle various layout timing scenarios
+      requestAnimationFrame(() => map.invalidateSize());
+      setTimeout(() => map.invalidateSize(), 200);
+      setTimeout(() => map.invalidateSize(), 600);
+      setTimeout(() => map.invalidateSize(), 1500);
     };
 
     initMap();
@@ -149,25 +161,33 @@ export default function CommandCenterPage() {
   }, []);
 
   const handleSyncDeviceCoords = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude, longitude } = pos.coords;
-          const L = (await import("leaflet")).default;
-          if (mapInstance.current) {
-            const managerIcon = L.divIcon({
-              html: `<div class="w-8 h-8 rounded-full bg-error border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="animation: pulse 2s infinite;">★</div>`,
-              className: "", iconSize: [32, 32], iconAnchor: [16, 16],
-            });
-            const marker = L.marker([latitude, longitude], { icon: managerIcon }).addTo(mapInstance.current);
-            marker.bindPopup(`<div class="p-2 bg-slate-900 text-white rounded text-[10px] font-bold"><b class="text-error">📍 Seu Local</b></div>`).openPopup();
-            mapInstance.current.flyTo([latitude, longitude], 15, { duration: 1.5 });
-          }
-        },
-        (err) => console.error("Geolocation error:", err),
-        { enableHighAccuracy: true }
-      );
+    if (!navigator.geolocation) {
+      showToast("Geolocalização não suportada neste navegador.", "error");
+      return;
     }
+    showToast("Obtendo sua localização GPS...", "info");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const L = (await import("leaflet")).default;
+        if (mapInstance.current) {
+          const managerIcon = L.divIcon({
+            html: `<div class="w-8 h-8 rounded-full bg-error border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white" style="animation: pulse 2s infinite;">★</div>`,
+            className: "", iconSize: [32, 32], iconAnchor: [16, 16],
+          });
+          const marker = L.marker([latitude, longitude], { icon: managerIcon }).addTo(mapInstance.current);
+          marker.bindPopup(`<div class="p-2 bg-slate-900 text-white rounded text-[10px] font-bold"><b class="text-error">📍 Seu Local</b></div>`).openPopup();
+          mapInstance.current.flyTo([latitude, longitude], 15, { duration: 1.5 });
+          showToast(`GPS sincronizado: ${latitude.toFixed(5)}°, ${longitude.toFixed(5)}°`, "success");
+          setActiveLogs(prev => [{ time: new Date().toLocaleTimeString("pt-BR", { hour12: false }), severity: "SUCCESS", color: "text-green-400", msg: `Coordenadas do gestor sincronizadas via GPS (${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°).` }, ...prev]);
+        }
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+        showToast("Erro ao obter localização. Verifique as permissões do navegador.", "error");
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const dispatchOperationalAlert = (riskType: string) => {
@@ -300,11 +320,23 @@ export default function CommandCenterPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between bg-surface-container-high p-2 rounded">
                     <span className="text-[10px] text-slate-300 font-bold">1. Checklist de Partida</span>
-                    <button className="bg-primary text-on-primary text-[8px] font-black px-3 py-1 rounded hover:opacity-90 transition">ENVIAR</button>
+                    <button
+                      onClick={() => {
+                        showToast("Checklist de partida enviado com sucesso via APP Simulado.", "success");
+                        setActiveLogs(prev => [{ time: new Date().toLocaleTimeString("pt-BR", { hour12: false }), severity: "SUCCESS", color: "text-green-400", msg: "Checklist de partida enviado pelo motorista via APP Emulado." }, ...prev]);
+                      }}
+                      className="bg-primary text-on-primary text-[8px] font-black px-3 py-1 rounded hover:opacity-90 transition"
+                    >ENVIAR</button>
                   </div>
                   <div className="flex items-center justify-between bg-surface-container-high p-2 rounded">
                     <span className="text-[10px] text-slate-300 font-bold">2. Assinatura Teórica RUV</span>
-                    <button className="bg-blue-600 text-white text-[8px] font-black px-3 py-1 rounded hover:opacity-90 transition">ASSINAR</button>
+                    <button
+                      onClick={() => {
+                        showToast("RUV assinada digitalmente pelo motorista no APP Emulado.", "success");
+                        setActiveLogs(prev => [{ time: new Date().toLocaleTimeString("pt-BR", { hour12: false }), severity: "SUCCESS", color: "text-green-400", msg: "Assinatura digital RUV capturada via APP Motorista Emulado." }, ...prev]);
+                      }}
+                      className="bg-blue-600 text-white text-[8px] font-black px-3 py-1 rounded hover:opacity-90 transition"
+                    >ASSINAR</button>
                   </div>
                 </div>
               </div>
@@ -317,7 +349,13 @@ export default function CommandCenterPage() {
                       <p className="text-[10px] font-bold text-white">RUV-0412</p>
                       <p className="text-[9px] text-slate-400">Rota SP – SJC</p>
                     </div>
-                    <button className="bg-primary text-on-primary text-[8px] font-black px-4 py-1.5 rounded hover:opacity-90 transition">APROVAR</button>
+                    <button
+                      onClick={() => {
+                        showToast("RUV-0412 aprovada com sucesso pelo gestor.", "success");
+                        setActiveLogs(prev => [{ time: new Date().toLocaleTimeString("pt-BR", { hour12: false }), severity: "SUCCESS", color: "text-green-400", msg: "RUV-0412 (Rota SP – SJC) aprovada pelo gestor via APP Emulado." }, ...prev]);
+                      }}
+                      className="bg-primary text-on-primary text-[8px] font-black px-4 py-1.5 rounded hover:opacity-90 transition"
+                    >APROVAR</button>
                   </div>
                 </div>
               </div>

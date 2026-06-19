@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import SatelliteOperationalMap from "@/components/map/SatelliteOperationalMap";
 import PeriodLineChart from "@/components/dashboard/PeriodLineChart";
@@ -522,9 +523,9 @@ export default function DashboardPage() {
                     <td className="py-3 px-2 text-[10px] font-bold text-white font-mono">{t.value}</td>
                     <td className="py-3 px-2 text-[9px] text-slate-400">• {t.log}</td>
                     <td className="py-3 px-2">
-                      <button className="text-[9px] font-bold text-primary hover:text-blue-300 transition flex items-center gap-0.5">
+                      <Link href="/bi" className="text-[9px] font-bold text-primary hover:text-blue-300 transition flex items-center gap-0.5">
                         Mais Métricas <Icon name="chevron_right" className="text-xs" />
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
