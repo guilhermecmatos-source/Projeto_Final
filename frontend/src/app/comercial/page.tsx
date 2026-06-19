@@ -49,10 +49,24 @@ export default function ComercialPage() {
         subtitle="Gestão de negócios, ativos e faturamento da frota corporativa."
         actions={
           <div className="flex gap-2">
-            <button onClick={() => { window.print(); showToast("Preparando documento para impressão...", "info"); }} className="flex items-center gap-1.5 border border-outline-variant/40 bg-surface-container-high px-3 py-2 text-xs font-bold text-on-surface hover:text-primary transition rounded-lg">
-              <Icon name="print" className="text-sm" /> Imprimir
-            </button>
-            <button onClick={() => showToast("Relatório de receita exportado com sucesso.", "success")} className="flex items-center gap-1.5 border border-green-500/40 bg-green-500/10 px-3 py-2 text-xs font-bold text-green-400 hover:bg-green-500/20 transition rounded-lg">
+            <button onClick={() => {
+              const csvHeader = "Veículo,Diária,Semanal,Mensal,Placa,Ano\n";
+              const csvRows = [
+                "Scania R 450,R$ 1800,R$ 11000,R$ 38000,BRA-2E19,2024",
+                "Volvo FH 540,R$ 2200,R$ 13500,R$ 49000,FLT-0130,2025",
+              ].join("\n");
+              const csvContent = csvHeader + csvRows;
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.setAttribute("download", `receita_frota_${new Date().toISOString().split("T")[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              showToast("Relatório de receita exportado com sucesso.", "success");
+            }} className="flex items-center gap-1.5 border border-green-500/40 bg-green-500/10 px-3 py-2 text-xs font-bold text-green-400 hover:bg-green-500/20 transition rounded-lg">
               <Icon name="table_chart" className="text-sm" /> Exportar Receita
             </button>
           </div>
