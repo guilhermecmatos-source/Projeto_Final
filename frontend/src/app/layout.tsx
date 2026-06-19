@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/theme/ThemeProvider";
+import FleetToastContainer from "@/components/ui/Toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,7 +61,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Ir para o conteúdo
         </a>
         <ThemeProvider>{children}</ThemeProvider>
+        <FleetToastContainer />
       </body>
     </html>
   );
 }
+

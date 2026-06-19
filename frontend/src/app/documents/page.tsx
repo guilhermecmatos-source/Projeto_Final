@@ -32,13 +32,20 @@ const STATUS_OPTS = ["Todos", "válido", "vencido", "pendente"] as const;
 
 function handleVerifySHA256(doc: Doc) {
   const simHash = `sha256:${doc.hash}${Math.random().toString(16).slice(2, 10)}`;
-  showToast(`✅ Hash verificado: ${simHash}`, "success");
+  showToast("Documento auditado e validado com sucesso na blockchain.", "success", simHash);
 }
 
 function simulateSecureDownload(doc: Doc) {
+  const content = `FleetAI - Documento Seguro\n\nArquivo: ${doc.name}\nCategoria: ${doc.category}\nEntidade: ${doc.entity}\nData: ${doc.date}\nHash SHA-256: sha256:${doc.hash}\nStatus: ${doc.status}\n\nEste é um documento simulado gerado pela plataforma FleetAI.`;
+  const blob = new Blob([content], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = "#";
-  link.download = doc.name;
+  link.href = url;
+  link.setAttribute("download", doc.name);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
   showToast(`🔒 Download seguro iniciado: ${doc.name}`, "info");
 }
 
@@ -48,6 +55,7 @@ export default function DocumentsPage() {
   const [catFilter, setCatFilter] = useState<string>("Todos");
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [selected, setSelected] = useState<Doc | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = docs.filter(d => {
@@ -243,8 +251,8 @@ export default function DocumentsPage() {
                 >
                   <Icon name="download" className="text-sm" /> Download Seguro
                 </button>
-                <button
-                  onClick={() => showToast(`Visualizando: ${selected.name}`, "info")}
+                 <button
+                  onClick={() => setIsViewerOpen(true)}
                   className="w-full flex items-center justify-center gap-2 rounded-lg border border-outline-variant/40 py-2.5 text-xs font-bold text-on-surface-variant hover:border-primary hover:text-primary transition"
                 >
                   <Icon name="visibility" className="text-sm" /> Visualizar
@@ -260,6 +268,106 @@ export default function DocumentsPage() {
           )}
         </div>
       </div>
+      {/* Document Preview Modal */}
+      {isViewerOpen && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-[#0c132b] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-4 border-b border-outline-variant/20 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider">Visualização de Documento</h3>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{selected.name}</p>
+              </div>
+              <button 
+                onClick={() => setIsViewerOpen(false)} 
+                className="text-slate-400 hover:text-white transition p-1 hover:bg-white/10 rounded-full"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            {/* Simulated Document Content Container */}
+            <div className="bg-[#0b0e14] border border-outline-variant/20 rounded-xl p-6 min-h-[300px] flex flex-col justify-between font-mono text-[10px] text-slate-400 relative overflow-hidden select-none">
+              {/* Watermark */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] rotate-12 select-none pointer-events-none">
+                <Icon name="verified_user" className="text-[240px] text-white" />
+              </div>
+
+              {/* Header inside the document */}
+              <div className="border-b border-slate-800 pb-4 mb-4 flex justify-between items-start relative z-10">
+                <div>
+                  <p className="font-bold text-white text-xs">FLEETAI LOGÍSTICA S.A.</p>
+                  <p className="text-[9px]">SISTEMA DE SEGURANÇA E AUDITORIA DE FROTAS</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-emerald-400 uppercase tracking-widest text-[8px] border border-emerald-500/30 bg-emerald-500/5 px-2 py-0.5 rounded">
+                    DOCUMENTO {selected.status}
+                  </p>
+                </div>
+              </div>
+
+              {/* Body inside the document */}
+              <div className="space-y-3 relative z-10 flex-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-slate-500 uppercase tracking-wider text-[8px]">Entidade Relacionada</p>
+                    <p className="text-slate-300 font-bold text-xs mt-0.5">{selected.entity}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 uppercase tracking-wider text-[8px]">Categoria Operacional</p>
+                    <p className="text-slate-300 font-bold text-xs mt-0.5">{selected.category}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <p className="text-slate-500 uppercase tracking-wider text-[8px]">Data de Emissão/Validação</p>
+                    <p className="text-slate-300 font-bold text-xs mt-0.5">{selected.date}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 uppercase tracking-wider text-[8px]">Tamanho do Arquivo</p>
+                    <p className="text-slate-300 font-bold text-xs mt-0.5">{selected.size}</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800">
+                  <p className="text-slate-500 uppercase tracking-wider text-[8px]">HASH DIGITAL DE INTEGRIDADE (SHA-256)</p>
+                  <p className="text-emerald-400 font-mono text-[9px] break-all select-all mt-1 bg-black/40 p-2.5 rounded border border-white/5">
+                    sha256:{selected.hash}
+                  </p>
+                </div>
+
+                <div className="pt-2 text-[9px] text-slate-500 leading-relaxed italic">
+                  Este documento de homologação está registrado em nossa blockchain interna. Qualquer alteração não autorizada invalidará imediatamente o hash SHA-256 acima, disparando bloqueios de pátio automáticos pelo módulo de segurança.
+                </div>
+              </div>
+
+              {/* Footer inside the document */}
+              <div className="border-t border-slate-800 pt-4 mt-4 flex justify-between items-center text-[8px] text-slate-500 relative z-10 font-sans font-medium uppercase tracking-wider">
+                <span>FleetAI Token Autenticador: {selected.id}</span>
+                <span>Página 1 de 1</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button 
+                onClick={() => {
+                  simulateSecureDownload(selected);
+                  setIsViewerOpen(false);
+                }} 
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-on-primary hover:opacity-90 transition"
+              >
+                <Icon name="download" className="text-sm" /> Baixar Cópia Segura
+              </button>
+              <button 
+                onClick={() => setIsViewerOpen(false)} 
+                className="py-2 px-4 rounded-lg border border-outline-variant/40 text-xs font-bold text-slate-300 uppercase hover:bg-white/5 transition"
+              >
+                Fechar Visualizador
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -6,7 +6,7 @@ import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import { showToast } from "@/components/ui/Toast";
 
-type TabId = "all" | "sys" | "client" | "ruv";
+type TabId = "all" | "sys" | "client" | "ruv" | "solicitacoes";
 type NotificationType = "sys" | "client" | "ruv";
 
 interface Notification {
@@ -118,7 +118,8 @@ export default function NotificationsPage() {
       all: unread.length,
       sys: unread.filter((n) => n.type === "sys").length,
       client: unread.filter((n) => n.type === "client").length,
-      ruv: unread.filter((n) => n.type === "ruv").length,
+      ruv: unread.filter((n) => n.type === "ruv" && !n.isSolicitation).length,
+      solicitacoes: unread.filter((n) => n.isSolicitation).length,
     };
   }, [notifications]);
 
@@ -128,11 +129,16 @@ export default function NotificationsPage() {
     { id: "all", label: "Histórico Completo", count: counts.all },
     { id: "sys", label: "Sistema Gps/Telemetria", count: counts.sys },
     { id: "client", label: "Cliente & ANTT", count: counts.client },
-    { id: "ruv", label: "Motoristas & RUVs", count: counts.ruv },
+    { id: "ruv", label: "Motoristas & RUV", count: counts.ruv },
+    { id: "solicitacoes", label: "SOLICITAÇÕES", count: counts.solicitacoes },
   ];
 
   const filteredNotifications = activeTab === "all"
     ? notifications.filter((n) => !n.isRead)
+    : activeTab === "solicitacoes"
+    ? notifications.filter((n) => n.isSolicitation && !n.isRead)
+    : activeTab === "ruv"
+    ? notifications.filter((n) => n.type === "ruv" && !n.isSolicitation && !n.isRead)
     : notifications.filter((n) => n.type === activeTab && !n.isRead);
 
   const handleMarkAsRead = (id: string) => {

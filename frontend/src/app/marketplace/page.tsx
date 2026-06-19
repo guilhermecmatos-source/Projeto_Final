@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
+import { showToast } from "@/components/ui/Toast";
 
 const VEHICLES = [
   {
@@ -105,11 +106,11 @@ export default function MarketplacePage() {
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] px-3 py-1.5 text-[10px] font-bold text-slate-300 hover:bg-white/5 transition">
+            <button 
+              onClick={() => showToast("Exportando relatório Excel dos ativos comercializados...", "success")}
+              className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] px-3 py-1.5 text-[10px] font-bold text-slate-300 hover:bg-white/5 transition"
+            >
               <Icon name="table_view" className="text-xs text-green-400" /> Excel Relatório
-            </button>
-            <button className="flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-[#0F172A] px-3 py-1.5 text-[10px] font-bold text-slate-300 hover:bg-white/5 transition">
-              <Icon name="print" className="text-xs text-blue-400" /> Imprimir Painel
             </button>
           </div>
         </div>
@@ -234,7 +235,13 @@ export default function MarketplacePage() {
                     )}
                   </div>
                   
-                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-slate-300 hover:text-error transition">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showToast("Veículo adicionado aos favoritos.", "success");
+                    }}
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-slate-300 hover:text-error transition"
+                  >
                     <Icon name="favorite_border" className="text-sm" />
                   </button>
 
@@ -364,11 +371,23 @@ export default function MarketplacePage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <button className="py-3 rounded-xl bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-[10px] tracking-widest transition shadow-lg shadow-amber-500/20 text-center">
+                      <button 
+                        onClick={() => {
+                          showToast(`Solicitação de compra do veículo ${selectedVehicle.brand} ${selectedVehicle.model} registrada com sucesso.`, "success");
+                          setSelectedVehicle(null);
+                        }}
+                        className="py-3 rounded-xl bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-[10px] tracking-widest transition shadow-lg shadow-amber-500/20 text-center"
+                      >
                         SOLICITAR COMPRA
                       </button>
                       {selectedVehicle.daily_rate ? (
-                        <button className="py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-[10px] tracking-widest transition shadow-lg shadow-blue-600/20 text-center">
+                        <button 
+                          onClick={() => {
+                            showToast(`Solicitação de locação do veículo ${selectedVehicle.brand} ${selectedVehicle.model} registrada com sucesso.`, "success");
+                            setSelectedVehicle(null);
+                          }}
+                          className="py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-[10px] tracking-widest transition shadow-lg shadow-blue-600/20 text-center"
+                        >
                           SOLICITAR LOCAÇÃO
                         </button>
                       ) : (
@@ -376,7 +395,10 @@ export default function MarketplacePage() {
                       )}
                     </div>
 
-                    <button className="w-full py-3 rounded-xl border border-outline-variant/30 text-slate-300 hover:bg-white/5 hover:text-white font-bold uppercase text-[10px] tracking-widest transition flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => showToast("QR Code gerado e enviado ao painel de ativos.", "info")}
+                      className="w-full py-3 rounded-xl border border-outline-variant/30 text-slate-300 hover:bg-white/5 hover:text-white font-bold uppercase text-[10px] tracking-widest transition flex items-center justify-center gap-2"
+                    >
                       <Icon name="qr_code_2" className="text-sm" /> OBTER QR CODE DO ANÚNCIO
                     </button>
                   </div>
@@ -394,7 +416,10 @@ export default function MarketplacePage() {
               <h2 className="text-[#FCA311] font-black uppercase text-lg tracking-wider mb-1">SOLICITAÇÕES DE COMPRA DE VEÍCULOS</h2>
               <p className="text-[10px] text-slate-400 font-medium">Controle de autorizações, condições de pagamento e auditoria criminal de pátio.</p>
             </div>
-            <button className="flex items-center gap-1.5 rounded-lg border border-[#FCA311]/30 bg-[#FCA311]/10 px-4 py-2 text-[10px] font-bold uppercase text-[#FCA311] hover:bg-[#FCA311]/20 transition">
+            <button 
+              onClick={() => showToast("Exportando lista de compras em CSV...", "success")}
+              className="flex items-center gap-1.5 rounded-lg border border-[#FCA311]/30 bg-[#FCA311]/10 px-4 py-2 text-[10px] font-bold uppercase text-[#FCA311] hover:bg-[#FCA311]/20 transition"
+            >
               EXPORTAR LISTA CSV
             </button>
           </div>
@@ -432,8 +457,8 @@ export default function MarketplacePage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="px-3 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR FICHA</button>
-                      <button className="px-3 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
+                      <button onClick={() => showToast("Ficha de compra #1781661963086 aprovada.", "success")} className="px-3 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR FICHA</button>
+                      <button onClick={() => showToast("Solicitação de compra #1781661963086 recusada.", "warning")} className="px-3 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
                     </div>
                   </td>
                 </tr>
@@ -470,7 +495,10 @@ export default function MarketplacePage() {
               <h2 className="text-[#FCA311] font-black uppercase text-lg tracking-wider mb-1">SOLICITAÇÕES DE LOCAÇÃO DE FROTA</h2>
               <p className="text-[10px] text-slate-400 font-medium">Verificação de licenças e contratos de trânsito válidos.</p>
             </div>
-            <button className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-[10px] font-bold uppercase text-blue-400 hover:bg-blue-500/20 transition">
+            <button 
+              onClick={() => showToast("Exportando despachos de locação em CSV...", "success")}
+              className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-[10px] font-bold uppercase text-blue-400 hover:bg-blue-500/20 transition"
+            >
               EXPORTAR DESPACHO CSV
             </button>
           </div>
@@ -517,8 +545,8 @@ export default function MarketplacePage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="px-2 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR PRÉ-CONTRATO</button>
-                      <button className="px-2 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
+                      <button onClick={() => showToast("Pré-contrato #1781661965286 aprovado.", "success")} className="px-2 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR PRÉ-CONTRATO</button>
+                      <button onClick={() => showToast("Solicitação de locação #1781661965286 recusada.", "warning")} className="px-2 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
                     </div>
                   </td>
                 </tr>
@@ -549,8 +577,8 @@ export default function MarketplacePage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="px-2 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR PRÉ-CONTRATO</button>
-                      <button className="px-2 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
+                      <button onClick={() => showToast("Pré-contrato #1781661422991 aprovado.", "success")} className="px-2 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR PRÉ-CONTRATO</button>
+                      <button onClick={() => showToast("Solicitação de locação #1781661422991 recusada.", "warning")} className="px-2 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
                     </div>
                   </td>
                 </tr>
@@ -581,8 +609,8 @@ export default function MarketplacePage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="px-2 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR PRÉ-CONTRATO</button>
-                      <button className="px-2 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
+                      <button onClick={() => showToast("Pré-contrato #1781288958543 aprovado.", "success")} className="px-2 py-1.5 rounded bg-blue-600 text-white text-[9px] font-bold uppercase transition hover:bg-blue-500">APROVAR PRÉ-CONTRATO</button>
+                      <button onClick={() => showToast("Solicitação de locação #1781288958543 recusada.", "warning")} className="px-2 py-1.5 rounded border border-error/50 text-error text-[9px] font-bold uppercase transition hover:bg-error/10">RECUSAR</button>
                     </div>
                   </td>
                 </tr>

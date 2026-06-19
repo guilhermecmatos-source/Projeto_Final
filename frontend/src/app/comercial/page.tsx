@@ -35,6 +35,26 @@ export default function ComercialPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Todos");
 
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [selectedBookingVehicle, setSelectedBookingVehicle] = useState<{ name: string; plate: string; rate: string } | null>(null);
+  const [bookingDriver, setBookingDriver] = useState("");
+  const [bookingStartDate, setBookingStartDate] = useState("");
+  const [bookingEndDate, setBookingEndDate] = useState("");
+
+  const handleConfirmBooking = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingDriver || !bookingStartDate || !bookingEndDate) {
+      showToast("Por favor, preencha todos os campos da reserva.", "warning");
+      return;
+    }
+    showToast(`Solicitação de locação para o veículo ${selectedBookingVehicle?.name} (Placa: ${selectedBookingVehicle?.plate}) enviada ao consultor. Motorista: ${bookingDriver}.`, "success");
+    setIsBookingOpen(false);
+    setSelectedBookingVehicle(null);
+    setBookingDriver("");
+    setBookingStartDate("");
+    setBookingEndDate("");
+  };
+
   const filteredContracts = CONTRACTS.filter(c => {
     const matchesSearch = c.client.toLowerCase().includes(searchTerm.toLowerCase()) || c.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "Todos" || c.status === filterStatus;
@@ -299,7 +319,10 @@ export default function ComercialPage() {
                    </div>
                 </div>
                 <button 
-                  onClick={() => showToast("Solicitação de locação enviada ao consultor.", "success")}
+                  onClick={() => {
+                    setSelectedBookingVehicle({ name: "Scania R 450", plate: "BRA-2E19", rate: "R$ 1.800,00" });
+                    setIsBookingOpen(true);
+                  }}
                   className="w-full py-3 bg-blue-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"
                 >
                   Reservar Locação
@@ -346,7 +369,10 @@ export default function ComercialPage() {
                    </div>
                 </div>
                 <button 
-                  onClick={() => showToast("Solicitação de locação enviada ao consultor.", "success")}
+                  onClick={() => {
+                    setSelectedBookingVehicle({ name: "Volvo FH 540", plate: "FLT-0130", rate: "R$ 2.200,00" });
+                    setIsBookingOpen(true);
+                  }}
                   className="w-full py-3 bg-blue-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"
                 >
                   Reservar Locação
@@ -354,6 +380,97 @@ export default function ComercialPage() {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+      {/* Booking Confirmation Modal */}
+      {isBookingOpen && selectedBookingVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0c132b] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider">Confirmar Reserva de Locação</h3>
+                <p className="text-[10px] text-primary font-mono bg-primary/10 px-2 py-0.5 rounded inline-block mt-1">PROPOSTA COMERCIAL</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsBookingOpen(false);
+                  setSelectedBookingVehicle(null);
+                }} 
+                className="text-slate-400 hover:text-white transition"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmBooking} className="space-y-4">
+              <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-3 flex justify-between items-center text-xs">
+                <div>
+                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Veículo Selecionado</p>
+                  <p className="text-white font-bold mt-0.5">{selectedBookingVehicle.name}</p>
+                  <p className="text-slate-500 text-[10px] font-mono">Placa: {selectedBookingVehicle.plate}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Diária</p>
+                  <p className="text-blue-400 font-black text-sm">{selectedBookingVehicle.rate}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Motorista Piloto</label>
+                <input 
+                  type="text" 
+                  value={bookingDriver} 
+                  onChange={(e) => setBookingDriver(e.target.value)} 
+                  placeholder="Nome do motorista..." 
+                  className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50" 
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data de Início</label>
+                  <input 
+                    type="date" 
+                    value={bookingStartDate} 
+                    onChange={(e) => setBookingStartDate(e.target.value)} 
+                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50 appearance-none" 
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data de Término</label>
+                  <input 
+                    type="date" 
+                    value={bookingEndDate} 
+                    onChange={(e) => setBookingEndDate(e.target.value)} 
+                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50 appearance-none" 
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsBookingOpen(false);
+                    setSelectedBookingVehicle(null);
+                  }} 
+                  className="flex-1 py-2.5 rounded-lg border border-outline-variant/40 text-xs font-bold text-slate-300 uppercase hover:bg-white/5 transition text-center"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-xs tracking-wider transition shadow-lg shadow-blue-500/20 text-center"
+                >
+                  Confirmar Reserva
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
