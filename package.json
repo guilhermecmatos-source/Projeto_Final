@@ -2,5 +2,9 @@
   "dependencies": {
     "@types/leaflet": "^1.9.21",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
   }
 }

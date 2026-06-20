@@ -28,6 +28,12 @@ const SEVERITY_CONFIG = {
     bar: "bg-blue-500",
     text: "text-blue-300",
   },
+  success: {
+    bg: "bg-emerald-950/95 border-emerald-500",
+    icon: "✅",
+    bar: "bg-emerald-500",
+    text: "text-emerald-300",
+  },
 };
 
 const AUTO_DISMISS_MS: Record<Toast["severity"], number> = {
@@ -35,6 +41,7 @@ const AUTO_DISMISS_MS: Record<Toast["severity"], number> = {
   high: 8000,
   medium: 6000,
   info: 4000,
+  success: 4000,
 };
 
 interface ToastNotificationProps {
@@ -45,8 +52,9 @@ interface ToastNotificationProps {
 export default function ToastNotification({ toast, onRemove }: ToastNotificationProps) {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(100);
-  const cfg = SEVERITY_CONFIG[toast.severity];
-  const dismissMs = AUTO_DISMISS_MS[toast.severity];
+  const severity = (toast.severity in SEVERITY_CONFIG) ? toast.severity : "info";
+  const cfg = SEVERITY_CONFIG[severity];
+  const dismissMs = AUTO_DISMISS_MS[severity];
 
   useEffect(() => {
     // Entrada com pequeno delay para animar

@@ -7,7 +7,7 @@ export interface Toast {
   id: string;
   title: string;
   message: string;
-  severity: "critical" | "high" | "medium" | "info";
+  severity: "critical" | "high" | "medium" | "info" | "success";
   timestamp: number;
 }
 
