@@ -25,15 +25,33 @@ interface NotificationItem {
   checked: boolean;
 }
 
+const PROFILES = [
+  { id: "admin", label: "Administrador", color: "bg-error", count: 4, desc: "Acesso total à plataforma e configurações." },
+  { id: "gestor", label: "Gestor", color: "bg-blue-500", count: 12, desc: "Acesso a toda a operação diária e aprovações." },
+  { id: "motorista", label: "Motorista", color: "bg-primary", count: 86, desc: "Acesso restrito a viagens logadas e inspeções." },
+  { id: "solicitante", label: "Solicitante", color: "bg-green-500", count: 35, desc: "Pode apenas solicitar viagens e ver painel básico." },
+];
+
+const MODULES = [
+  "Dashboard Geral", "Central de Comando", "Gestão de Veículos", 
+  "Gestão de Motoristas", "Controle de Logística", "Aprovação de Viagens",
+  "Registros de Manutenção", "Segurança IA e Fadiga", "Faturamento e Comercial"
+];
+
+const MATRIX: Record<string, boolean[]> = {
+  "admin": [true, true, true, true, true, true, true, true, true],
+  "gestor": [true, true, true, true, true, true, true, true, false],
+  "motorista": [true, false, false, false, true, false, false, false, false],
+  "solicitante": [true, false, false, false, false, false, false, false, false],
+};
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("gerais");
+  const [activeTab, setActiveTab] = useState("notificacoes");
   const [loading, setLoading] = useState(false);
 
-  // General Settings States
-  const [orgName, setOrgName] = useState("FleetAI Operations");
-  const [timezone, setTimezone] = useState("BRT");
-  const [currency, setCurrency] = useState("BRL");
-  const [language, setLanguage] = useState("PT-BR");
+  // Access Control Settings States
+  const [selectedProfile, setSelectedProfile] = useState("admin");
+  const [matrixState, setMatrixState] = useState(MATRIX);
 
   // Notifications Settings States
   const [notifications, setNotifications] = useState<NotificationItem[]>([
@@ -91,9 +109,31 @@ export default function SettingsPage() {
   const [editingIntegration, setEditingIntegration] = useState<IntegrationData | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
 
+  const handleToggleMatrix = (profile: string, index: number) => {
+    if (profile === "admin") return;
+    setMatrixState(prev => {
+      const newMatrix = { ...prev };
+      newMatrix[profile] = [...newMatrix[profile]];
+      newMatrix[profile][index] = !newMatrix[profile][index];
+      return newMatrix;
+    });
+  };
+
+  const savePolicies = () => {
+    if (selectedProfile === "admin") {
+      showToast("As permissões de Administrador não podem ser alteradas.", "error");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      showToast("Políticas de acesso salvas e aplicadas.", "success");
+    }, 1000);
+  };
+
   const handleSave = () => {
-    if (activeTab === "gerais" && orgName.trim() === "") {
-      showToast("O Nome da Organização é obrigatório.", "error");
+    if (activeTab === "perfis") {
+      savePolicies();
       return;
     }
     setLoading(true);
@@ -178,10 +218,10 @@ export default function SettingsPage() {
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-2">
           {[
-            { id: "gerais", icon: "settings", label: "Gerais" },
             { id: "notificacoes", icon: "notifications", label: "Notificações" },
             { id: "seguranca", icon: "security", label: "Segurança" },
             { id: "integracoes", icon: "api", label: "Integrações (API)" },
+            { id: "perfis", icon: "admin_panel_settings", label: "Controle de Acessos e Perfis" },
           ].map(tab => (
             <button
               key={tab.id}
@@ -199,58 +239,6 @@ export default function SettingsPage() {
 
         <div className="lg:col-span-3">
           <div className="raised-card p-6">
-            {activeTab === "gerais" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-black text-on-surface mb-1">Configurações Gerais</h3>
-                  <p className="text-sm text-on-surface-variant mb-6">Informações básicas da organização e preferências regionais.</p>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Nome da Organização</label>
-                    <input 
-                      type="text" 
-                      value={orgName} 
-                      onChange={e => setOrgName(e.target.value)} 
-                      className="input-fleet w-full" 
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Fuso Horário Padrão</label>
-                    <select 
-                      className="input-fleet w-full" 
-                      value={timezone}
-                      onChange={e => setTimezone(e.target.value)}
-                    >
-                      <option value="BRT">Horário de Brasília (BRT)</option>
-                      <option value="UTC">UTC</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Moeda Principal</label>
-                    <select 
-                      className="input-fleet w-full" 
-                      value={currency}
-                      onChange={e => setCurrency(e.target.value)}
-                    >
-                      <option value="BRL">Real Brasileiro (R$)</option>
-                      <option value="USD">Dólar Americano ($)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Idioma do Sistema</label>
-                    <select 
-                      className="input-fleet w-full" 
-                      value={language}
-                      onChange={e => setLanguage(e.target.value)}
-                    >
-                      <option value="PT-BR">Português (BR)</option>
-                      <option value="EN-US">English (US)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {activeTab === "notificacoes" && (
               <div className="space-y-6">
@@ -341,6 +329,84 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "perfis" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-on-surface mb-1">Controle de Acessos e Perfis</h3>
+                  <p className="text-sm text-on-surface-variant mb-6">Gerencie quem pode visualizar ou editar cada módulo do sistema.</p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+                  {PROFILES.map(p => (
+                    <div 
+                      key={p.id} 
+                      onClick={() => setSelectedProfile(p.id)}
+                      className={`p-4 cursor-pointer transition border-2 rounded-xl bg-[#0F172A] border-outline-variant/20 hover:border-outline-variant/55 ${selectedProfile === p.id ? "border-primary bg-surface-container-highest" : ""}`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${p.color}`}></span>
+                          <h3 className="font-bold text-on-surface text-xs">{p.label}</h3>
+                        </div>
+                        <span className="text-[9px] font-black bg-surface-container px-1.5 py-0.5 rounded text-on-surface-variant">
+                          {p.count} usu.
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-on-surface-variant leading-relaxed">{p.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-outline-variant/20 pt-6">
+                  <div className="flex justify-between items-end mb-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-on-surface flex items-center gap-2">
+                        <Icon name="admin_panel_settings" className="text-primary" /> Matriz de Permissões
+                      </h4>
+                      <p className="text-xs text-on-surface-variant mt-1">
+                        Permissões para o perfil <strong className="text-primary capitalize">{selectedProfile}</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-outline-variant/20">
+                          <th className="py-2 px-3 font-bold text-on-surface-variant uppercase text-[9px] tracking-wider w-1/2">Módulo do Sistema</th>
+                          <th className="py-2 px-3 font-bold text-on-surface-variant uppercase text-[9px] tracking-wider text-center">Permissão de Acesso</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/10">
+                        {MODULES.map((mod, i) => (
+                          <tr key={mod} className="hover:bg-surface-container-high transition">
+                            <td className="py-2.5 px-3 font-medium text-on-surface text-xs">{mod}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  className="sr-only peer" 
+                                  checked={matrixState[selectedProfile][i]} 
+                                  onChange={() => handleToggleMatrix(selectedProfile, i)}
+                                  disabled={selectedProfile === "admin"} 
+                                />
+                                <div className="w-9 h-5 bg-outline-variant/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-disabled:opacity-50"></div>
+                              </label>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedProfile === "admin" && (
+                    <p className="text-[10px] text-error mt-4 font-bold text-center">
+                      * O perfil Administrador possui privilégios totais obrigatórios. As permissões não podem ser revogadas.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
