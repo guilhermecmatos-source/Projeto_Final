@@ -11,7 +11,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const bgImage = "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=2000";
+  const bgImage = "/images/login-bg.jpg";
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,12 +41,12 @@ export default function RegisterPage() {
     <main 
       className="flex min-h-screen bg-black"
       style={{
-        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.4) 100%), url(${bgImage})`,
+        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.3) 100%), url(${bgImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      <AuthHero imageUrl="" />
+      <AuthHero imageUrl={bgImage} />
 
       <section className="flex w-full flex-col items-center justify-center p-4 md:p-8 lg:w-1/2 relative z-10">
         <div className="w-full max-w-[400px] rounded-3xl border border-outline-variant/20 bg-[#0c132b]/95 backdrop-blur-md p-10 shadow-2xl">

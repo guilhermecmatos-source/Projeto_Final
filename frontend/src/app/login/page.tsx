@@ -4,7 +4,6 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
-import AuthHero from "@/components/auth/AuthHero";
 import { authApi } from "@/services/api";
 import { ensureCurrentProfileInList } from "@/lib/profiles";
 
@@ -17,8 +16,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Using a suitable unsplash image for the background
-  const bgImage = "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=2000";
+  // Using the user-provided login background image
+  const bgImage = "/images/login-bg.jpg";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,16 +47,14 @@ export default function LoginPage() {
 
   return (
     <main 
-      className="flex min-h-screen bg-black"
+      className="flex min-h-screen bg-black items-center justify-center relative"
       style={{
-        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.4) 100%), url(${bgImage})`,
+        backgroundImage: `url(${bgImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      <AuthHero imageUrl="" />
-
-      <section className="flex w-full flex-col items-center justify-center p-4 md:p-8 lg:w-1/2 relative z-10">
+      <section className="flex w-full flex-col items-center justify-center p-4 md:p-8 relative z-10">
         <div className="w-full max-w-[400px] rounded-3xl border border-outline-variant/20 bg-[#0c132b]/95 backdrop-blur-md p-10 shadow-2xl">
           <header className="mb-8 text-center">
             <h2 className="mb-2 text-2xl font-black text-white tracking-wide">Login</h2>
