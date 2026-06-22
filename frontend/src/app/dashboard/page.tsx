@@ -409,7 +409,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Active Driver Detail Card ─────────────────────────────────────────── */}
-      {selectedDriver && selectedDriver.status !== "CONCLUÍDO" && (
+      {selectedDriver && (
         <div className="mb-6 raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="flex items-start gap-4">
@@ -426,35 +426,65 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 ${statusChip("EM ROTA")}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> Em trânsito • Restam {selectedDriver.remainDist}
-              </span>
-              <span className="text-[10px] font-bold px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
-                <Icon name="local_gas_station" className="text-xs" /> Gasto Est.: {selectedDriver.fuelEst}
-              </span>
+              {selectedDriver.status === "EM ROTA" && (
+                <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 bg-green-500/20 text-green-400 border border-green-500/40`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> Em trânsito • Restam {selectedDriver.remainDist}
+                </span>
+              )}
+              {selectedDriver.status === "DISPONÍVEL" && (
+                <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/40`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Disponível • Aguardando rota
+                </span>
+              )}
+              {selectedDriver.status === "CONCLUÍDO" && (
+                <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/40`}>
+                  <Icon name="check_circle" className="text-xs text-blue-400" /> Viagem Concluída
+                </span>
+              )}
+              {selectedDriver.fuelEst !== "—" && (
+                <span className="text-[10px] font-bold px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                  <Icon name="local_gas_station" className="text-xs" /> Gasto Est.: {selectedDriver.fuelEst}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-6 lg:grid-cols-4">
             <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400 border border-green-500" /> ORIGEM EM ROTA (ATUAL)</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full border ${selectedDriver.status === "CONCLUÍDO" ? "bg-blue-400 border-blue-500" : "bg-green-400 border-green-500"}`} />
+                {selectedDriver.status === "CONCLUÍDO" ? "PONTO DE ORIGEM" : "ORIGEM EM ROTA (ATUAL)"}
+              </p>
               <p className="text-[10px] font-bold text-white">{selectedDriver.origin}</p>
             </div>
             <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 border border-red-500" /> DESTINO FINAL (FTD)</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full border ${selectedDriver.status === "CONCLUÍDO" ? "bg-blue-500 border-blue-600" : "bg-red-400 border-red-500"}`} />
+                {selectedDriver.status === "CONCLUÍDO" ? "DESTINO FINAL (ENTREGUE)" : "DESTINO FINAL (FTD)"}
+              </p>
               <p className="text-[10px] font-bold text-white">{selectedDriver.destination}</p>
             </div>
             <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">TEMPO ESTIMADO</p>
-              <p className="text-lg font-bold text-white">{selectedDriver.etaMin} <span className="text-xs text-slate-400">minutos</span></p>
-              <p className="text-[9px] text-slate-500">Distância restante em rota</p>
-              <p className="text-[10px] font-bold text-primary">{selectedDriver.remainDist}</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">
+                {selectedDriver.status === "CONCLUÍDO" ? "STATUS DA VIAGEM" : "TEMPO ESTIMADO"}
+              </p>
+              <p className="text-lg font-bold text-white">
+                {selectedDriver.status === "CONCLUÍDO" ? "0" : selectedDriver.etaMin} <span className="text-xs text-slate-400">minutos</span>
+              </p>
+              <p className="text-[9px] text-slate-500">
+                {selectedDriver.status === "CONCLUÍDO" ? "Viagem finalizada" : "Distância restante em rota"}
+              </p>
+              <p className={`text-[10px] font-bold ${selectedDriver.status === "CONCLUÍDO" ? "text-blue-400" : "text-primary"}`}>
+                {selectedDriver.status === "CONCLUÍDO" ? "Finalizada" : selectedDriver.remainDist}
+              </p>
             </div>
             <div>
               <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">COMBUSTÍVEL / FONTE</p>
               <p className="text-[11px] font-bold text-[#FCA311]">{selectedDriver.fuelType}</p>
               <p className="text-[9px] text-slate-500 mt-1">GASTO EM ROTA</p>
-              <p className="text-sm font-bold text-green-400">{selectedDriver.fuelEst}</p>
+              <p className="text-sm font-bold text-green-400">
+                {selectedDriver.status === "CONCLUÍDO" ? "Consumo finalizado" : selectedDriver.fuelEst}
+              </p>
             </div>
           </div>
 
