@@ -46,7 +46,7 @@ export default function RegisterPage() {
         backgroundPosition: "center",
       }}
     >
-      <AuthHero imageUrl={bgImage} />
+      <AuthHero />
 
       <section className="flex w-full flex-col items-center justify-center p-4 md:p-8 lg:w-1/2 relative z-10">
         <div className="w-full max-w-[400px] rounded-3xl border border-outline-variant/20 bg-[#0c132b]/95 backdrop-blur-md p-10 shadow-2xl">

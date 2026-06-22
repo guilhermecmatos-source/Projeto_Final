@@ -3,19 +3,27 @@
 import Link from "next/link";
 
 interface AuthHeroProps {
-  imageUrl: string;
+  imageUrl?: string;
   alt?: string;
 }
 
-export default function AuthHero({ imageUrl, alt = "" }: AuthHeroProps) {
+export default function AuthHero({ imageUrl = "", alt = "" }: AuthHeroProps) {
+  const hasBg = imageUrl !== "";
+
   return (
     <section
-      className="relative hidden flex-col justify-between overflow-hidden bg-black bg-login-hero p-10 lg:flex lg:w-1/2"
-      style={{
-        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.4) 100%), url(${imageUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      className={`relative hidden flex-col justify-between overflow-hidden p-10 lg:flex lg:w-1/2 ${
+        hasBg ? "bg-black bg-login-hero" : "bg-transparent"
+      }`}
+      style={
+        hasBg
+          ? {
+              backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.4) 100%), url(${imageUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : undefined
+      }
       aria-label={alt}
     >
       <header className="flex items-center gap-3">
