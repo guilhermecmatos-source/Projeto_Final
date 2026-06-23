@@ -15,7 +15,7 @@ Plataforma **Full Stack** de gestão de frotas com interface operacional (FleetA
 ### Equipe
 
 - **Guilherme Matos** — [GitHub](https://github.com/guilhermecmatos-source)
-- **Jeovana**
+- **Jeovana** — [GitHub](https://github.com/Jeovanalopesvalente)
 - **Wanderson** — [GitHub](https://github.com/rodrigues123321)
 - **Marco Túlio** — [GitHub](https://github.com/MarcoTuliops22)
 
