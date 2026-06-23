@@ -110,6 +110,7 @@ export interface Kpis {
   travels: { total: number; completed: number };
   fuelCost: number;
   pendingMaintenance: number;
+  ruv?: { total: number; approved: number };
 }
 
 export interface PredictiveAlert {

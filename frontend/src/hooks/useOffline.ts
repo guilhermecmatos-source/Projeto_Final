@@ -8,7 +8,7 @@ import {
   removeFromSyncQueue,
   SyncItem,
 } from "@/lib/offline";
-import { driversApi, fuelApi, maintenanceApi, travelsApi } from "@/services/api";
+import { driversApi, fuelApi, maintenanceApi, travelsApi, ruvApi } from "@/services/api";
 
 export interface SyncResult {
   ok: boolean;
@@ -65,7 +65,17 @@ async function processSyncItem(item: SyncItem): Promise<boolean> {
           scheduled_at: p.scheduled_at || new Date().toISOString(),
         });
         break;
-      case "ruv":
+      case "ruv": {
+        await ruvApi.create({
+          origin: String(p.origin || "Base Operacional"),
+          destination: String(p.destination || ""),
+          purpose: String(p.purpose || p.service || ""),
+          passengers: Number(p.passengers || p.quantidade || 1),
+          descricao: String(p.descricao || ""),
+          quantidade: Number(p.quantidade || p.passengers || 1),
+        });
+        break;
+      }
       case "logistics":
       case "inspection":
         return true;

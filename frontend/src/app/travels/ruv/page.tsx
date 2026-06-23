@@ -18,7 +18,7 @@ import {
   saveRuvDraft,
 } from "@/lib/offline";
 import { useOffline } from "@/hooks/useOffline";
-import { driversApi, vehiclesApi } from "@/services/api";
+import { driversApi, vehiclesApi, ruvApi } from "@/services/api";
 import GoogleMapsGeoselector from "@/components/forms/GoogleMapsGeoselector";
 
 const VEHICLE_TYPES = [
@@ -142,6 +142,7 @@ function RuvPageContent() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setMessage({ error: "", success: "" });
     const raw = formToObject(new FormData(e.currentTarget));
     const resolvedVehicle = resolveEntityId(vehicleId || String(raw.vehicle_id || ""), vehicleOptions);
     const resolvedDriver = resolveEntityId(driverId || String(raw.driver_id || ""), driverOptions);
@@ -149,14 +150,30 @@ function RuvPageContent() {
       ...raw,
       passengers: Number(raw.quantidade || 1),
       quantidade: Number(raw.quantidade || 1),
+      descricao: String(raw.descricao || ""),
+      purpose: String(raw.service || ""),
       auth_number: authNumber,
       vehicle_id: resolvedVehicle || vehicleId,
       driver_id: resolvedDriver || driverId,
+      origin: String(raw.origin || "Base Operacional"),
+      destination: String(raw.destination || ""),
     };
-    saveRuvDraft(data);
-    addToSyncQueue({ type: "ruv", payload: data });
-    setMessage({ error: "", success: "RUV registrada. Dados na fila de sincronização." });
-    setLoading(false);
+    try {
+      await ruvApi.create(data);
+      setMessage({ error: "", success: "RUV salva com sucesso!" });
+    } catch (err: any) {
+      if (err.response) {
+        const { extractApiError } = await import("@/lib/api-errors");
+        const errMsg = extractApiError(err, "Erro ao salvar RUV.");
+        setMessage({ error: errMsg, success: "" });
+      } else {
+        saveRuvDraft(data);
+        addToSyncQueue({ type: "ruv", payload: data });
+        setMessage({ error: "", success: "RUV registrada. Dados na fila de sincronização." });
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -210,6 +227,7 @@ function RuvPageContent() {
           <section className="raised-card grid gap-4 p-4 sm:p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-headline-sm">Dados da requisição</h2>
             <FormField label="Nome do(s) passageiro(s)" name="descricao" required className="md:col-span-2" />
+            <FormField label="Quantidade de passageiro(s)" name="quantidade" type="number" defaultValue="1" required className="md:col-span-2" />
             <div>
               <label htmlFor="destination" className="mb-1 block text-label-md text-on-surface-variant font-bold uppercase text-[10px]">
                 Destino

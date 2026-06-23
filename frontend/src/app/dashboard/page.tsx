@@ -263,8 +263,8 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">VIAGENS ATIVAS / REQUISITADAS</p>
-            <p className="text-2xl font-bold text-white font-mono">2 <span className="text-base">Ativa(s)</span></p>
-            <p className="text-[9px] text-slate-500 mt-0.5">1 pendente, 0 em trânsito</p>
+            <p className="text-2xl font-bold text-white font-mono">{kpis?.travels?.total ?? 0} <span className="text-base">Registrada(s)</span></p>
+            <p className="text-[9px] text-slate-500 mt-0.5">{kpis?.travels?.completed ?? 0} concluída(s)</p>
           </div>
         </div>
 
@@ -274,8 +274,8 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">ALERTAS CRÍTICOS BETA</p>
-            <p className="text-2xl font-bold text-red-400 font-mono">1 Alerta</p>
-            <p className="text-[9px] text-slate-500 mt-0.5">Manutenções preventivas ativas (Oficina: 2)</p>
+            <p className="text-2xl font-bold text-red-400 font-mono">{kpis?.pendingMaintenance ?? 0} Alerta(s)</p>
+            <p className="text-[9px] text-slate-500 mt-0.5">Manutenções pendentes nos próximos 30 dias</p>
           </div>
         </div>
 
@@ -296,8 +296,8 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">CUSTOS NO PERÍODO</p>
-            <p className="text-xl font-bold text-white font-mono">R$ 500,15</p>
-            <p className="text-[9px] text-slate-500 mt-0.5">Combustível: R$ 500,15</p>
+            <p className="text-xl font-bold text-white font-mono">{formatBRL(fuelCost)}</p>
+            <p className="text-[9px] text-slate-500 mt-0.5">Combustível: {formatBRL(fuelCost)}</p>
           </div>
         </div>
       </div>
@@ -308,21 +308,21 @@ export default function DashboardPage() {
           <Icon name="inventory_2" className="text-green-400 text-xl shrink-0" />
           <div>
             <p className="text-[9px] text-slate-400 uppercase font-bold">RUV APROVADAS</p>
-            <p className="text-sm font-bold text-white">0 Aprovadas</p>
+            <p className="text-sm font-bold text-white">{kpis?.ruv?.approved ?? 0} Aprovada(s) / {kpis?.ruv?.total ?? 0} Total</p>
           </div>
         </div>
         <div className="raised-card px-4 py-3 bg-[#0c132b]/80 border-outline-variant/30 flex items-center gap-3">
           <Icon name="directions_car" className="text-primary text-xl shrink-0" />
           <div>
             <p className="text-[9px] text-slate-400 uppercase font-bold">VEÍCULOS NO INVENTÁRIO</p>
-            <p className="text-sm font-bold text-white">5/0 disponíveis</p>
+            <p className="text-sm font-bold text-white">{kpis?.vehicles?.total ?? 0}/{kpis?.vehicles?.active ?? 0} ativos</p>
           </div>
         </div>
         <div className="raised-card px-4 py-3 bg-[#0c132b]/80 border-outline-variant/30 flex items-center gap-3">
           <Icon name="person" className="text-secondary text-xl shrink-0" />
           <div>
             <p className="text-[9px] text-slate-400 uppercase font-bold">MOTORISTAS REGISTRADOS</p>
-            <p className="text-sm font-bold text-white">2/100% CNH Ativas</p>
+            <p className="text-sm font-bold text-white">{kpis?.drivers ?? 0} Ativo(s)</p>
           </div>
         </div>
         <div className="raised-card px-4 py-3 bg-[#0c132b]/80 border-outline-variant/30 flex items-center gap-3">
