@@ -44,10 +44,10 @@ export default function ComercialPage() {
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingDriver || !bookingStartDate || !bookingEndDate) {
-      showToast("Por favor, preencha todos os campos da reserva.", "warning");
+      showToast("Por favor, preencha todos os campos da compra.", "warning");
       return;
     }
-    showToast(`Solicitação de locação para o veículo ${selectedBookingVehicle?.name} (Placa: ${selectedBookingVehicle?.plate}) enviada ao consultor. Motorista: ${bookingDriver}.`, "success");
+    showToast(`Solicitação de compra do veículo ${selectedBookingVehicle?.name} (Placa: ${selectedBookingVehicle?.plate}) enviada ao consultor comercial. Comprador: ${bookingDriver}.`, "success");
     setIsBookingOpen(false);
     setSelectedBookingVehicle(null);
     setBookingDriver("");
@@ -93,13 +93,14 @@ export default function ComercialPage() {
         }
       />
 
-      <div className="flex gap-2 border-b border-outline-variant/20 mb-6 pb-2 overflow-x-auto custom-scrollbar">
+      <div className="sticky top-14 sm:top-16 z-20 bg-surface-container flex gap-2 border-b border-outline-variant/20 mb-6 pb-2 pt-2 overflow-x-auto custom-scrollbar">
         {[
           { id: "dashboard", label: "Dashboard Analítico", icon: "monitoring" },
           { id: "contratos", label: "Gestão de Contratos", icon: "assignment" },
-          { id: "hub", label: "Vitrine de Locação (Hub)", icon: "storefront" },
+          { id: "hub", label: "Vitrine de Venda (Hub)", icon: "storefront" },
         ].map(t => (
           <button
+            type="button"
             key={t.id}
             onClick={() => setActiveTab(t.id as any)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition whitespace-nowrap ${
@@ -270,9 +271,9 @@ export default function ComercialPage() {
       {activeTab === "hub" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 bg-[#0b0e14] p-4 rounded-xl border border-outline-variant/20">
-            <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Veículos Disponíveis para Locação: 2</h3>
+            <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Veículos Disponíveis para Venda: 2</h3>
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Contratos com quilometragem livre e seguro total de pátio</span>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Veículos seminovos com garantia de fábrica e documentação pronta</span>
             </div>
           </div>
 
@@ -282,7 +283,7 @@ export default function ComercialPage() {
               <div className="relative h-48 bg-surface-container-low overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/scania.png" alt="Scania R450" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute top-3 left-3 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg">Locação</div>
+                <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg">Venda</div>
                 <div className="absolute top-3 right-3 bg-primary text-on-primary text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg flex items-center gap-1">
                   <Icon name="star" className="text-[10px]" /> Recomendado
                 </div>
@@ -291,8 +292,8 @@ export default function ComercialPage() {
               </div>
               <div className="p-5 flex flex-col flex-1">
                 <div className="mb-4">
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Diária Fixa</p>
-                  <h4 className="text-2xl font-black text-white">R$ 1.800,00 <span className="text-xs font-normal text-slate-400">/dia</span></h4>
+                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Preço de Venda</p>
+                  <h4 className="text-2xl font-black text-white">R$ 850.000,00</h4>
                 </div>
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -304,28 +305,25 @@ export default function ComercialPage() {
                     <p className="text-[10px] font-mono text-white font-bold">125.430</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 bg-[#0b0e14] p-3 rounded-lg border border-outline-variant/20 mb-6 mt-auto">
+                <div className="grid grid-cols-2 gap-2 bg-[#0b0e14] p-3 rounded-lg border border-outline-variant/20 mb-6 mt-auto">
                    <div className="text-center">
-                      <p className="text-[8px] text-slate-500 font-bold uppercase">Diário</p>
-                      <p className="text-xs font-bold text-primary">R$ 1800</p>
+                      <p className="text-[8px] text-slate-500 font-bold uppercase">À Vista</p>
+                      <p className="text-xs font-bold text-green-400">R$ 850.000</p>
                    </div>
-                   <div className="text-center border-x border-outline-variant/20">
-                      <p className="text-[8px] text-slate-500 font-bold uppercase">Semanal</p>
-                      <p className="text-xs font-bold text-primary">R$ 11000</p>
-                   </div>
-                   <div className="text-center">
-                      <p className="text-[8px] text-slate-500 font-bold uppercase">Mensal</p>
-                      <p className="text-xs font-bold text-green-400">R$ 38000</p>
+                   <div className="text-center border-l border-outline-variant/20">
+                      <p className="text-[8px] text-slate-500 font-bold uppercase">Financiado (60x)</p>
+                      <p className="text-xs font-bold text-primary">R$ 18.900/mês</p>
                    </div>
                 </div>
                 <button 
+                  type="button"
                   onClick={() => {
-                    setSelectedBookingVehicle({ name: "Scania R 450", plate: "BRA-2E19", rate: "R$ 1.800,00" });
+                    setSelectedBookingVehicle({ name: "Scania R 450", plate: "BRA-2E19", rate: "R$ 850.000,00" });
                     setIsBookingOpen(true);
                   }}
-                  className="w-full py-3 bg-blue-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"
+                  className="w-full py-3 bg-emerald-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/20"
                 >
-                  Reservar Locação
+                  Comprar Veículo
                 </button>
               </div>
             </div>
@@ -335,14 +333,14 @@ export default function ComercialPage() {
               <div className="relative h-48 bg-surface-container-low overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/volvo.png" alt="Volvo FH540" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute top-3 left-3 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg">Locação</div>
+                <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg">Venda</div>
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0c132b] to-transparent h-20"></div>
                 <div className="absolute bottom-3 right-3 bg-green-500/90 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-green-400">Livre de IPVA</div>
               </div>
               <div className="p-5 flex flex-col flex-1">
                 <div className="mb-4">
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Diária Fixa</p>
-                  <h4 className="text-2xl font-black text-white">R$ 2.200,00 <span className="text-xs font-normal text-slate-400">/dia</span></h4>
+                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Preço de Venda</p>
+                  <h4 className="text-2xl font-black text-white">R$ 1.250.000,00</h4>
                 </div>
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -354,28 +352,25 @@ export default function ComercialPage() {
                     <p className="text-[10px] font-mono text-white font-bold">82.190</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 bg-[#0b0e14] p-3 rounded-lg border border-outline-variant/20 mb-6 mt-auto">
+                <div className="grid grid-cols-2 gap-2 bg-[#0b0e14] p-3 rounded-lg border border-outline-variant/20 mb-6 mt-auto">
                    <div className="text-center">
-                      <p className="text-[8px] text-slate-500 font-bold uppercase">Diário</p>
-                      <p className="text-xs font-bold text-primary">R$ 2200</p>
+                      <p className="text-[8px] text-slate-500 font-bold uppercase">À Vista</p>
+                      <p className="text-xs font-bold text-green-400">R$ 1.250.000</p>
                    </div>
-                   <div className="text-center border-x border-outline-variant/20">
-                      <p className="text-[8px] text-slate-500 font-bold uppercase">Semanal</p>
-                      <p className="text-xs font-bold text-primary">R$ 13500</p>
-                   </div>
-                   <div className="text-center">
-                      <p className="text-[8px] text-slate-500 font-bold uppercase">Mensal</p>
-                      <p className="text-xs font-bold text-green-400">R$ 49000</p>
+                   <div className="text-center border-l border-outline-variant/20">
+                      <p className="text-[8px] text-slate-500 font-bold uppercase">Financiado (60x)</p>
+                      <p className="text-xs font-bold text-primary">R$ 27.500/mês</p>
                    </div>
                 </div>
                 <button 
+                  type="button"
                   onClick={() => {
-                    setSelectedBookingVehicle({ name: "Volvo FH 540", plate: "FLT-0130", rate: "R$ 2.200,00" });
+                    setSelectedBookingVehicle({ name: "Volvo FH 540", plate: "FLT-0130", rate: "R$ 1.250.000,00" });
                     setIsBookingOpen(true);
                   }}
-                  className="w-full py-3 bg-blue-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"
+                  className="w-full py-3 bg-emerald-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/20"
                 >
-                  Reservar Locação
+                  Comprar Veículo
                 </button>
               </div>
             </div>
@@ -389,8 +384,8 @@ export default function ComercialPage() {
           <div className="w-full max-w-md rounded-2xl bg-[#0c132b] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-base font-bold text-white uppercase tracking-wider">Confirmar Reserva de Locação</h3>
-                <p className="text-[10px] text-primary font-mono bg-primary/10 px-2 py-0.5 rounded inline-block mt-1">PROPOSTA COMERCIAL</p>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider">Confirmar Compra de Veículo</h3>
+                <p className="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded inline-block mt-1">PROPOSTA COMERCIAL DE VENDA</p>
               </div>
               <button 
                 type="button"
@@ -412,41 +407,41 @@ export default function ComercialPage() {
                   <p className="text-slate-500 text-[10px] font-mono">Placa: {selectedBookingVehicle.plate}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Diária</p>
-                  <p className="text-blue-400 font-black text-sm">{selectedBookingVehicle.rate}</p>
+                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Preço</p>
+                  <p className="text-emerald-400 font-black text-sm">{selectedBookingVehicle.rate}</p>
                 </div>
               </div>
 
               <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Motorista Piloto</label>
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Nome do Comprador</label>
                 <input 
                   type="text" 
                   value={bookingDriver} 
                   onChange={(e) => setBookingDriver(e.target.value)} 
-                  placeholder="Nome do motorista..." 
-                  className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50" 
+                  placeholder="Nome completo do comprador..." 
+                  className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" 
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data de Início</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data da Proposta</label>
                   <input 
                     type="date" 
                     value={bookingStartDate} 
                     onChange={(e) => setBookingStartDate(e.target.value)} 
-                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50 appearance-none" 
+                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 appearance-none" 
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data de Término</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Previsão de Entrega</label>
                   <input 
                     type="date" 
                     value={bookingEndDate} 
                     onChange={(e) => setBookingEndDate(e.target.value)} 
-                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50 appearance-none" 
+                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 appearance-none" 
                     required
                   />
                 </div>
@@ -465,9 +460,9 @@ export default function ComercialPage() {
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-xs tracking-wider transition shadow-lg shadow-blue-500/20 text-center"
+                  className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-xs tracking-wider transition shadow-lg shadow-emerald-500/20 text-center"
                 >
-                  Confirmar Reserva
+                  Confirmar Compra
                 </button>
               </div>
             </form>

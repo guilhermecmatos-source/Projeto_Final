@@ -10,7 +10,7 @@ import FormModal from "@/components/ui/FormModal";
 import FormField from "@/components/forms/FormField";
 import FormActions from "@/components/forms/FormActions";
 import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
-import { travelsApi, vehiclesApi } from "@/services/api";
+import { travelsApi, vehiclesApi, ruvApi } from "@/services/api";
 import { formatPlateDisplay } from "@/lib/validators";
 import { addToSyncQueue, saveLogisticsDraft } from "@/lib/offline";
 import GoogleMapsGeoselector from "@/components/forms/GoogleMapsGeoselector";
@@ -117,6 +117,10 @@ export default function LogisticsPage() {
   const [departureLocation, setDepartureLocation] = useState("");
   const [arrivalLocation, setArrivalLocation] = useState("");
 
+  // RUV association state
+  const [ruvList, setRuvList] = useState<{ id: string; protocol: string; requester: string; destination: string; status: string }[]>([]);
+  const [selectedRuvId, setSelectedRuvId] = useState("");
+
   // ── Real-time interactive state ──────────────────────────────────────────
   const [trips, setTrips] = useState<LocalTrip[]>(INITIAL_TRIPS);
   const [logs, setLogs] = useState<LogEvent[]>(INITIAL_LOGS);
@@ -203,11 +207,20 @@ export default function LogisticsPage() {
     e.preventDefault();
     setSaving(true);
     const data = formToObject(new FormData(e.currentTarget));
+    // Associate RUV protocol
+    const associatedRuv = ruvList.find(r => r.id === selectedRuvId);
+    if (associatedRuv) {
+      data.ruv_protocol = associatedRuv.protocol;
+      data.ruv_id = associatedRuv.id;
+    }
     saveLogisticsDraft(data);
     addToSyncQueue({ type: "logistics", payload: data });
+    const ruvMsg = associatedRuv ? ` | Protocolo RUV: ${associatedRuv.protocol}` : "";
+    addLog(`Movimentação registrada e enfileirada para sync.${ruvMsg}`, "success");
     setMovementModalOpen(false);
+    setSelectedRuvId("");
     setSaving(false);
-    showToast("Movimentação salva localmente e enfileirada para sincronização.", "success");
+    showToast(`Movimentação salva localmente e enfileirada para sincronização.${ruvMsg}`, "success");
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -224,7 +237,20 @@ export default function LogisticsPage() {
               <ActionButton variant="outline" onClick={() => router.push("/travels/ruv")}>
                 <Icon name="description" /> RUV
               </ActionButton>
-              <ActionButton variant="outline" onClick={() => setMovementModalOpen(true)}>
+              <ActionButton variant="outline" onClick={() => {
+                setMovementModalOpen(true);
+                // Fetch RUVs when modal opens
+                ruvApi.list().then(res => {
+                  const items = (res.data as any[]) ?? [];
+                  setRuvList(items.map((r: any) => ({
+                    id: r.id ?? r._id ?? "",
+                    protocol: r.protocol ?? r.numero_protocolo ?? `RUV-${(r.id ?? r._id ?? "").toString().slice(-6)}`,
+                    requester: r.requester_name ?? r.solicitante ?? "---",
+                    destination: r.destination ?? r.destino ?? "---",
+                    status: r.status ?? "pendente",
+                  })));
+                }).catch(() => setRuvList([]));
+              }}>
                 <Icon name="edit_road" /> Registrar Movimentação
               </ActionButton>
               <ActionButton onClick={() => setDispatchModalOpen(true)}>
@@ -503,6 +529,27 @@ export default function LogisticsPage() {
               <FormField label="Data fechamento" name="ruv_close_date" type="date" required />
               <FormField label="KM rodado (RUV)" name="ruv_km" type="number" placeholder="Igual ao calculado" />
               <FormField label="Observações" name="ruv_notes" as="textarea" className="sm:col-span-2" rows={3} />
+            </div>
+            {/* RUV Protocol Association */}
+            <div className="raised-card p-4 border border-primary/20 bg-primary/5">
+              <h3 className="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Icon name="link" className="text-sm" /> Associar Protocolo RUV
+              </h3>
+              <select
+                className="input-fleet w-full"
+                value={selectedRuvId}
+                onChange={e => setSelectedRuvId(e.target.value)}
+              >
+                <option value="">— Nenhum protocolo vinculado —</option>
+                {ruvList.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.protocol} — {r.requester} → {r.destination} [{r.status}]
+                  </option>
+                ))}
+              </select>
+              {ruvList.length === 0 && (
+                <p className="text-[10px] text-on-surface-variant mt-2">Nenhuma RUV encontrada. Crie uma RUV antes de associar.</p>
+              )}
             </div>
             <FormActions
               loading={saving}

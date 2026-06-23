@@ -19,7 +19,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/copilot", label: "Copilot IA", icon: "smart_toy" },
   { href: "/notifications", label: "Notificações", icon: "notifications" },
   { href: "/comercial", label: "Comercial", icon: "storefront" },
-  { href: "/ai-security", label: "Segurança IA", icon: "psychology" },
   { href: "/chat", label: "Chat Corporativo", icon: "chat" },
   { href: "/partners", label: "Rede Credenciada", icon: "handshake" },
   { href: "/settings", label: "Configurações", icon: "settings" },

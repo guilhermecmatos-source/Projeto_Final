@@ -14,6 +14,8 @@ import {
   saveLogisticsDraft,
 } from "@/lib/offline";
 import { useOffline } from "@/hooks/useOffline";
+import { ruvApi } from "@/services/api";
+import Icon from "@/components/ui/Icon";
 
 function formToObject(form: FormData): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
@@ -31,9 +33,24 @@ export default function LogisticsMovementPage() {
   const [message, setMessage] = useState({ error: "", success: "" });
   const { online, syncNow } = useOffline();
 
+  // RUV association state
+  const [ruvList, setRuvList] = useState<{ id: string; protocol: string; requester: string; destination: string; status: string }[]>([]);
+  const [selectedRuvId, setSelectedRuvId] = useState("");
+
   useEffect(() => {
     const draft = getLogisticsDraft();
     if (draft?.savedAt) setLastSaved(draft.savedAt as string);
+    // Fetch RUV list
+    ruvApi.list().then(res => {
+      const items = (res.data as any[]) ?? [];
+      setRuvList(items.map((r: any) => ({
+        id: r.id ?? r._id ?? "",
+        protocol: r.protocol ?? r.numero_protocolo ?? `RUV-${(r.id ?? r._id ?? "").toString().slice(-6)}`,
+        requester: r.requester_name ?? r.solicitante ?? "---",
+        destination: r.destination ?? r.destino ?? "---",
+        status: r.status ?? "pendente",
+      })));
+    }).catch(() => setRuvList([]));
   }, []);
 
   function updateKmRodado(initial: string, final: string) {
@@ -57,9 +74,17 @@ export default function LogisticsMovementPage() {
     e.preventDefault();
     setLoading(true);
     const data = formToObject(new FormData(e.currentTarget));
+    // Associate RUV protocol
+    const associatedRuv = ruvList.find(r => r.id === selectedRuvId);
+    if (associatedRuv) {
+      data.ruv_protocol = associatedRuv.protocol;
+      data.ruv_id = associatedRuv.id;
+    }
     saveLogisticsDraft(data);
     addToSyncQueue({ type: "logistics", payload: data });
-    setMessage({ error: "", success: "Registro salvo. Sincronização quando online." });
+    const ruvMsg = associatedRuv ? ` Protocolo RUV: ${associatedRuv.protocol}` : "";
+    setMessage({ error: "", success: `Registro salvo. Sincronização quando online.${ruvMsg}` });
+    setSelectedRuvId("");
     setLoading(false);
   }
 
@@ -139,6 +164,28 @@ export default function LogisticsMovementPage() {
           <FormField label="Data fechamento" name="ruv_close_date" type="date" required />
           <FormField label="KM rodado (RUV)" name="ruv_km" type="number" placeholder="Igual ao calculado" />
           <FormField label="Observações" name="ruv_notes" as="textarea" className="md:col-span-2" rows={4} />
+        </section>
+
+        {/* RUV Protocol Association */}
+        <section className="raised-card grid gap-4 p-4 sm:p-6">
+          <h2 className="text-headline-sm flex items-center gap-2">
+            <Icon name="link" className="text-primary" /> Associar Protocolo RUV
+          </h2>
+          <select
+            className="input-fleet w-full"
+            value={selectedRuvId}
+            onChange={e => setSelectedRuvId(e.target.value)}
+          >
+            <option value="">— Nenhum protocolo vinculado —</option>
+            {ruvList.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.protocol} — {r.requester} → {r.destination} [{r.status}]
+              </option>
+            ))}
+          </select>
+          {ruvList.length === 0 && (
+            <p className="text-sm text-on-surface-variant">Nenhuma RUV encontrada. Crie uma RUV antes de associar.</p>
+          )}
         </section>
 
         <FormActions

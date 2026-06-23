@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import { showToast } from "@/components/ui/Toast";
+import { ruvApi } from "@/services/api";
 
 type TabId = "all" | "sys" | "client" | "ruv" | "solicitacoes";
 type NotificationType = "sys" | "client" | "ruv";
@@ -109,6 +110,47 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
 
+  const loadNotifications = useCallback(() => {
+    ruvApi.list("pendente")
+      .then((res) => {
+        const dbRuvs = Array.isArray(res.data) ? res.data : [];
+        const mappedDbRuvs: Notification[] = dbRuvs.map((r: any) => ({
+          id: `db-ruv-${r.id}`,
+          type: "ruv",
+          category: "SOLICITAÇÕES",
+          categoryColor: "text-[#FCA311]",
+          iconName: "assignment_ind",
+          iconColor: "text-[#FCA311]",
+          borderColor: "border border-[#FCA311]/30",
+          title: `SOLICITAÇÃO DE VIAGEM RUV-${r.id.slice(0, 4).toUpperCase()}`,
+          description: `O condutor ${r.driver_name || "Motorista"} solicitou o veículo ${r.vehicle_plate || "Veículo"} em pátio operacional para finalidade: ${r.service || r.purpose || "Viagem"}.`,
+          date: r.created_at ? new Date(r.created_at).toISOString().replace("T", " ").substring(0, 16) : new Date().toISOString().replace("T", " ").substring(0, 16),
+          isRead: false,
+          isSolicitation: true,
+          solicitationData: {
+            vehicle: r.vehicle_plate || "Não especificado",
+            driver: r.driver_name || "Não especificado",
+            route: `${r.origin || "Sede"} ➔ ${r.destination || "Destino"}`,
+            passengers: r.quantidade ? `Passageiros: ${r.quantidade}` : (r.passengers ? `Passageiros: ${r.passengers}` : "Sem passageiros"),
+            requestedBy: r.requester_name || r.driver_name || "Sistema",
+            ruvId: r.id,
+          },
+        }));
+
+        setNotifications((prev) => {
+          const nonDbNotifs = prev.filter((n) => !n.id.startsWith("db-ruv-"));
+          return [...mappedDbRuvs, ...nonDbNotifs];
+        });
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar RUVs para notificações:", err);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const readNotifications = notifications.filter((n) => n.isRead);
 
@@ -168,18 +210,36 @@ export default function NotificationsPage() {
     showToast(`${readCount} notificações lidas removidas.`, "success");
   };
 
-  const handleReject = (notifId: string, ruvId: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n))
-    );
-    showToast(`Solicitação ${ruvId} rejeitada com sucesso.`, "error");
+  const handleReject = async (notifId: string, ruvId: string) => {
+    try {
+      if (notifId.startsWith("db-ruv-")) {
+        await ruvApi.reject(ruvId, "Rejeitada via Central de Notificações");
+        loadNotifications();
+      } else {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n))
+        );
+      }
+      showToast(`Solicitação ${ruvId} rejeitada com sucesso.`, "error");
+    } catch {
+      showToast("Erro ao rejeitar a RUV.", "error");
+    }
   };
 
-  const handleAuthorize = (notifId: string, ruvId: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n))
-    );
-    showToast(`Viagem ${ruvId} autorizada com sucesso!`, "success");
+  const handleAuthorize = async (notifId: string, ruvId: string) => {
+    try {
+      if (notifId.startsWith("db-ruv-")) {
+        await ruvApi.approve(ruvId);
+        loadNotifications();
+      } else {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n))
+        );
+      }
+      showToast(`Viagem ${ruvId} autorizada com sucesso!`, "success");
+    } catch {
+      showToast("Erro ao autorizar a viagem.", "error");
+    }
   };
 
   const handleEmitRUV = () => {
@@ -344,10 +404,11 @@ export default function NotificationsPage() {
         {/* Right Side: Feed */}
         <div className="lg:col-span-8 flex flex-col">
           {/* Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-4 custom-scrollbar">
+          <div className="sticky top-14 sm:top-16 z-30 flex gap-2 overflow-x-auto pb-4 pt-2 custom-scrollbar bg-background">
             {TABS.map((t) => (
               <button
                 key={t.id}
+                type="button"
                 onClick={() => setActiveTab(t.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap ${
                   activeTab === t.id

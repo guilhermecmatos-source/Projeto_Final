@@ -92,12 +92,13 @@ export default function VehiclesPage() {
   const handleAddSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const plate = String(form.get("plate")).trim().toUpperCase();
+    const rawPlate = String(form.get("plate")).trim().toUpperCase();
+    const plate = rawPlate.replace(/[^A-Za-z0-9]/g, "");
     const brand = String(form.get("brand")).trim();
     const model = String(form.get("model")).trim();
 
-    if (!plate || plate.length < 7) {
-      showToast("Formato de placa inválido. Insira uma placa válida (ex: ABC1234).", "error");
+    if (!plate || plate.length !== 7) {
+      showToast("Formato de placa inválido. Insira uma placa válida (ex: ABC-1234 ou ABC1D23).", "error");
       return;
     }
     if (!brand || !model) {
@@ -267,6 +268,18 @@ export default function VehiclesPage() {
                   <p className="text-[10px] text-slate-400 font-medium">Ano: <span className="text-slate-300 font-bold">{v.year}</span></p>
                   <p className="text-[9px] text-slate-500 font-medium">Autonomia Estimada: <span className="text-slate-400 font-bold">~{v.autonomy}km</span></p>
                 </div>
+                {v.tag === "DISPONÍVEL" && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showToast(`Reserva de locação solicitada para o veículo de placa ${v.plate}`, "success");
+                    }}
+                    className="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-[10px] tracking-wider rounded-lg transition"
+                  >
+                    Reservar Locação
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -360,8 +373,8 @@ export default function VehiclesPage() {
               name="plate"
               value={newPlate} 
               onChange={e => setNewPlate(e.target.value.toUpperCase())} 
-              maxLength={7}
-              placeholder="AAA0000" 
+              maxLength={8}
+              placeholder="AAA-0000 ou AAA0A00" 
               className="input-fleet w-full" 
               required
             />
