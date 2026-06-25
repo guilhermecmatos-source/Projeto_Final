@@ -32,6 +32,8 @@ export default function VehicleRegisterPage() {
           mileage: Number(form.get("mileage") || 0),
           avg_consumption: Number(form.get("avg_consumption") || 10),
           autonomy_km: Number(form.get("autonomy_km") || 500),
+          engine: form.get("engine") || "Óleo Diesel S10",
+          purpose: form.get("purpose") || "locacao",
         });
 
         const vehicleId = (res.data as { id?: string })?.id;
@@ -45,6 +47,8 @@ export default function VehicleRegisterPage() {
           }
         } else if (photoPreview && plate) {
           localStorage.setItem(`vehicle_photo_${plate}`, photoPreview);
+        } else if (!photoPreview && plate) {
+          localStorage.removeItem(`vehicle_photo_${plate}`);
         }
       }}
     >
@@ -65,11 +69,22 @@ export default function VehicleRegisterPage() {
         <FormField label="Quilometragem" name="mileage" type="number" placeholder="0" />
         <FormField label="Consumo médio (km/L)" name="avg_consumption" type="number" placeholder="10" />
         <FormField label="Autonomia estimada (km)" name="autonomy_km" type="number" placeholder="500" />
+        <FormField label="Tipo de Motor" name="engine" placeholder="Ex: Óleo Diesel S10" required defaultValue="Óleo Diesel S10" />
+        <FormField
+          label="Finalidade"
+          name="purpose"
+          required
+          options={[
+            { value: "", label: "Selecione a finalidade..." },
+            { value: "locacao", label: "Locação" },
+            { value: "venda", label: "Venda" },
+          ]}
+        />
 
         <div className="md:col-span-2">
           <CameraPhotoField
             onCapture={(dataUrl, file) => {
-              setPhotoPreview(dataUrl);
+              setPhotoPreview(dataUrl || null);
               setPhotoFile(file);
             }}
             previewUrl={photoPreview}

@@ -113,14 +113,28 @@ export default function CameraPhotoField({
         )}
 
         {shownPreview && !loading && (
-          <div className="flex-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={shownPreview}
-              alt="Preview"
-              className="max-h-48 w-full rounded-lg border border-outline-variant object-cover sm:max-w-xs"
-            />
-            {fileName && <p className="mt-2 text-xs text-on-surface-variant">{fileName}</p>}
+          <div className="flex-1 flex flex-col items-start gap-2">
+            <div className="relative max-w-[280px] group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={shownPreview}
+                alt="Preview"
+                className="max-h-48 w-full rounded-lg border border-outline-variant object-cover sm:max-w-xs"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setPreview(null);
+                  setFileName("");
+                  onCapture?.("", undefined);
+                }}
+                className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-600/90 text-white hover:bg-red-700 transition shadow-lg"
+                title="Excluir imagem"
+              >
+                <Icon name="delete" className="text-sm" />
+              </button>
+            </div>
+            {fileName && <p className="text-xs text-on-surface-variant">{fileName}</p>}
           </div>
         )}
       </div>

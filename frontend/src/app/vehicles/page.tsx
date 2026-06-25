@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import { showToast } from "@/components/ui/Toast";
-import FormModal from "@/components/ui/FormModal";
+
 import { vehiclesApi } from "@/services/api";
 
 const STATUS_OPTIONS = ["TODOS", "DISPONÍVEL", "EM MANUTENÇÃO", "INATIVO"];
@@ -41,18 +42,16 @@ interface VehicleData {
   autonomy: number;
   image: string;
   engine: string;
+  purpose?: string;
 }
 
 export default function VehiclesPage() {
+  const router = useRouter();
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("TODOS");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleData | null>(null);
-  
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newPlate, setNewPlate] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -61,6 +60,12 @@ export default function VehiclesPage() {
         const rawList = Array.isArray(res.data) ? res.data : [];
         const mapped = rawList.map((v: any) => {
           const { tag, tagColor } = mapStatusToTag(v.status || "active");
+          
+          let localPhoto = "";
+          if (typeof window !== "undefined") {
+            localPhoto = localStorage.getItem(`vehicle_photo_${v.plate}`) || "";
+          }
+
           return {
             id: v.id,
             brand: v.brand,
@@ -72,8 +77,9 @@ export default function VehiclesPage() {
             consumption: Number(v.avg_consumption || 10),
             year: Number(v.year || new Date().getFullYear()),
             autonomy: Number(v.autonomy_km || (v.avg_consumption ? v.avg_consumption * 50 : 500)),
-            image: v.photo_url || "",
-            engine: "Óleo Diesel S10",
+            image: localPhoto || v.photo_url || "",
+            engine: v.engine || "Óleo Diesel S10",
+            purpose: v.purpose || "locacao",
           };
         });
         setVehicles(mapped);
@@ -89,47 +95,7 @@ export default function VehiclesPage() {
     load();
   }, []);
 
-  const handleAddSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const rawPlate = String(form.get("plate")).trim().toUpperCase();
-    const plate = rawPlate.replace(/[^A-Za-z0-9]/g, "");
-    const brand = String(form.get("brand")).trim();
-    const model = String(form.get("model")).trim();
 
-    if (!plate || plate.length !== 7) {
-      showToast("Formato de placa inválido. Insira uma placa válida (ex: ABC-1234 ou ABC1D23).", "error");
-      return;
-    }
-    if (!brand || !model) {
-      showToast("Marca e modelo são obrigatórios.", "error");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await vehiclesApi.create({
-        plate,
-        brand,
-        model,
-        year: new Date().getFullYear(),
-        status: "active",
-        mileage: 0,
-        avg_consumption: 10,
-        autonomy_km: 500,
-      });
-      showToast("Novo veículo cadastrado e indexado no grid.", "success");
-      setAddModalOpen(false);
-      setNewPlate("");
-      load();
-    } catch (err: any) {
-      const { extractApiError } = await import("@/lib/api-errors");
-      const errMsg = extractApiError(err, "Erro ao cadastrar veículo.");
-      showToast(errMsg, "error");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const filteredVehicles = vehicles.filter(v => {
     const matchesSearch = v.plate.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -156,7 +122,7 @@ export default function VehiclesPage() {
         title="Inventário de Frota"
         subtitle="Gestão de cavalos mecânicos, caminhões e utilitários da geradora."
         actions={
-          <button onClick={() => setAddModalOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-[#FCA311] px-4 py-2 text-xs font-bold uppercase text-[#0c132b] hover:bg-amber-400 transition">
+          <button onClick={() => router.push("/vehicles/register")} className="flex items-center gap-1.5 rounded-lg bg-[#FCA311] px-4 py-2 text-xs font-bold uppercase text-[#0c132b] hover:bg-amber-400 transition">
             <Icon name="add" className="text-sm" /> CADASTRAR VEÍCULO
           </button>
         }
@@ -273,7 +239,7 @@ export default function VehiclesPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      showToast(`Reserva de locação solicitada para o veículo de placa ${v.plate}`, "success");
+                      router.push(`/travels/ruv?vehicleId=${v.id}`);
                     }}
                     className="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-[10px] tracking-wider rounded-lg transition"
                   >
@@ -343,6 +309,12 @@ export default function VehiclesPage() {
                   <span className="text-[10px] text-slate-500 font-medium">Autonomia</span>
                   <span className="text-[11px] font-bold text-green-400">~{selectedVehicle.autonomy} km</span>
                 </div>
+                <div className="flex items-center justify-between border-b border-outline-variant/10 pb-2 col-span-2">
+                  <span className="text-[10px] text-slate-500 font-medium">Finalidade</span>
+                  <span className="text-[11px] font-bold text-white capitalize">
+                    {selectedVehicle.purpose === "venda" ? "Venda" : "Locação"}
+                  </span>
+                </div>
               </div>
 
               <div className="bg-[#0F172A] rounded-xl p-4 border border-outline-variant/20 mb-6">
@@ -364,36 +336,7 @@ export default function VehiclesPage() {
         </div>
       )}
 
-      {/* Modal Add Vehicle */}
-      <FormModal open={addModalOpen} onClose={() => setAddModalOpen(false)} title="Novo Veículo" subtitle="Registro de novo ativo na frota">
-        <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Placa (Obrigatório)</label>
-            <input 
-              name="plate"
-              value={newPlate} 
-              onChange={e => setNewPlate(e.target.value.toUpperCase())} 
-              maxLength={8}
-              placeholder="AAA-0000 ou AAA0A00" 
-              className="input-fleet w-full" 
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Marca</label>
-              <input name="brand" placeholder="Ex: VOLVO" className="input-fleet w-full" required />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Modelo</label>
-              <input name="model" placeholder="Ex: FH 540" className="input-fleet w-full" required />
-            </div>
-          </div>
-          <button type="submit" disabled={saving} className="w-full mt-4 bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-xs py-3 rounded-lg transition disabled:opacity-50">
-            {saving ? "Salvando..." : "Salvar Registro"}
-          </button>
-        </form>
-      </FormModal>
+
     </AppShell>
   );
 }
