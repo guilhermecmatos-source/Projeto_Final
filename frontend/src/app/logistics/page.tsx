@@ -125,6 +125,10 @@ export default function LogisticsPage() {
   const [trips, setTrips] = useState<LocalTrip[]>(INITIAL_TRIPS);
   const [logs, setLogs] = useState<LogEvent[]>(INITIAL_LOGS);
 
+  // ── Profile panel state ────────────────────────────────────────────────
+  const [selectedTrip, setSelectedTrip] = useState<LocalTrip | null>(null);
+  const [selectedLog, setSelectedLog] = useState<LogEvent | null>(null);
+
   const addLog = (message: string, type: LogEvent["type"]) => {
     const newLog: LogEvent = {
       id: `log-${Date.now()}`,
@@ -287,12 +291,13 @@ export default function LogisticsPage() {
               return (
                 <div
                   key={trip.id}
-                  className={`raised-card p-5 transition-all border-l-4 ${
+                  className={`raised-card p-5 transition-all border-l-4 cursor-pointer hover:border-primary/60 ${
                     isFinished ? "border-l-outline-variant/30 opacity-60" :
                     trip.status === "Atrasada" ? "border-l-error" :
                     trip.status === "Em Rota" ? "border-l-primary" :
                     "border-l-outline-variant/30"
                   }`}
+                  onClick={() => setSelectedTrip(trip)}
                 >
                   {/* Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
@@ -369,7 +374,11 @@ export default function LogisticsPage() {
 
             <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar flex-1 pr-1">
               {logs.map(log => (
-                <div key={log.id} className="bg-surface-container-high border border-outline-variant/10 p-3 rounded-lg text-xs animate-in fade-in slide-in-from-top-2 duration-300">
+                <div
+                  key={log.id}
+                  className="bg-surface-container-high border border-outline-variant/10 p-3 rounded-lg text-xs animate-in fade-in slide-in-from-top-2 duration-300 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                  onClick={() => setSelectedLog(log)}
+                >
                   <div className="flex justify-between text-[10px] font-mono text-on-surface-variant mb-1">
                     <span>[{log.time}]</span>
                     <span className={`uppercase font-bold tracking-widest ${
@@ -381,6 +390,7 @@ export default function LogisticsPage() {
                     </span>
                   </div>
                   <p className="text-on-surface leading-relaxed">{log.message}</p>
+                  <p className="text-[9px] text-primary/60 mt-1 font-bold uppercase tracking-wider">Clique para ver detalhes →</p>
                 </div>
               ))}
             </div>
@@ -567,6 +577,194 @@ export default function LogisticsPage() {
           onSelect={handleMapSelect}
           title={mapTarget === "departure_location" ? "Selecione o Local de Saída" : "Selecione o Local de Chegada"}
         />
+
+        {/* ── Trip Profile Panel ─────────────────────────────────────────── */}
+        {selectedTrip && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setSelectedTrip(null)}>
+            <div
+              className="w-full max-w-lg rounded-2xl bg-[#0c132b] border border-outline-variant/30 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className={`p-5 border-b border-outline-variant/20 flex justify-between items-start ${
+                selectedTrip.status === "Em Rota" ? "bg-primary/10" :
+                selectedTrip.status === "Atrasada" ? "bg-error/10" :
+                selectedTrip.status === "Concluída" ? "bg-green-500/10" :
+                "bg-surface-container-low"
+              }`}>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[9px] font-mono font-bold bg-surface-container-high text-primary border border-primary/20 px-2 py-0.5 rounded">{selectedTrip.id}</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      selectedTrip.status === "Em Rota" ? "bg-blue-500/20 text-blue-400" :
+                      selectedTrip.status === "Pendente" ? "bg-slate-500/20 text-slate-400" :
+                      selectedTrip.status === "Atrasada" ? "bg-red-500/20 text-red-400" :
+                      "bg-green-500/20 text-green-400"
+                    }`}>{selectedTrip.status}</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">Manifesto — Perfil da Viagem</h3>
+                </div>
+                <button onClick={() => setSelectedTrip(null)} className="text-slate-400 hover:text-white transition">
+                  <Icon name="close" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                {/* Route */}
+                <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                  <p className="text-[9px] font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5"><Icon name="route" className="text-sm" />Rota da Viagem</p>
+                  <p className="text-sm font-bold text-white">{selectedTrip.route}</p>
+                </div>
+
+                {/* Grid of info */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Veículo</p>
+                    <p className="text-xs font-bold text-white flex items-center gap-1.5"><Icon name="local_shipping" className="text-[13px] text-primary" />{selectedTrip.vehicle}</p>
+                  </div>
+                  <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Condutor</p>
+                    <p className="text-xs font-bold text-white flex items-center gap-1.5"><Icon name="person" className="text-[13px] text-primary" />{selectedTrip.driver}</p>
+                  </div>
+                  <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Carga / Serviço</p>
+                    <p className="text-xs font-bold text-white flex items-center gap-1.5"><Icon name="inventory_2" className="text-[13px] text-amber-400" />{selectedTrip.cargo}</p>
+                  </div>
+                  <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status Atual</p>
+                    <p className={`text-xs font-bold ${
+                      selectedTrip.status === "Em Rota" ? "text-blue-400" :
+                      selectedTrip.status === "Atrasada" ? "text-red-400" :
+                      selectedTrip.status === "Concluída" ? "text-green-400" :
+                      "text-slate-400"
+                    }`}>{selectedTrip.status}</p>
+                  </div>
+                </div>
+
+                {/* RUV Association note */}
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                  <p className="text-[9px] font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5"><Icon name="description" className="text-sm" />Protocolo RUV Vinculado</p>
+                  <p className="text-xs text-slate-400">As informações detalhadas de RUV (requisitante, destino, horários, tipo de veículo, combustível, passageiros e autorizações) são registradas no momento da movimentação e podem ser acessadas pelo módulo RUV / Viagens.</p>
+                  <button
+                    onClick={() => { setSelectedTrip(null); router.push("/travels/ruv"); }}
+                    className="mt-3 text-[10px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition flex items-center gap-1.5"
+                  >
+                    <Icon name="open_in_new" className="text-xs" /> Abrir módulo RUV
+                  </button>
+                </div>
+
+                {/* Status mutation */}
+                {selectedTrip.status !== "Concluída" && (
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => { updateTripStatus(selectedTrip.id, "Em Rota"); setSelectedTrip(prev => prev ? { ...prev, status: "Em Rota" } : null); }}
+                      className="flex-1 text-[10px] px-3 py-2 rounded-lg font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/20 transition"
+                    >
+                      <Icon name="play_arrow" className="text-xs mr-1" />Iniciar
+                    </button>
+                    <button
+                      onClick={() => { updateTripStatus(selectedTrip.id, "Atrasada"); setSelectedTrip(prev => prev ? { ...prev, status: "Atrasada" } : null); }}
+                      className="flex-1 text-[10px] px-3 py-2 rounded-lg font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition"
+                    >
+                      <Icon name="schedule" className="text-xs mr-1" />Atraso
+                    </button>
+                    <button
+                      onClick={() => { updateTripStatus(selectedTrip.id, "Concluída"); setSelectedTrip(prev => prev ? { ...prev, status: "Concluída" } : null); }}
+                      className="flex-1 text-[10px] px-3 py-2 rounded-lg font-bold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition"
+                    >
+                      <Icon name="check_circle" className="text-xs mr-1" />Finalizar
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-outline-variant/20 bg-[#0b0e14]">
+                <button onClick={() => setSelectedTrip(null)} className="w-full py-2.5 rounded-xl bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-xs tracking-widest transition">
+                  FECHAR PERFIL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Log / Occurrence Profile Panel ─────────────────────────────── */}
+        {selectedLog && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setSelectedLog(null)}>
+            <div
+              className="w-full max-w-lg rounded-2xl bg-[#0c132b] border border-outline-variant/30 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className={`p-5 border-b border-outline-variant/20 flex justify-between items-start ${
+                selectedLog.type === "success" ? "bg-green-500/10" :
+                selectedLog.type === "warning" ? "bg-red-500/10" :
+                "bg-primary/10"
+              }`}>
+                <div>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${
+                    selectedLog.type === "success" ? "text-green-400" :
+                    selectedLog.type === "warning" ? "text-red-400" :
+                    "text-primary"
+                  }`}>
+                    ● OCORRÊNCIA — {selectedLog.type.toUpperCase()}
+                  </p>
+                  <h3 className="text-base font-bold text-white">Feed de Ocorrência ao Vivo</h3>
+                </div>
+                <button onClick={() => setSelectedLog(null)} className="text-slate-400 hover:text-white transition">
+                  <Icon name="close" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4">
+                <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Icon name="schedule" className="text-sm" />Horário do Registro</p>
+                  <p className="text-xl font-mono font-bold text-white">{selectedLog.time}</p>
+                </div>
+
+                <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Icon name="sensors" className="text-sm" />Mensagem da Ocorrência</p>
+                  <p className="text-sm text-white leading-relaxed">{selectedLog.message}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tipo</p>
+                    <p className={`text-xs font-bold uppercase ${
+                      selectedLog.type === "success" ? "text-green-400" :
+                      selectedLog.type === "warning" ? "text-red-400" :
+                      "text-blue-400"
+                    }`}>{selectedLog.type}</p>
+                  </div>
+                  <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">ID do Evento</p>
+                    <p className="text-xs font-mono font-bold text-white">{selectedLog.id}</p>
+                  </div>
+                </div>
+
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+                  <p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Icon name="info" className="text-sm" />Contexto de Movimentação</p>
+                  <p className="text-xs text-slate-400">Este registro foi gerado automaticamente pelo sistema de monitoramento ou injetado manualmente pelo painel logístico. Dados completos de movimentação (hodômetro, RUV associado, rotas e condutor) podem ser consultados no histórico de viagens.</p>
+                  <button
+                    onClick={() => { setSelectedLog(null); router.push("/travels"); }}
+                    className="mt-3 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition flex items-center gap-1.5"
+                  >
+                    <Icon name="open_in_new" className="text-xs" /> Ver histórico de viagens
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-outline-variant/20 bg-[#0b0e14]">
+                <button onClick={() => setSelectedLog(null)} className="w-full py-2.5 rounded-xl bg-[#FCA311] hover:bg-amber-400 text-[#0c132b] font-black uppercase text-xs tracking-widest transition">
+                  FECHAR OCORRÊNCIA
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </ErrorBoundary>
     </AppShell>
   );

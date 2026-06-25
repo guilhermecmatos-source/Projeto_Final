@@ -36,23 +36,23 @@ export default function ComercialPage() {
   const [filterStatus, setFilterStatus] = useState("Todos");
 
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [selectedBookingVehicle, setSelectedBookingVehicle] = useState<{ name: string; plate: string; rate: string } | null>(null);
   const [bookingDriver, setBookingDriver] = useState("");
   const [bookingStartDate, setBookingStartDate] = useState("");
   const [bookingEndDate, setBookingEndDate] = useState("");
+  const [paymentMode, setPaymentMode] = useState("");
+  const [entradaValue, setEntradaValue] = useState("");
+  const [installments, setInstallments] = useState("60");
 
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bookingDriver || !bookingStartDate || !bookingEndDate) {
+    if (!bookingDriver || !bookingStartDate || !bookingEndDate || !paymentMode) {
       showToast("Por favor, preencha todos os campos da compra.", "warning");
       return;
     }
-    showToast(`Solicitação de compra do veículo ${selectedBookingVehicle?.name} (Placa: ${selectedBookingVehicle?.plate}) enviada ao consultor comercial. Comprador: ${bookingDriver}.`, "success");
-    setIsBookingOpen(false);
-    setSelectedBookingVehicle(null);
-    setBookingDriver("");
-    setBookingStartDate("");
-    setBookingEndDate("");
+    setBookingConfirmed(true);
+    showToast(`Proposta de compra do ${selectedBookingVehicle?.name} confirmada! Modo: ${paymentMode}.`, "success");
   };
 
   const filteredContracts = CONTRACTS.filter(c => {
@@ -319,6 +319,8 @@ export default function ComercialPage() {
                   type="button"
                   onClick={() => {
                     setSelectedBookingVehicle({ name: "Scania R 450", plate: "BRA-2E19", rate: "R$ 850.000,00" });
+                    setBookingConfirmed(false);
+                    setPaymentMode(""); setEntradaValue(""); setInstallments("60");
                     setIsBookingOpen(true);
                   }}
                   className="w-full py-3 bg-emerald-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/20"
@@ -366,6 +368,8 @@ export default function ComercialPage() {
                   type="button"
                   onClick={() => {
                     setSelectedBookingVehicle({ name: "Volvo FH 540", plate: "FLT-0130", rate: "R$ 1.250.000,00" });
+                    setBookingConfirmed(false);
+                    setPaymentMode(""); setEntradaValue(""); setInstallments("60");
                     setIsBookingOpen(true);
                   }}
                   className="w-full py-3 bg-emerald-600 text-white font-bold uppercase text-[11px] tracking-wider rounded-lg hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/20"
@@ -381,91 +385,222 @@ export default function ComercialPage() {
       {/* Booking Confirmation Modal */}
       {isBookingOpen && selectedBookingVehicle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#0c132b] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-start mb-4">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0c132b] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+
+            {/* Header */}
+            <div className="p-6 border-b border-outline-variant/20 flex justify-between items-start">
               <div>
-                <h3 className="text-base font-bold text-white uppercase tracking-wider">Confirmar Compra de Veículo</h3>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider">
+                  {bookingConfirmed ? "✅ Proposta Confirmada" : "Confirmar Compra de Veículo"}
+                </h3>
                 <p className="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded inline-block mt-1">PROPOSTA COMERCIAL DE VENDA</p>
               </div>
               <button 
                 type="button"
-                onClick={() => {
-                  setIsBookingOpen(false);
-                  setSelectedBookingVehicle(null);
-                }} 
+                onClick={() => { setIsBookingOpen(false); setSelectedBookingVehicle(null); setBookingConfirmed(false); }} 
                 className="text-slate-400 hover:text-white transition"
               >
                 <Icon name="close" />
               </button>
             </div>
 
-            <form onSubmit={handleConfirmBooking} className="space-y-4">
-              <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-3 flex justify-between items-center text-xs">
-                <div>
-                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Veículo Selecionado</p>
-                  <p className="text-white font-bold mt-0.5">{selectedBookingVehicle.name}</p>
-                  <p className="text-slate-500 text-[10px] font-mono">Placa: {selectedBookingVehicle.plate}</p>
+            {/* Confirmed state — contract signing */}
+            {bookingConfirmed ? (
+              <div className="p-6 space-y-5">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+                  <Icon name="check_circle" className="text-4xl text-emerald-400 mb-2" />
+                  <p className="text-sm font-bold text-white">Compra de {selectedBookingVehicle.name} confirmada!</p>
+                  <p className="text-[10px] text-emerald-300 mt-1">Placa: {selectedBookingVehicle.plate} · Modo: {paymentMode}</p>
+                  {entradaValue && <p className="text-[10px] text-slate-400 mt-0.5">Entrada: R$ {entradaValue}</p>}
                 </div>
-                <div className="text-right">
-                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Preço</p>
-                  <p className="text-emerald-400 font-black text-sm">{selectedBookingVehicle.rate}</p>
-                </div>
-              </div>
 
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Nome do Comprador</label>
-                <input 
-                  type="text" 
-                  value={bookingDriver} 
-                  onChange={(e) => setBookingDriver(e.target.value)} 
-                  placeholder="Nome completo do comprador..." 
-                  className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" 
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data da Proposta</label>
-                  <input 
-                    type="date" 
-                    value={bookingStartDate} 
-                    onChange={(e) => setBookingStartDate(e.target.value)} 
-                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 appearance-none" 
-                    required
-                  />
+                <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-4">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Resumo Financeiro</p>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Valor do Veículo</span>
+                      <span className="text-white font-bold">{selectedBookingVehicle.rate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Modo de Pagamento</span>
+                      <span className="text-emerald-400 font-bold capitalize">{paymentMode}</span>
+                    </div>
+                    {entradaValue && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Valor de Entrada</span>
+                        <span className="text-white font-bold">R$ {entradaValue}</span>
+                      </div>
+                    )}
+                    {(paymentMode === "parcelado" || paymentMode === "financiamento") && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Parcelas</span>
+                        <span className="text-white font-bold">{installments}x</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Comprador</span>
+                      <span className="text-white font-bold">{bookingDriver}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Previsão de Entrega</label>
-                  <input 
-                    type="date" 
-                    value={bookingEndDate} 
-                    onChange={(e) => setBookingEndDate(e.target.value)} 
-                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 appearance-none" 
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="pt-2 flex gap-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
+                    showToast(`Contrato de compra do ${selectedBookingVehicle.name} enviado para assinatura digital. Verifique seu e-mail.`, "success");
                     setIsBookingOpen(false);
                     setSelectedBookingVehicle(null);
-                  }} 
-                  className="flex-1 py-2.5 rounded-lg border border-outline-variant/40 text-xs font-bold text-slate-300 uppercase hover:bg-white/5 transition text-center"
+                    setBookingConfirmed(false);
+                    setBookingDriver(""); setBookingStartDate(""); setBookingEndDate("");
+                    setPaymentMode(""); setEntradaValue(""); setInstallments("60");
+                  }}
+                  className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-xs tracking-widest transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                 >
-                  Cancelar
+                  <Icon name="draw" className="text-sm" /> Assinar Contrato
                 </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-xs tracking-wider transition shadow-lg shadow-emerald-500/20 text-center"
+
+                <button
+                  type="button"
+                  onClick={() => setBookingConfirmed(false)}
+                  className="w-full py-2.5 rounded-xl border border-outline-variant/40 text-slate-300 text-xs font-bold uppercase hover:bg-white/5 transition"
                 >
-                  Confirmar Compra
+                  Voltar e editar
                 </button>
               </div>
-            </form>
+            ) : (
+              /* Purchase form */
+              <form onSubmit={handleConfirmBooking} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                {/* Vehicle info */}
+                <div className="bg-[#0F172A] border border-outline-variant/20 rounded-xl p-3 flex justify-between items-center text-xs">
+                  <div>
+                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Veículo Selecionado</p>
+                    <p className="text-white font-bold mt-0.5">{selectedBookingVehicle.name}</p>
+                    <p className="text-slate-500 text-[10px] font-mono">Placa: {selectedBookingVehicle.plate}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Preço</p>
+                    <p className="text-emerald-400 font-black text-sm">{selectedBookingVehicle.rate}</p>
+                  </div>
+                </div>
+
+                {/* Buyer name */}
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Nome do Comprador</label>
+                  <input 
+                    type="text" 
+                    value={bookingDriver} 
+                    onChange={(e) => setBookingDriver(e.target.value)} 
+                    placeholder="Nome completo do comprador..." 
+                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" 
+                    required
+                  />
+                </div>
+
+                {/* Payment Mode */}
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Modo de Pagamento</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "credito", label: "Crédito", icon: "credit_card" },
+                      { value: "consorcio", label: "Consórcio", icon: "groups" },
+                      { value: "parcelado", label: "Parcelado", icon: "payments" },
+                      { value: "financiamento", label: "Financiamento", icon: "account_balance" },
+                    ].map(opt => (
+                      <label
+                        key={opt.value}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition text-xs ${
+                          paymentMode === opt.value
+                            ? "border-emerald-500/60 bg-emerald-500/10 text-white"
+                            : "border-outline-variant/30 bg-[#0F172A] text-slate-400 hover:border-emerald-500/30"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMode"
+                          value={opt.value}
+                          checked={paymentMode === opt.value}
+                          onChange={() => setPaymentMode(opt.value)}
+                          className="hidden"
+                          required
+                        />
+                        <Icon name={opt.icon} className="text-[14px]" />
+                        <span className="font-bold">{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Down payment */}
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Valor de Entrada (R$) — opcional</label>
+                  <input 
+                    type="number" 
+                    value={entradaValue} 
+                    onChange={(e) => setEntradaValue(e.target.value)} 
+                    placeholder="Ex: 150000" 
+                    min="0"
+                    className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" 
+                  />
+                </div>
+
+                {/* Installments — only for parcelado or financiamento */}
+                {(paymentMode === "parcelado" || paymentMode === "financiamento") && (
+                  <div>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Número de Parcelas</label>
+                    <select
+                      value={installments}
+                      onChange={e => setInstallments(e.target.value)}
+                      className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                    >
+                      {[12, 24, 36, 48, 60, 72, 84].map(n => (
+                        <option key={n} value={String(n)}>{n}x</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Data da Proposta</label>
+                    <input 
+                      type="date" 
+                      value={bookingStartDate} 
+                      onChange={(e) => setBookingStartDate(e.target.value)} 
+                      className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 appearance-none" 
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Previsão de Entrega</label>
+                    <input 
+                      type="date" 
+                      value={bookingEndDate} 
+                      onChange={(e) => setBookingEndDate(e.target.value)} 
+                      className="w-full rounded-lg bg-[#0F172A] border border-outline-variant/30 px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 appearance-none" 
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 flex gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsBookingOpen(false); setSelectedBookingVehicle(null); setBookingConfirmed(false); }} 
+                    className="flex-1 py-2.5 rounded-lg border border-outline-variant/40 text-xs font-bold text-slate-300 uppercase hover:bg-white/5 transition text-center"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-xs tracking-wider transition shadow-lg shadow-emerald-500/20 text-center"
+                  >
+                    Confirmar Compra
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
