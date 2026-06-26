@@ -404,7 +404,7 @@ export default function NotificationsPage() {
         {/* Right Side: Feed */}
         <div className="lg:col-span-8 flex flex-col">
           {/* Tabs */}
-          <div className="sticky top-14 sm:top-16 z-30 flex gap-2 overflow-x-auto pb-4 pt-2 custom-scrollbar bg-background">
+          <div className="flex gap-2 overflow-x-auto pb-4 pt-2 custom-scrollbar bg-background">
             {TABS.map((t) => (
               <button
                 key={t.id}

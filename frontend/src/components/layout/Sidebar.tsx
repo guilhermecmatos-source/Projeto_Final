@@ -155,7 +155,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav data-testid="sidebar-nav" ref={navScrollRef} className="flex-1 space-y-0.5 overflow-y-auto px-2">
+      <nav ref={navScrollRef} className="flex-1 space-y-0.5 overflow-y-auto px-2">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (

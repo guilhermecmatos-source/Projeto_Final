@@ -77,7 +77,7 @@ test.describe("Sidebar Scroll Retention", () => {
       return;
     }
 
-    const sidebarNav = page.getByTestId("sidebar-nav");
+    const sidebarNav = page.locator("aside nav");
     await expect(sidebarNav).toBeVisible();
 
     // Scroll the sidebar down
@@ -101,7 +101,7 @@ test.describe("Sidebar Scroll Retention", () => {
     await page.waitForTimeout(500);
 
     // Verify that the scroll position is still restored/maintained
-    const newSidebarNav = page.getByTestId("sidebar-nav");
+    const newSidebarNav = page.locator("aside nav");
     await expect(newSidebarNav).toBeVisible();
     const newScrollTop = await newSidebarNav.evaluate((el) => el.scrollTop);
     
