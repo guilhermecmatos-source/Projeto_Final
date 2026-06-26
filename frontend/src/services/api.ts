@@ -87,6 +87,7 @@ export const vehiclesApi = {
   create: (data: Record<string, unknown>) => api.post("/vehicles", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/vehicles/${id}`, data),
   remove: (id: string) => api.delete(`/vehicles/${id}`),
+  generateImage: (id: string) => api.post(`/vehicles/${id}/generate-image`),
 };
 
 export const driversApi = {

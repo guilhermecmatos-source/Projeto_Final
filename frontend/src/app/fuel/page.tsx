@@ -447,7 +447,7 @@ export default function FuelPage() {
                     {chartPlate && <span className="text-[#FCA311] ml-2 text-[9px] font-bold border border-[#FCA311]/40 bg-[#FCA311]/10 px-2 py-0.5 rounded-full">🔍 {chartPlate}</span>}
                     {chartLoading && <span className="text-slate-400 ml-2 text-[8px] animate-pulse">Atualizando...</span>}
                   </h3>
-                  <p className="text-[10px] text-slate-400 mt-1">Série financeira e volumétrica real do ano {new Date().getFullYear()}. Use o botão "Filtrar Gráfico" na tabela abaixo para filtrar por veículo.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Série financeira e volumétrica real do ano {new Date().getFullYear()}. Use o botão &quot;Filtrar Gráfico&quot; na tabela abaixo para filtrar por veículo.</p>
                 </div>
                 {chartPlate && (
                   <button
@@ -559,7 +559,7 @@ export default function FuelPage() {
             {/* Relatório Consolidado — dados reais */}
             <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 mb-1"><Icon name="local_shipping" /> RELATÓRIO CONSOLIDADO DE GASTOS POR VEÍCULO</h3>
-              <p className="text-[9px] text-slate-400 mb-4">Auditoria financeira de consumo com o rateio absoluto de custos por automóvel. Clique em "Filtrar Gráfico" para filtrar os gráficos acima.</p>
+              <p className="text-[9px] text-slate-400 mb-4">Auditoria financeira de consumo com o rateio absoluto de custos por automóvel. Clique em &quot;Filtrar Gráfico&quot; para filtrar os gráficos acima.</p>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">

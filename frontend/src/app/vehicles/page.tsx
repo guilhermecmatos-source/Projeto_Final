@@ -52,18 +52,62 @@ export default function VehiclesPage() {
   const [activeTab, setActiveTab] = useState("TODOS");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleData | null>(null);
+  const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
+
+  /** Build a deterministic fallback image path from brand + model */
+  const getFallbackImage = (brand: string, model: string): string => {
+    const key = `${brand}_${model}`.toLowerCase().replace(/\s+/g, "_");
+    return `/vehicles/${encodeURIComponent(key)}.png`;
+  };
+
+  /** Try to auto-generate an image via backend for a vehicle missing its photo */
+  const tryGenerateImage = (vehicleId: string, brand: string, model: string) => {
+    setGeneratingImages(prev => new Set(prev).add(vehicleId));
+    vehiclesApi.generateImage(vehicleId)
+      .then((res) => {
+        const newUrl = res.data?.photo_url;
+        if (newUrl) {
+          setVehicles(prev => prev.map(v =>
+            v.id === vehicleId ? { ...v, image: newUrl } : v
+          ));
+          // Also update selectedVehicle if open
+          setSelectedVehicle(prev =>
+            prev && prev.id === vehicleId ? { ...prev, image: newUrl } : prev
+          );
+        }
+      })
+      .catch(() => {
+        // Silently fail – fallback image is already displayed
+      })
+      .finally(() => {
+        setGeneratingImages(prev => {
+          const next = new Set(prev);
+          next.delete(vehicleId);
+          return next;
+        });
+      });
+  };
 
   const load = () => {
     setLoading(true);
     vehiclesApi.list()
       .then((res) => {
         const rawList = Array.isArray(res.data) ? res.data : [];
+        const vehiclesWithoutImage: { id: string; brand: string; model: string }[] = [];
+
         const mapped = rawList.map((v: any) => {
           const { tag, tagColor } = mapStatusToTag(v.status || "active");
           
           let localPhoto = "";
           if (typeof window !== "undefined") {
             localPhoto = localStorage.getItem(`vehicle_photo_${v.plate}`) || "";
+          }
+
+          // If no image from any source, use fallback based on brand+model
+          let image = localPhoto || v.photo_url || "";
+          if (!image) {
+            image = getFallbackImage(v.brand || "", v.model || "");
+            vehiclesWithoutImage.push({ id: v.id, brand: v.brand, model: v.model });
           }
 
           return {
@@ -77,12 +121,17 @@ export default function VehiclesPage() {
             consumption: Number(v.avg_consumption || 10),
             year: Number(v.year || new Date().getFullYear()),
             autonomy: Number(v.autonomy_km || (v.avg_consumption ? v.avg_consumption * 50 : 500)),
-            image: localPhoto || v.photo_url || "",
+            image,
             engine: v.engine || "Óleo Diesel S10",
             purpose: v.purpose || "locacao",
           };
         });
         setVehicles(mapped);
+
+        // For vehicles without a stored image, trigger background AI generation
+        vehiclesWithoutImage.forEach(v => {
+          tryGenerateImage(v.id, v.brand, v.model);
+        });
       })
       .catch((err) => {
         console.error("Erro ao carregar veículos:", err);
@@ -201,9 +250,33 @@ export default function VehiclesPage() {
 
               {/* Image */}
               <div className="h-40 bg-surface-container-high relative flex items-center justify-center overflow-hidden">
+                {generatingImages.has(v.id) && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0c132b]/60 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[9px] font-bold text-[#FCA311] uppercase tracking-widest animate-pulse">Gerando foto via IA...</span>
+                    </div>
+                  </div>
+                )}
                 {v.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={v.image} alt={`${v.brand} ${v.model}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img
+                    src={v.image}
+                    alt={`${v.brand} ${v.model}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    onError={(e) => {
+                      // If the auto-generated fallback image fails to load, show a gradient with the car icon
+                      const target = e.currentTarget;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector(".fallback-placeholder")) {
+                        const fallback = document.createElement("div");
+                        fallback.className = "fallback-placeholder flex items-center justify-center flex-col text-slate-500 w-full h-full bg-gradient-to-br from-[#0c132b] to-[#1a2744]";
+                        fallback.innerHTML = `<span class="material-symbols-outlined text-3xl mb-1">directions_car</span><span class="text-[9px] font-bold uppercase tracking-widest">${v.brand} ${v.model}</span>`;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                  />
                 ) : (
                   <div className="flex items-center justify-center flex-col text-slate-600">
                     <Icon name="broken_image" className="text-3xl mb-1" />
@@ -261,7 +334,22 @@ export default function VehiclesPage() {
             <div className="h-56 bg-surface-container-high relative flex items-center justify-center overflow-hidden">
               {selectedVehicle.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={selectedVehicle.image} alt={selectedVehicle.brand} className="w-full h-full object-cover" />
+                <img
+                  src={selectedVehicle.image}
+                  alt={selectedVehicle.brand}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = "none";
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector(".fallback-placeholder")) {
+                      const fallback = document.createElement("div");
+                      fallback.className = "fallback-placeholder flex items-center justify-center flex-col text-slate-500 w-full h-full bg-gradient-to-br from-[#0c132b] to-[#1a2744]";
+                      fallback.innerHTML = `<span class="material-symbols-outlined text-5xl mb-2">directions_car</span><span class="text-xs font-bold uppercase tracking-widest">${selectedVehicle.brand} ${selectedVehicle.model}</span>`;
+                      parent.appendChild(fallback);
+                    }
+                  }}
+                />
               ) : (
                 <div className="flex items-center justify-center flex-col text-slate-600">
                   <Icon name="broken_image" className="text-4xl mb-2" />
