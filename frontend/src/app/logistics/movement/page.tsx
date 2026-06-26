@@ -15,7 +15,6 @@ import {
 } from "@/lib/offline";
 import { useOffline } from "@/hooks/useOffline";
 import { ruvApi } from "@/services/api";
-import Icon from "@/components/ui/Icon";
 
 function formToObject(form: FormData): Record<string, unknown> {
   const obj: Record<string, unknown> = {};

@@ -29,6 +29,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
   const [syncing, setSyncing] = useState(false);
   const navScrollRef = useRef<HTMLDivElement | null>(null);
   const scrollSaveFrame = useRef<number | null>(null);
+  const isUnmounting = useRef(false);
 
   useEffect(() => {
     setCurrentTheme(getStoredTheme());
@@ -59,6 +60,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
   }, []);
 
   useEffect(() => {
+    isUnmounting.current = false;
     const restoreScroll = () => {
       if (!navScrollRef.current || typeof window === "undefined") return;
       const saved = sessionStorage.getItem("fleet_sidebar_scroll");
@@ -68,13 +70,15 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
     };
 
     restoreScroll();
+    const timer = setTimeout(restoreScroll, 50);
+
     const handleScroll = () => {
-      if (!navScrollRef.current) return;
+      if (!navScrollRef.current || isUnmounting.current) return;
       if (scrollSaveFrame.current !== null) {
         cancelAnimationFrame(scrollSaveFrame.current);
       }
       scrollSaveFrame.current = requestAnimationFrame(() => {
-        if (!navScrollRef.current) return;
+        if (!navScrollRef.current || isUnmounting.current) return;
         sessionStorage.setItem("fleet_sidebar_scroll", String(navScrollRef.current.scrollTop));
       });
     };
@@ -82,9 +86,10 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
     const navElem = navScrollRef.current;
     navElem?.addEventListener("scroll", handleScroll);
     return () => {
+      isUnmounting.current = true;
+      clearTimeout(timer);
       if (navElem) {
         navElem.removeEventListener("scroll", handleScroll);
-        sessionStorage.setItem("fleet_sidebar_scroll", String(navElem.scrollTop));
       }
       if (scrollSaveFrame.current !== null) {
         cancelAnimationFrame(scrollSaveFrame.current);
@@ -150,7 +155,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav ref={navScrollRef} className="flex-1 space-y-0.5 overflow-y-auto px-2">
+      <nav data-testid="sidebar-nav" ref={navScrollRef} className="flex-1 space-y-0.5 overflow-y-auto px-2">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
@@ -158,7 +163,12 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
               key={item.href}
               href={item.href}
               scroll={false}
-              onClick={onClose}
+              onClick={() => {
+                if (navScrollRef.current) {
+                  sessionStorage.setItem("fleet_sidebar_scroll", String(navScrollRef.current.scrollTop));
+                }
+                if (onClose) onClose();
+              }}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                 active
                   ? "nav-active"
