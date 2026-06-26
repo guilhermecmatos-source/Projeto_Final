@@ -26,6 +26,7 @@ export default function MobileBottomNav({ onOpenMenu }: MobileBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              scroll={false}
               className={`flex min-w-[4rem] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-semibold transition touch-target ${
                 active ? "text-primary" : "text-on-surface-variant"
               }`}

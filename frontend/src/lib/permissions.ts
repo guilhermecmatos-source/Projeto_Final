@@ -38,7 +38,6 @@ const ROUTE_PERMISSIONS: Record<string, FleetRole[]> = {
   "/copilot": ["administrador", "gestor"],
   "/mobile": ["administrador", "gestor", "motorista", "solicitante"],
   "/notifications": ["administrador", "gestor", "motorista", "solicitante"],
-  "/comercial": ["administrador"],
   "/perfis": ["administrador"],
   "/ai-security": ["administrador", "gestor"],
   "/chat": ["administrador", "gestor", "motorista", "solicitante"],

@@ -369,9 +369,6 @@ export default function DashboardPage() {
               <button className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
                 <span className="text-white text-[9px] font-bold">L</span>
               </button>
-              <button className="w-6 h-6 rounded bg-[#0F172A] border border-outline-variant/30 flex items-center justify-center">
-                <Icon name="settings" className="text-slate-400 text-xs" />
-              </button>
             </div>
           </div>
           <PeriodLineChart data={chartData} loading={loading} />
@@ -567,9 +564,6 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-1.5">
               <button className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold">L</button>
-              <button className="w-6 h-6 rounded bg-[#0F172A] border border-outline-variant/30 flex items-center justify-center">
-                <Icon name="settings" className="text-slate-400 text-xs" />
-              </button>
             </div>
           </div>
 

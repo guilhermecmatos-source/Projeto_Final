@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
@@ -27,6 +27,8 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
   const [currentTheme, setCurrentTheme] = useState<ThemeId>("dark");
   const [offlineMode, setOfflineMode] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const navScrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollSaveFrame = useRef<number | null>(null);
 
   useEffect(() => {
     setCurrentTheme(getStoredTheme());
@@ -55,6 +57,40 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
+
+  useEffect(() => {
+    const restoreScroll = () => {
+      if (!navScrollRef.current || typeof window === "undefined") return;
+      const saved = sessionStorage.getItem("fleet_sidebar_scroll");
+      if (saved) {
+        navScrollRef.current.scrollTop = Number(saved);
+      }
+    };
+
+    restoreScroll();
+    const handleScroll = () => {
+      if (!navScrollRef.current) return;
+      if (scrollSaveFrame.current !== null) {
+        cancelAnimationFrame(scrollSaveFrame.current);
+      }
+      scrollSaveFrame.current = requestAnimationFrame(() => {
+        if (!navScrollRef.current) return;
+        sessionStorage.setItem("fleet_sidebar_scroll", String(navScrollRef.current.scrollTop));
+      });
+    };
+
+    const navElem = navScrollRef.current;
+    navElem?.addEventListener("scroll", handleScroll);
+    return () => {
+      if (navElem) {
+        navElem.removeEventListener("scroll", handleScroll);
+        sessionStorage.setItem("fleet_sidebar_scroll", String(navElem.scrollTop));
+      }
+      if (scrollSaveFrame.current !== null) {
+        cancelAnimationFrame(scrollSaveFrame.current);
+      }
+    };
+  }, [pathname]);
 
   function handleToggleOffline() {
     const next = !offlineMode;
@@ -114,13 +150,14 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2">
+      <nav ref={navScrollRef} className="flex-1 space-y-0.5 overflow-y-auto px-2">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
               href={item.href}
+              scroll={false}
               onClick={onClose}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                 active
@@ -195,10 +232,10 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
           </div>
         )}
 
-        {/* RBAC Simulator */}
+        {/* Modo */}
         <div className="mb-3 space-y-1">
           <label className="text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">
-            Simulador RBAC
+            MODO
           </label>
           <select
             value={user?.role ?? "administrador"}
@@ -255,12 +292,6 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
 
         {/* Actions */}
         <div className="flex gap-2">
-          <Link
-            href="/profile"
-            className="flex-1 rounded-lg border border-outline-variant py-1.5 text-center text-[10px] font-bold uppercase text-on-surface-variant hover:border-primary hover:text-primary"
-          >
-            Acessib.
-          </Link>
           <button
             type="button"
             onClick={() => void handleLogout()}
