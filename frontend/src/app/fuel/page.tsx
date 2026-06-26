@@ -42,6 +42,16 @@ export default function FuelPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptDataUrl, setReceiptDataUrl] = useState<string | null>(null);
 
+  // Chart states with real data
+  const [chartPlate, setChartPlate] = useState<string | "">("");
+  const [chartLoadingKey, setChartLoadingKey] = useState(0);
+  const [monthlyData, setMonthlyData] = useState<{ month: string; cost: number; liters: number; fills: number }[]>(
+    Array.from({ length: 12 }, (_, i) => ({ month: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][i], cost: 0, liters: 0, fills: 0 }))
+  );
+  const [reportData, setReportData] = useState<{ summary: any; byVehicle: any[] }>({ summary: null, byVehicle: [] });
+  const [chartLoading, setChartLoading] = useState(false);
+
+
   // Card & NFC States
   const [activeCards, setActiveCards] = useState([
     { id: "card-1", plate: "BRA-2E19", vehicle: "Scania R 450", balance: 1000, driver: "Jeovana Lopesvalente", terminal: "Multipostos Credenciados (BaaS)" },
@@ -282,7 +292,39 @@ export default function FuelPage() {
         setFetchError(extractApiError(err, "Não foi possível carregar os abastecimentos."));
       })
       .finally(() => setLoading(false));
+
+    // Load real chart data
+    Promise.all([
+      fuelApi.monthly(chartPlate || undefined),
+      fuelApi.report()
+    ]).then(([monthlyRes, reportRes]) => {
+      if (Array.isArray(monthlyRes.data)) setMonthlyData(monthlyRes.data);
+      setReportData({
+        summary: reportRes.data?.summary,
+        byVehicle: Array.isArray(reportRes.data?.byVehicle) ? reportRes.data.byVehicle : []
+      });
+    }).catch(() => {});
   };
+
+  const loadChart = (plate: string) => {
+    setChartLoading(true);
+    const vehicleId = vehicles.find(
+      (v) => v.plate.trim().toUpperCase() === plate.trim().toUpperCase()
+    )?.id;
+
+    Promise.all([
+      fuelApi.monthly(plate || undefined),
+      fuelApi.report(vehicleId || undefined)
+    ]).then(([monthlyRes, reportRes]) => {
+      if (Array.isArray(monthlyRes.data)) setMonthlyData(monthlyRes.data);
+      setReportData(prev => ({
+        ...prev,
+        summary: reportRes.data?.summary
+      }));
+    }).catch(() => {})
+      .finally(() => setChartLoading(false));
+  };
+
 
   useEffect(() => {
     load();
@@ -368,111 +410,162 @@ export default function FuelPage() {
             <div className="grid grid-cols-4 gap-4">
               <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CUSTO TOTAL COMBUSTÍVEL</p>
-                <p className="text-xl font-bold text-[#FCA311] font-mono">R$ 5.256,16</p>
-                <p className="text-[9px] text-slate-400 mt-1 flex justify-center items-center gap-1"><Icon name="trending_up" className="text-[12px] text-[#FCA311]" /> Desta frota ativa & cartões NFC</p>
+                <p className="text-xl font-bold text-[#FCA311] font-mono">
+                  {reportData.summary ? `R$ ${Number(reportData.summary.total_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ —'}
+                </p>
+                <p className="text-[9px] text-slate-400 mt-1 flex justify-center items-center gap-1"><Icon name="trending_up" className="text-[12px] text-[#FCA311]" /> Dados reais da frota ativa</p>
               </div>
               <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">VOLUME TOTAL FATURADO</p>
-                <p className="text-xl font-bold text-[#FCA311] font-mono">924,6 L</p>
-                <p className="text-[9px] text-blue-400 mt-1 font-bold flex justify-center items-center gap-1"><Icon name="link" className="text-[12px]" /> Média paga: R$ 5,68/L</p>
+                <p className="text-xl font-bold text-[#FCA311] font-mono">
+                  {reportData.summary ? `${Number(reportData.summary.total_liters).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} L` : '— L'}
+                </p>
+                <p className="text-[9px] text-blue-400 mt-1 font-bold flex justify-center items-center gap-1"><Icon name="link" className="text-[12px]" />
+                  {reportData.summary && Number(reportData.summary.total_liters) > 0 ? `Média: R$ ${(Number(reportData.summary.total_cost) / Number(reportData.summary.total_liters)).toFixed(2).replace('.',',')}/L` : 'Sem dados'}
+                </p>
               </div>
               <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">SALDO ATIVO EM CARTÕES</p>
-                <p className="text-xl font-bold text-[#FCA311] font-mono">R$ 3.076,92</p>
-                <p className="text-[9px] text-slate-400 mt-1 flex justify-center items-center gap-1"><Icon name="account_balance_wallet" className="text-[12px] text-green-400" /> Garantia pré-paga NFC ativa</p>
+                <p className="text-xl font-bold text-[#FCA311] font-mono">R$ {activeCards.reduce((a,c) => a + c.balance, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                <p className="text-[9px] text-slate-400 mt-1 flex justify-center items-center gap-1"><Icon name="account_balance_wallet" className="text-[12px] text-green-400" /> {activeCards.length} cartões NFC ativos</p>
               </div>
               <div className="raised-card p-4 bg-[#0c132b]/80 border-outline-variant/30 text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">LANÇAMENTOS DE ABASTECIMENTO</p>
-                <p className="text-xl font-bold text-[#FCA311] font-mono flex justify-center items-center gap-2">8 Eventos <Icon name="trending_up" className="text-purple-400 text-[18px]" /></p>
-                <p className="text-[9px] text-slate-400 mt-1"><span className="text-blue-400">4 NFC</span> | <span className="text-purple-400">4 Cupons</span></p>
+                <p className="text-xl font-bold text-[#FCA311] font-mono flex justify-center items-center gap-2">
+                  {reportData.summary ? `${reportData.summary.fill_count} Eventos` : '— Eventos'} <Icon name="trending_up" className="text-purple-400 text-[18px]" />
+                </p>
+                <p className="text-[9px] text-slate-400 mt-1"><span className="text-blue-400">{records.filter(r => !r.id.startsWith('sup-')).length} API</span> | <span className="text-purple-400">{records.filter(r => r.id.startsWith('sup-')).length} Local</span></p>
               </div>
             </div>
 
-            {/* Gráficos */}
-            <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
+            {/* Gráficos com dados reais */}
+            <div id="chart-section" className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-xs font-bold uppercase text-primary flex items-center gap-1.5"><Icon name="bar_chart" /> GRÁFICOS COMPARATIVOS MENSAIS</h3>
-                  <p className="text-[10px] text-slate-400 mt-1">Visualize a série financeira e volumétrica do veículo selecionado em 2026.</p>
+                  <h3 className="text-xs font-bold uppercase text-primary flex items-center gap-1.5">
+                    <Icon name="bar_chart" /> GRÁFICOS COMPARATIVOS MENSAIS
+                    {chartPlate && <span className="text-[#FCA311] ml-2 text-[9px] font-bold border border-[#FCA311]/40 bg-[#FCA311]/10 px-2 py-0.5 rounded-full">🔍 {chartPlate}</span>}
+                    {chartLoading && <span className="text-slate-400 ml-2 text-[8px] animate-pulse">Atualizando...</span>}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Série financeira e volumétrica real do ano {new Date().getFullYear()}. Use o botão "Filtrar Gráfico" na tabela abaixo para filtrar por veículo.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">SELECIONE O VEÍCULO:</span>
-                  <select className="bg-[#0b0e14]/80 border border-outline-variant/30 rounded text-[10px] p-1.5 text-[#FCA311] font-bold w-48">
-                    <option>Volvo FH 540 (FLT-0130)</option>
-                    <option>Scania R 450 (BRA-2E19)</option>
-                  </select>
-                </div>
+                {chartPlate && (
+                  <button
+                    onClick={() => { setChartPlate(""); loadChart(""); }}
+                    className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 border border-outline-variant/30 px-3 py-1.5 rounded-lg hover:text-white hover:bg-white/5 transition uppercase"
+                  >
+                    <Icon name="close" className="text-xs" /> Limpar Filtro
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-6 h-64">
-                {/* Bar Chart */}
-                <div className="border border-outline-variant/20 rounded-lg bg-[#0F172A]/40 p-4 flex flex-col relative">
-                  <h4 className="text-[9px] font-bold text-slate-300 uppercase flex items-center gap-1 mb-4"><Icon name="trending_up" className="text-[12px] text-[#FCA311]" /> GASTO FATURADO MENSAL (R$)</h4>
-                  <div className="flex-1 flex items-end justify-between relative pl-8 pb-4">
-                    {/* Y Axis */}
-                    <div className="absolute left-0 top-0 bottom-4 flex flex-col justify-between text-[8px] text-slate-500 font-mono">
-                      <span>2800</span>
-                      <span>2100</span>
-                      <span>1400</span>
-                      <span>700</span>
-                      <span>0</span>
-                    </div>
-                    {/* Grid lines */}
-                    <div className="absolute left-8 right-0 top-0 bottom-4 flex flex-col justify-between">
-                      {[0, 1, 2, 3, 4].map(i => <div key={i} className="border-b border-white/5 w-full h-0"></div>)}
-                    </div>
-                    {/* Bars */}
-                    {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
-                      <div key={m} className="flex flex-col items-center w-full z-10 relative h-full justify-end">
-                        {m === 'Jun' && <div className="w-1/2 bg-blue-600 h-[85%] rounded-t-sm shadow-[0_0_10px_rgba(37,99,235,0.5)]"></div>}
-                        <span className="text-[8px] text-slate-500 mt-2 absolute -bottom-4">{m}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {(() => {
+                const maxCost = Math.max(...monthlyData.map(d => d.cost), 1);
+                const maxLiters = Math.max(...monthlyData.map(d => d.liters), 1);
+                const costScale = [4, 3, 2, 1, 0].map(i => Math.round(maxCost * i / 4));
+                const litersScale = [4, 3, 2, 1, 0].map(i => Math.round(maxLiters * i / 4));
 
-                {/* Line Chart */}
-                <div className="border border-outline-variant/20 rounded-lg bg-[#0F172A]/40 p-4 flex flex-col relative">
-                  <h4 className="text-[9px] font-bold text-slate-300 uppercase flex items-center gap-1 mb-4"><Icon name="opacity" className="text-[12px] text-[#FCA311]" /> VOLUME MENSAL CONSUMIDO (LITROS)</h4>
-                  <div className="flex-1 flex items-end justify-between relative pl-8 pb-4">
-                    <div className="absolute left-0 top-0 bottom-4 flex flex-col justify-between text-[8px] text-slate-500 font-mono">
-                      <span>600</span>
-                      <span>450</span>
-                      <span>300</span>
-                      <span>150</span>
-                      <span>0</span>
-                    </div>
-                    <div className="absolute left-8 right-0 top-0 bottom-4 flex flex-col justify-between">
-                      {[0, 1, 2, 3, 4].map(i => <div key={i} className="border-b border-white/5 w-full h-0"></div>)}
-                    </div>
-                    {/* SVG Line */}
-                    <svg className="absolute left-8 right-0 top-0 bottom-4 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-                      <path d="M 0 100 L 8.3 100 L 16.6 100 L 25 100 L 33.3 100 L 41.6 100 L 50 15 L 58.3 100 L 66.6 100 L 75 100 L 83.3 100 L 91.6 100 L 100 100" fill="none" stroke="#FCA311" strokeWidth="1.5" />
-                      <circle cx="50" cy="15" r="2" fill="#0F172A" stroke="#FCA311" strokeWidth="1" />
-                      <circle cx="41.6" cy="100" r="1.5" fill="#FCA311" />
-                      <circle cx="58.3" cy="100" r="1.5" fill="#FCA311" />
-                    </svg>
-                    {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
-                      <div key={m} className="flex flex-col items-center w-full z-10 relative h-full justify-end">
-                        <span className="text-[8px] text-slate-500 mt-2 absolute -bottom-4">{m}</span>
+                return (
+                  <div className="grid grid-cols-2 gap-6 h-72">
+                    {/* Bar Chart — Custo Mensal */}
+                    <div className="border border-outline-variant/20 rounded-lg bg-[#0F172A]/40 p-4 flex flex-col relative">
+                      <h4 className="text-[9px] font-bold text-slate-300 uppercase flex items-center gap-1 mb-4">
+                        <Icon name="trending_up" className="text-[12px] text-[#FCA311]" /> GASTO FATURADO MENSAL (R$)
+                      </h4>
+                      <div className="flex-1 flex items-end justify-between relative pl-10 pb-5">
+                        {/* Y Axis */}
+                        <div className="absolute left-0 top-0 bottom-5 flex flex-col justify-between text-[8px] text-slate-500 font-mono w-9 text-right pr-1">
+                          {costScale.map(v => <span key={v}>{v}</span>)}
+                        </div>
+                        {/* Grid lines */}
+                        <div className="absolute left-10 right-0 top-0 bottom-5 flex flex-col justify-between pointer-events-none">
+                          {[0,1,2,3,4].map(i => <div key={i} className="border-b border-white/5 w-full" />)}
+                        </div>
+                        {/* Bars */}
+                        {monthlyData.map((m) => {
+                          const heightPct = maxCost > 0 ? (m.cost / maxCost) * 100 : 0;
+                          const isActive = m.cost > 0;
+                          return (
+                            <div key={m.month} className="flex flex-col items-center w-full z-10 relative h-full justify-end group">
+                              {isActive && (
+                                <div
+                                  className="w-3/4 rounded-t-sm transition-all duration-500"
+                                  style={{ height: `${heightPct}%`, background: 'linear-gradient(to top, #1d4ed8, #3b82f6)', boxShadow: '0 0 8px rgba(59,130,246,0.4)' }}
+                                />
+                              )}
+                              {/* Tooltip on hover */}
+                              {isActive && (
+                                <div className="absolute bottom-full mb-1 hidden group-hover:block bg-slate-800 border border-outline-variant/30 rounded px-2 py-1 text-[8px] font-bold text-white whitespace-nowrap z-20">
+                                  R$ {m.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | {m.fills} abast.
+                                </div>
+                              )}
+                              <span className="text-[8px] text-slate-500 absolute -bottom-4">{m.month}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* SVG Line Chart — Volume Mensal */}
+                    <div className="border border-outline-variant/20 rounded-lg bg-[#0F172A]/40 p-4 flex flex-col relative">
+                      <h4 className="text-[9px] font-bold text-slate-300 uppercase flex items-center gap-1 mb-4">
+                        <Icon name="opacity" className="text-[12px] text-[#FCA311]" /> VOLUME MENSAL CONSUMIDO (LITROS)
+                      </h4>
+                      <div className="flex-1 flex items-end justify-between relative pl-10 pb-5">
+                        <div className="absolute left-0 top-0 bottom-5 flex flex-col justify-between text-[8px] text-slate-500 font-mono w-9 text-right pr-1">
+                          {litersScale.map(v => <span key={v}>{v}</span>)}
+                        </div>
+                        <div className="absolute left-10 right-0 top-0 bottom-5 flex flex-col justify-between pointer-events-none">
+                          {[0,1,2,3,4].map(i => <div key={i} className="border-b border-white/5 w-full" />)}
+                        </div>
+                        {/* SVG Line with real data points */}
+                        <svg className="absolute left-10 right-0 top-0 bottom-5 w-[calc(100%-2.5rem)] h-full" preserveAspectRatio="none" viewBox="0 0 110 100">
+                          {(() => {
+                            const pts = monthlyData.map((d, i) => {
+                              const x = (i / 11) * 100 + 5;
+                              const y = maxLiters > 0 ? 100 - (d.liters / maxLiters) * 90 : 100;
+                              return `${x},${y}`;
+                            });
+                            return (
+                              <>
+                                <polyline points={pts.join(' ')} fill="none" stroke="#FCA311" strokeWidth="1.5" strokeLinejoin="round" />
+                                {monthlyData.map((d, i) => {
+                                  if (d.liters === 0) return null;
+                                  const x = (i / 11) * 100 + 5;
+                                  const y = 100 - (d.liters / maxLiters) * 90;
+                                  return (
+                                    <g key={d.month}>
+                                      <circle cx={x} cy={y} r="2.5" fill="#0F172A" stroke="#FCA311" strokeWidth="1.5" />
+                                      <title>{d.month}: {d.liters} L</title>
+                                    </g>
+                                  );
+                                })}
+                              </>
+                            );
+                          })()}
+                        </svg>
+                        {monthlyData.map((m) => (
+                          <div key={m.month} className="flex flex-col items-center w-full z-10 relative h-full justify-end">
+                            <span className="text-[8px] text-slate-500 absolute -bottom-4">{m.month}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
-            {/* Relatório Consolidado */}
+            {/* Relatório Consolidado — dados reais */}
             <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 mb-1"><Icon name="local_shipping" /> RELATÓRIO CONSOLIDADO DE GASTOS POR VEÍCULO</h3>
-              <p className="text-[9px] text-slate-400 mb-4">Auditoria financeira de consumo com o rateio absoluto de custos por automóvel.</p>
+              <p className="text-[9px] text-slate-400 mb-4">Auditoria financeira de consumo com o rateio absoluto de custos por automóvel. Clique em "Filtrar Gráfico" para filtrar os gráficos acima.</p>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-outline-variant/30 text-[9px] font-bold text-slate-500 uppercase">
-                      <th className="py-3 px-2 font-bold">VEÍCULO</th>
-                      <th className="py-3 px-2 font-bold text-center">PLACA</th>
+                      <th className="py-3 px-2 font-bold">VEÍCULO / PLACA</th>
                       <th className="py-3 px-2 font-bold text-center">LANÇAMENTOS</th>
                       <th className="py-3 px-2 font-bold w-48">LITROS COMPRADOS</th>
                       <th className="py-3 px-2 font-bold text-center">PREÇO MÉDIO / L</th>
@@ -481,97 +574,67 @@ export default function FuelPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10 text-[10px] text-slate-300">
-                    <tr className="hover:bg-white/5 transition">
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs" /></div>
-                          <div>
-                            <p className="font-bold text-slate-100 text-[11px]">Scania R 450</p>
-                            <p className="text-[8px] text-slate-500">Sugerido: 2.5 Km/L</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center font-bold text-[#FCA311]">BRA-2E19</td>
-                      <td className="py-3 px-2 text-center text-slate-400">6 abastecimentos</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
-                            <div className="h-full bg-[#FCA311] w-[45%]"></div>
-                          </div>
-                          <span className="font-bold text-[9px]">446,6 L</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center font-bold text-blue-400">R$ 5,61</td>
-                      <td className="py-3 px-2 text-right">
-                        <p className="font-bold text-slate-100 text-[11px]">R$ 2.506,16</p>
-                        <p className="text-[8px] text-slate-500">48% da frota</p>
-                      </td>
-                      <td className="py-3 px-2 text-center">
-                        <button className="border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[8px] font-bold transition uppercase">FILTRAR GRÁFICO</button>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-white/5 transition">
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs" /></div>
-                          <div>
-                            <p className="font-bold text-slate-100 text-[11px]">Volvo FH 540</p>
-                            <p className="text-[8px] text-slate-500">Sugerido: 2.5 Km/L</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center font-bold text-[#FCA311]">FLT-0130</td>
-                      <td className="py-3 px-2 text-center text-slate-400">2 abastecimentos</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
-                            <div className="h-full bg-[#FCA311] w-[52%]"></div>
-                          </div>
-                          <span className="font-bold text-[9px]">478 L</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center font-bold text-blue-400">R$ 5,75</td>
-                      <td className="py-3 px-2 text-right">
-                        <p className="font-bold text-slate-100 text-[11px]">R$ 2.750,00</p>
-                        <p className="text-[8px] text-slate-500">52% da frota</p>
-                      </td>
-                      <td className="py-3 px-2 text-center">
-                        <button className="border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[8px] font-bold transition uppercase">FILTRAR GRÁFICO</button>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-white/5 transition">
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs" /></div>
-                          <div>
-                            <p className="font-bold text-slate-100 text-[11px]">Mercedes-Benz Atego 2426</p>
-                            <p className="text-[8px] text-slate-500">Sugerido: 3.5 Km/L</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center font-bold text-[#FCA311]">MEC-4D21</td>
-                      <td className="py-3 px-2 text-center text-slate-400">0 abastecimentos</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
-                            <div className="h-full bg-[#FCA311] w-[0%]"></div>
-                          </div>
-                          <span className="font-bold text-[9px]">0 L</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center font-bold text-blue-400">R$ 0,00</td>
-                      <td className="py-3 px-2 text-right">
-                        <p className="font-bold text-slate-100 text-[11px]">R$ 0,00</p>
-                        <p className="text-[8px] text-slate-500">0% da frota</p>
-                      </td>
-                      <td className="py-3 px-2 text-center">
-                        <button className="border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[8px] font-bold transition uppercase">FILTRAR GRÁFICO</button>
-                      </td>
-                    </tr>
+                    {reportData.byVehicle.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-center text-slate-500 text-[10px]">Nenhum dado de abastecimento no banco. Lance abastecimentos para ver dados reais.</td>
+                      </tr>
+                    ) : (
+                      reportData.byVehicle.map((v: any) => {
+                        const totalCost = reportData.byVehicle.reduce((a: number, x: any) => a + Number(x.cost), 0);
+                        const pct = totalCost > 0 ? Math.round((Number(v.cost) / totalCost) * 100) : 0;
+                        const barPct = Math.max(5, pct);
+                        const avgPrice = Number(v.liters) > 0 ? (Number(v.cost) / Number(v.liters)).toFixed(2).replace('.', ',') : '0,00';
+                        const isActive = chartPlate === v.plate;
+                        return (
+                          <tr key={v.plate} className={`hover:bg-white/5 transition ${isActive ? 'bg-blue-600/5 border-l-2 border-l-blue-600' : ''}`}>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 flex items-center justify-center bg-[#0F172A] border border-outline-variant/30 rounded"><Icon name="local_shipping" className="text-slate-400 text-xs" /></div>
+                                <div>
+                                  <p className="font-bold text-[#FCA311] text-[11px]">{v.plate}</p>
+                                  <p className="text-[8px] text-slate-500">{v.fills} abastecimentos</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 text-center text-slate-400">{v.fills} evento(s)</td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-outline-variant/10">
+                                  <div className="h-full bg-[#FCA311]" style={{ width: `${barPct}%` }} />
+                                </div>
+                                <span className="font-bold text-[9px] whitespace-nowrap">{Number(v.liters).toFixed(1)} L</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 text-center font-bold text-blue-400">R$ {avgPrice}</td>
+                            <td className="py-3 px-2 text-right">
+                              <p className="font-bold text-slate-100 text-[11px]">R$ {Number(v.cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[8px] text-slate-500">{pct}% da frota</p>
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <button
+                                onClick={() => {
+                                  const newPlate = isActive ? "" : v.plate;
+                                  setChartPlate(newPlate);
+                                  loadChart(newPlate);
+                                  document.getElementById('chart-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                className={`px-2 py-1 rounded text-[8px] font-bold transition uppercase ${isActive
+                                  ? 'bg-blue-600 text-white border border-blue-600'
+                                  : 'border border-blue-600/50 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white'
+                                }`}
+                              >
+                                {isActive ? '✓ ATIVO' : 'FILTRAR GRÁFICO'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
+
 
             {/* Histórico Consolidado de Transações */}
             <div className="raised-card p-5 bg-[#0c132b]/80 border-outline-variant/30">

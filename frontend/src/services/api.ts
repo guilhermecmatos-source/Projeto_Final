@@ -178,6 +178,8 @@ export const fuelApi = {
   create: (data: Record<string, unknown>) => api.post("/fuel", data),
   report: (vehicleId?: string) =>
     api.get("/fuel/report", { params: vehicleId ? { vehicleId } : {} }),
+  monthly: (plate?: string) =>
+    api.get("/fuel/monthly", { params: plate ? { plate } : {} }),
 };
 
 export const maintenanceApi = {
