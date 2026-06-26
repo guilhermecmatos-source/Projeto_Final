@@ -342,20 +342,6 @@ export default function DashboardPage() {
             </span>
           </div>
           <SatelliteOperationalMap />
-          {/* Camadas CCO overlay */}
-          <div className="border-t border-outline-variant/20 px-4 py-2 bg-[#0c132b]/60 flex flex-wrap gap-3">
-            {[
-              { icon: "route", label: "Rotas dos Motoristas", color: "text-blue-400" },
-              { icon: "local_gas_station", label: "Postos de Combustível", color: "text-amber-400" },
-              { icon: "build", label: "Locais de Manutenção", color: "text-red-400" },
-            ].map((l) => (
-              <label key={l.label} className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" defaultChecked className="w-3 h-3 accent-primary" />
-                <Icon name={l.icon} className={`text-xs ${l.color}`} />
-                <span className="text-[9px] text-slate-300">{l.label}</span>
-              </label>
-            ))}
-          </div>
         </section>
 
         {/* Period Chart */}
