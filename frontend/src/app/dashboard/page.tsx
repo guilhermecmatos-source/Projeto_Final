@@ -8,9 +8,7 @@ import PeriodLineChart from "@/components/dashboard/PeriodLineChart";
 import DateRangePicker, { defaultDateRange, DateRange } from "@/components/forms/DateRangePicker";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
-import ActionButton from "@/components/ui/ActionButton";
-import FormModal from "@/components/ui/FormModal";
-import { dashboardApi, vehiclesApi } from "@/services/api";
+import { dashboardApi } from "@/services/api";
 import ActionLink from "@/components/ui/ActionLink";
 import { ACTION_ROUTES } from "@/lib/action-routes";
 import { extractApiError } from "@/lib/api-errors";
@@ -161,9 +159,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>(() => defaultDateRange(30));
-  const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [registerMessage, setRegisterMessage] = useState("");
   const [selectedDriver, setSelectedDriver] = useState<DriverCard>(DRIVERS[0]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT);
   const [chatInput, setChatInput] = useState("");
@@ -185,29 +180,6 @@ export default function DashboardPage() {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
-
-  async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSaving(true);
-    setRegisterMessage("");
-    const form = new FormData(e.currentTarget);
-    try {
-      await vehiclesApi.create({
-        plate: String(form.get("plate")),
-        brand: String(form.get("brand")),
-        model: String(form.get("model")),
-        year: Number(form.get("year")),
-        mileage: Number(form.get("mileage")),
-        avg_consumption: Number(form.get("avg_consumption")),
-      });
-      setRegisterModalOpen(false);
-      loadDashboard();
-    } catch {
-      setRegisterMessage("Erro ao cadastrar veículo.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   function handleChatSubmit(e: FormEvent) {
     e.preventDefault();
@@ -239,12 +211,6 @@ export default function DashboardPage() {
         eyebrow="📡 DASHBOARD PRINCIPAL"
         title="DASHBOARD PRINCIPAL"
         subtitle="Monitoramento de pedido em tempo real, telemetrias ativas e controle automatizado CCO."
-        actions={
-          <ActionButton onClick={() => { setRegisterModalOpen(true); setRegisterMessage(""); }} className="uppercase text-[10px]">
-            <Icon name="add_circle" className="text-sm" />
-            Novo Registro
-          </ActionButton>
-        }
       />
 
       {/* ── Top KPI Row ──────────────────────────────────────────────────────── */}
@@ -631,41 +597,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Register Modal ────────────────────────────────────────────────────── */}
-      <FormModal open={registerModalOpen} onClose={() => setRegisterModalOpen(false)} title="Novo Registro" subtitle="Cadastro rápido de veículo operacional">
-        <form className="space-y-3" onSubmit={handleRegisterSubmit}>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Placa do Veículo</label>
-            <input className="input-fleet" name="plate" placeholder="EX: ABC-1234" required />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Marca / Fabricante</label>
-            <input className="input-fleet" name="brand" placeholder="Ex: Mercedes-Benz" required />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Modelo Comercial</label>
-            <input className="input-fleet" name="model" placeholder="Ex: Atego 2426" required />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Ano</label>
-              <input className="input-fleet" name="year" type="number" defaultValue="2022" required />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Odômetro (KM)</label>
-              <input className="input-fleet" name="mileage" type="number" defaultValue="100000" required />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase text-on-surface-variant">Consumo Médio (KM/L)</label>
-            <input className="input-fleet" name="avg_consumption" type="number" step="0.1" defaultValue="4" />
-          </div>
-          {registerMessage && <p className="text-sm text-primary">{registerMessage}</p>}
-          <button type="submit" disabled={saving} className="btn-primary w-full uppercase">
-            {saving ? "Salvando..." : "Vincular Veículo"}
-          </button>
-        </form>
-      </FormModal>
     </AppShell>
   );
 }
