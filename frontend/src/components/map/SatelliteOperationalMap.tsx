@@ -85,7 +85,6 @@ export default function SatelliteOperationalMap() {
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState("");
   const [ready, setReady] = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   // Simulated movement offsets for drivers
   const offsetsRef = useRef({ carlos: 0, ana: 0, roberto: 0 });
@@ -419,14 +418,6 @@ export default function SatelliteOperationalMap() {
     return () => clearInterval(interval);
   }, [ready]);
 
-  // Handle map resize when expanding/collapsing
-  useEffect(() => {
-    if (mapInstance.current) {
-      setTimeout(() => mapInstance.current?.invalidateSize(), 100);
-      setTimeout(() => mapInstance.current?.invalidateSize(), 400);
-    }
-  }, [expanded]);
-
   const handleCenterPalmas = () => {
     if (mapInstance.current) {
       mapInstance.current.flyTo([-10.184, -48.355], 13, { duration: 1.2 });
@@ -440,7 +431,7 @@ export default function SatelliteOperationalMap() {
   };
 
   return (
-    <div className={`relative transition-all duration-300 ${expanded ? "h-[560px]" : ""}`}>
+    <div className="relative">
       {/* Top-right map controls */}
       <div className="absolute top-3 left-3 z-[500] flex flex-col gap-1.5">
         <button
@@ -459,13 +450,6 @@ export default function SatelliteOperationalMap() {
             <Icon name="person_pin_circle" className="text-sm" />
           </button>
         )}
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          title={expanded ? "Reduzir mapa" : "Expandir mapa"}
-          className="w-8 h-8 rounded-lg bg-black/70 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-black/90 transition shadow-lg"
-        >
-          <Icon name={expanded ? "fullscreen_exit" : "fullscreen"} className="text-sm" />
-        </button>
       </div>
 
       {/* GPS Badge */}
@@ -501,7 +485,7 @@ export default function SatelliteOperationalMap() {
       </div>
 
       {/* Map canvas */}
-      <div ref={mapRef} className={`w-full overflow-hidden transition-all duration-300 ${expanded ? "h-[560px]" : "h-[340px]"}`} />
+      <div ref={mapRef} className="w-full overflow-hidden h-[340px]" />
     </div>
   );
 }
