@@ -240,18 +240,10 @@ export default function DashboardPage() {
         title="DASHBOARD PRINCIPAL"
         subtitle="Monitoramento de pedido em tempo real, telemetrias ativas e controle automatizado CCO."
         actions={
-          <>
-            <button
-              onClick={() => { setRegisterModalOpen(true); setRegisterMessage(""); }}
-              className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-transparent px-3 py-2 text-[10px] font-bold uppercase text-amber-400 hover:bg-amber-500/10 transition"
-            >
-              <Icon name="login" className="text-sm" /> Ver Log de Entrada
-            </button>
-            <ActionButton onClick={() => { setRegisterModalOpen(true); setRegisterMessage(""); }} className="uppercase text-[10px]">
-              <Icon name="add_circle" className="text-sm" />
-              Novo Registro
-            </ActionButton>
-          </>
+          <ActionButton onClick={() => { setRegisterModalOpen(true); setRegisterMessage(""); }} className="uppercase text-[10px]">
+            <Icon name="add_circle" className="text-sm" />
+            Novo Registro
+          </ActionButton>
         }
       />
 
