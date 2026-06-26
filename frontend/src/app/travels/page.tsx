@@ -10,6 +10,7 @@ import { showToast } from "@/components/ui/Toast";
 import SearchableCombobox, { ComboboxOption } from "@/components/forms/SearchableCombobox";
 import AddressAutocomplete from "@/components/forms/AddressAutocomplete";
 import RuvModalForm from "@/components/forms/RuvModalForm";
+import RuvDetailsModal, { RuvDetail } from "@/components/ui/RuvDetailsModal";
 import { travelsApi, ruvApi, driversApi, vehiclesApi, geocodingApi } from "@/services/api";
 import { resolveEntityId } from "@/lib/form-resolve";
 import { formatPlateDisplay } from "@/lib/validators";
@@ -35,6 +36,22 @@ interface RuvRow {
   created_at: string;
   vehicle_plate?: string;
   driver_name?: string;
+  requester_name?: string;
+  purpose?: string;
+  service?: string;
+  passengers?: number;
+  quantidade?: number;
+  descricao?: string;
+  time_from?: string;
+  time_to?: string;
+  vehicle_type?: string;
+  authorization_ref?: string;
+  fuel_type?: string;
+  auth_number?: string;
+  route_change?: number | boolean;
+  alt_destination?: string;
+  alt_objective?: string;
+  justification?: string;
 }
 
 interface MatchRow {
@@ -56,6 +73,7 @@ export default function TravelsPage() {
   const [matchingModalOpen, setMatchingModalOpen] = useState(false);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [matchingLoading, setMatchingLoading] = useState(false);
+  const [selectedRuv, setSelectedRuv] = useState<RuvDetail | null>(null);
 
   const [vehicles, setVehicles] = useState<{ id: string; plate: string; brand?: string; model?: string; avg_consumption?: number | null; autonomy_km?: number | null }[]>([]);
   const [drivers, setDrivers] = useState<{ id: string; name: string }[]>([]);
@@ -264,7 +282,11 @@ export default function TravelsPage() {
               <p className="raised-card p-4 text-on-surface-variant">Nenhuma RUV registrada.</p>
             ) : (
               ruvs.map((r) => (
-                <article key={r.id} className="raised-card p-4">
+                <article
+                  key={r.id}
+                  className="raised-card p-4 cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => setSelectedRuv(r as RuvDetail)}
+                >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs font-bold text-primary">REQ-{r.id.slice(0, 8).toUpperCase()}</span>
                     <span className={r.status === "aprovada" || r.status === "approved" ? "chip-active" : "chip-pending"}>
@@ -278,6 +300,10 @@ export default function TravelsPage() {
                   <p className="mt-1 text-[10px] text-on-surface-variant">
                     Lançado em: {new Date(r.created_at).toLocaleDateString("pt-BR")}
                   </p>
+                  <div className="mt-2 flex items-center gap-1 text-[9px] font-bold text-primary/60">
+                    <Icon name="open_in_new" className="text-[10px]" />
+                    Clique para ver detalhes completos
+                  </div>
                 </article>
               ))
             )}
@@ -433,6 +459,9 @@ export default function TravelsPage() {
           </div>
         )}
       </FormModal>
+
+      {/* RUV Details Modal */}
+      <RuvDetailsModal ruv={selectedRuv} onClose={() => setSelectedRuv(null)} />
     </AppShell>
   );
 }

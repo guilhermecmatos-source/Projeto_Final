@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { canAccessRoute, filterNavByRole, normalizeRole } from "./permissions";
 import { User } from "@/types";
 
-const admin: User = { id: "1", name: "Admin", email: "a@test.com", role: "administrador" };
-const gestor: User = { id: "2", name: "Gestor", email: "g@test.com", role: "gestor" };
-const solicitante: User = { id: "3", name: "Sol", email: "s@test.com", role: "solicitante" };
+const admin: User = { id: "1", name: "Admin", email: "a@test.com", role: "administrador", status: "ativo" };
+const gestor: User = { id: "2", name: "Gestor", email: "g@test.com", role: "gestor", status: "ativo" };
+const solicitante: User = { id: "3", name: "Sol", email: "s@test.com", role: "solicitante", status: "ativo" };
 
 describe("normalizeRole", () => {
   it("normaliza alias admin para administrador", () => {

@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import Icon from "@/components/ui/Icon";
 import PageHeader from "@/components/ui/PageHeader";
 import { showToast } from "@/components/ui/Toast";
+import RuvDetailsModal, { RuvDetail } from "@/components/ui/RuvDetailsModal";
 import { ruvApi } from "@/services/api";
 
 type TabId = "all" | "sys" | "client" | "ruv" | "solicitacoes";
@@ -23,6 +24,7 @@ interface Notification {
   date: string;
   isRead: boolean;
   isSolicitation?: boolean;
+  ruvDetailData?: RuvDetail;
   solicitationData?: {
     vehicle: string;
     driver: string;
@@ -109,6 +111,7 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const [selectedRuv, setSelectedRuv] = useState<RuvDetail | null>(null);
 
   const loadNotifications = useCallback(() => {
     ruvApi.list("pendente")
@@ -127,6 +130,31 @@ export default function NotificationsPage() {
           date: r.created_at ? new Date(r.created_at).toISOString().replace("T", " ").substring(0, 16) : new Date().toISOString().replace("T", " ").substring(0, 16),
           isRead: false,
           isSolicitation: true,
+          ruvDetailData: {
+            id: r.id,
+            origin: r.origin || "—",
+            destination: r.destination || "—",
+            purpose: r.purpose || r.service,
+            service: r.service,
+            status: r.status || "pending",
+            passengers: r.passengers,
+            quantidade: r.quantidade,
+            descricao: r.descricao,
+            time_from: r.time_from,
+            time_to: r.time_to,
+            vehicle_type: r.vehicle_type,
+            authorization_ref: r.authorization_ref,
+            fuel_type: r.fuel_type,
+            auth_number: r.auth_number,
+            route_change: r.route_change,
+            alt_destination: r.alt_destination,
+            alt_objective: r.alt_objective,
+            vehicle_plate: r.vehicle_plate,
+            driver_name: r.driver_name,
+            requester_name: r.requester_name,
+            created_at: r.created_at,
+            justification: r.justification,
+          } as RuvDetail,
           solicitationData: {
             vehicle: r.vehicle_plate || "Não especificado",
             driver: r.driver_name || "Não especificado",
@@ -500,6 +528,14 @@ export default function NotificationsPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            {notif.ruvDetailData && (
+                              <button
+                                onClick={() => setSelectedRuv(notif.ruvDetailData!)}
+                                className="flex items-center gap-1.5 px-4 py-2 border border-blue-500/50 text-blue-400 rounded-lg text-[10px] font-bold uppercase hover:bg-blue-500/10 transition"
+                              >
+                                <Icon name="info" className="text-xs" /> VER DETALHES
+                              </button>
+                            )}
                             <button
                               onClick={() => handleReject(notif.id, notif.solicitationData!.ruvId)}
                               className="flex items-center gap-1.5 px-4 py-2 border border-error/50 text-error rounded-lg text-[10px] font-bold uppercase hover:bg-error/10 transition"
@@ -552,6 +588,9 @@ export default function NotificationsPage() {
           </div>
         </div>
       </div>
+
+      {/* RUV Details Modal */}
+      <RuvDetailsModal ruv={selectedRuv} onClose={() => setSelectedRuv(null)} />
     </AppShell>
   );
 }
