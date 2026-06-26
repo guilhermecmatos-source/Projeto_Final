@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearStoredAuth, getStoredAuth } from "@/lib/auth-storage";
 
 function resolveApiBaseUrl(): string {
   const publicUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -22,7 +23,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
+    const { token } = getStoredAuth();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,8 +35,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      clearStoredAuth();
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }

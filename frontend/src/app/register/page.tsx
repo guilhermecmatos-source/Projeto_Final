@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthHero from "@/components/auth/AuthHero";
 import { authApi } from "@/services/api";
+import { setStoredAuth } from "@/lib/auth-storage";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,8 +25,7 @@ export default function RegisterPage() {
         String(form.get("email")),
         String(form.get("password"))
       );
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      setStoredAuth(res.data.token, res.data.user);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(

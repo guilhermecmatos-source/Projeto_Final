@@ -11,6 +11,7 @@ import { User } from "@/types";
 import { authApi } from "@/services/api";
 import { getStoredTheme, applyTheme, ThemeId, THEME_OPTIONS } from "@/lib/themes";
 import { getOfflineMode, saveOfflineMode } from "@/db/localDb";
+import { clearStoredAuth, getStoredAuth, setStoredAuth } from "@/lib/auth-storage";
 
 interface SidebarProps {
   user: User | null;
@@ -125,8 +126,7 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
     } catch {
       /* ignore */
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearStoredAuth();
     router.push("/login");
   }
 
@@ -251,8 +251,8 @@ export default function Sidebar({ user, open = false, onClose }: SidebarProps) {
             value={user?.role ?? "administrador"}
             onChange={(e) => {
               const newRole = e.target.value;
-              const updatedUser = { ...user, role: newRole };
-              localStorage.setItem("user", JSON.stringify(updatedUser));
+              const updatedUser = { ...(user ?? {}), role: newRole };
+              setStoredAuth(getStoredAuth().token, updatedUser as Record<string, unknown>);
               window.location.reload();
             }}
             className="w-full cursor-pointer rounded border border-outline-variant bg-surface p-1.5 text-[10px] font-bold uppercase text-on-surface focus:outline-none"

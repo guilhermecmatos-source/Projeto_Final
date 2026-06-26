@@ -1,4 +1,5 @@
 import { User } from "@/types";
+import { getStoredAuth, setStoredAuth } from "@/lib/auth-storage";
 
 const PROFILES_KEY = "fleet_user_profiles";
 const ACTIVE_PROFILE_KEY = "fleet_active_profile_id";
@@ -26,7 +27,8 @@ export function getActiveProfileId(): string | null {
 
 export function setActiveProfile(profile: StoredProfile): void {
   localStorage.setItem(ACTIVE_PROFILE_KEY, profile.profileId);
-  localStorage.setItem("user", JSON.stringify(profile));
+  const { token } = getStoredAuth();
+  setStoredAuth(token, profile);
 }
 
 export function addProfile(user: User): StoredProfile {

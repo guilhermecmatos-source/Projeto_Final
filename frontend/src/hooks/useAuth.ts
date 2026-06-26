@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/types";
 import { ensureCurrentProfileInList } from "@/lib/profiles";
+import { getStoredAuth, setStoredAuth } from "@/lib/auth-storage";
 
 export function useAuth(redirectToLogin = true) {
   const router = useRouter();
@@ -11,16 +12,15 @@ export function useAuth(redirectToLogin = true) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const stored = localStorage.getItem("user");
+    const { token, user: storedUser } = getStoredAuth();
 
     if (!token && redirectToLogin) {
       router.push("/login");
       return;
     }
 
-    if (stored) {
-      const parsed = JSON.parse(stored) as User;
+    if (storedUser) {
+      const parsed = storedUser as User;
       setUser(parsed);
       ensureCurrentProfileInList(parsed);
     }
@@ -29,7 +29,7 @@ export function useAuth(redirectToLogin = true) {
 
   const updateUser = useCallback((u: User) => {
     setUser(u);
-    localStorage.setItem("user", JSON.stringify(u));
+    setStoredAuth(getStoredAuth().token, u as Record<string, unknown>);
   }, []);
 
   return { user, ready, setUser: updateUser };

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { authApi } from "@/services/api";
 import { ensureCurrentProfileInList } from "@/lib/profiles";
+import { setStoredAuth } from "@/lib/auth-storage";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,8 +33,7 @@ export default function LoginPage() {
 
     try {
       const { data } = await authApi.login(email.trim(), password);
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      setStoredAuth(data.token, data.user);
       ensureCurrentProfileInList(data.user);
       if (remember) localStorage.setItem("remember", "1");
       router.push("/dashboard");

@@ -3,7 +3,9 @@ function getBackendUrl() {
   return (
     process.env.BACKEND_URL ||
     process.env.INTERNAL_API_URL ||
-    (process.env.NODE_ENV === "production" ? "http://backend:3001" : "http://127.0.0.1:3001")
+    (process.env.NODE_ENV === "production"
+      ? "http://backend:3001"
+      : "http://127.0.0.1:3001")
   ).replace(/\/$/, "");
 }
 
@@ -22,6 +24,22 @@ const nextConfig = {
     return [
       { source: "/api/:path*", destination: `${target}/api/:path*` },
       { source: "/uploads/:path*", destination: `${target}/uploads/:path*` },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
     ];
   },
   logging: {

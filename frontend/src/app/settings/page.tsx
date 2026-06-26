@@ -81,7 +81,7 @@ export default function SettingsPage() {
       status: "Conectado", 
       icon: "router",
       url: "https://api.omnilink.com.br/v2/telemetry",
-      token: "omni_live_tok_991f8a8461ab",
+      token: "<redacted>",
       lastSync: "Hoje às 16:42"
     },
     { 

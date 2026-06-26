@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { authApi } from "@/services/api";
 import { ReactNode, useState, useEffect } from "react";
 import { getStoredTheme, applyTheme, ThemeId } from "@/lib/themes";
+import { clearStoredAuth } from "@/lib/auth-storage";
 
 interface TopHeaderProps {
   title?: string;
@@ -40,8 +41,7 @@ export default function TopHeader({
     } catch {
       /* token may be invalid */
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearStoredAuth();
     router.push("/login");
   };
 
